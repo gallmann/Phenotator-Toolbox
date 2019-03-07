@@ -1,10 +1,13 @@
 package com.masterthesis.johannes.annotationtool
 
+import android.app.Activity
 import android.content.Context
 import android.net.Uri
 import android.os.Bundle
 import android.support.v4.app.Fragment
 import android.view.*
+import android.support.v4.view.MenuItemCompat.getActionView
+import android.widget.*
 
 
 /**
@@ -16,26 +19,37 @@ import android.view.*
  * create an instance of this fragment.
  *
  */
-class MainFragment : Fragment() {
+class MainFragment : Fragment(), AdapterView.OnItemClickListener {
     private var listener: OnFragmentInteractionListener? = null
+    private lateinit var flowerListView: ListView
+    private var annotationState: AnnotationState = AnnotationState()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setHasOptionsMenu(true)
+
     }
+
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
         savedInstanceState: Bundle?
     ): View? {
         // Inflate the layout for this fragment
-        return inflater.inflate(R.layout.fragment_main, container, false)
+        val view: View = inflater.inflate(R.layout.fragment_main, container, false)
+        flowerListView = view.findViewById<ListView>(R.id.flower_list_view)
+        flowerListView.onItemClickListener = this
+        updateFlowerListView()
+        return view
     }
 
 
     override fun onCreateOptionsMenu(menu: Menu, inflater: MenuInflater) {
         inflater.inflate(R.menu.main, menu);
         super.onCreateOptionsMenu(menu, inflater)
+
+        enableMenuItem(menu.findItem(R.id.action_redo), false)
+        enableMenuItem(menu.findItem(R.id.action_undo), false)
     }
 
     override fun onOptionsItemSelected(item: MenuItem): Boolean {
@@ -45,6 +59,29 @@ class MainFragment : Fragment() {
         when (item.itemId) {
             else -> return super.onOptionsItemSelected(item)
         }
+    }
+
+    override fun onItemClick(p0: AdapterView<*>?, view: View, index: Int, p3: Long) {
+
+        (flowerListView.adapter as FlowerListAdapter).selectedIndex(index)
+    }
+
+
+    fun enableMenuItem(button: MenuItem, enable: Boolean){
+        if(enable){
+            button.icon.alpha = 0
+            button.setEnabled(true)
+        }
+        else {
+            button.icon.alpha = 120
+            button.setEnabled(false)
+        }
+    }
+
+    fun updateFlowerListView(){
+        var listItems: Array<String> = arrayOf("Sonnenblume", "Löwenzahn", "bla", "bla", "b", "hhh", "hf", "fhewf")
+        val adapter = FlowerListAdapter(activity as Activity , annotationState)
+        flowerListView.adapter = adapter
     }
 
     // TODO: Rename method, update argument and hook method into UI event
@@ -81,5 +118,8 @@ class MainFragment : Fragment() {
         // TODO: Update argument type and name
         fun onFragmentInteraction(uri: Uri)
     }
+
+
+
 
 }

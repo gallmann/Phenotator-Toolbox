@@ -20,26 +20,28 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        setContentView(R.layout.activity_main)
+        if(savedInstanceState == null){
+            setContentView(R.layout.activity_main)
 
 
-        val fragmentManager = supportFragmentManager
-        val fragmentTransaction = fragmentManager.beginTransaction()
+            val fragmentManager = supportFragmentManager
+            val fragmentTransaction = fragmentManager.beginTransaction()
 
-        val fragment = MainFragment()
-        fragmentTransaction.add(R.id.fragment_container, fragment)
-        fragmentTransaction.commit()
+            val fragment = MainFragment()
+            fragmentTransaction.add(R.id.fragment_container, fragment)
+            fragmentTransaction.commit()
 
 
-        setSupportActionBar(toolbar)
+            setSupportActionBar(toolbar)
 
-        val toggle = ActionBarDrawerToggle(
-            this, drawer_layout, toolbar, R.string.navigation_drawer_open, R.string.navigation_drawer_close
-        )
-        drawer_layout.addDrawerListener(toggle)
-        toggle.syncState()
+            val toggle = ActionBarDrawerToggle(
+                this, drawer_layout, toolbar, R.string.navigation_drawer_open, R.string.navigation_drawer_close
+            )
+            drawer_layout.addDrawerListener(toggle)
+            toggle.syncState()
 
-        nav_view.setNavigationItemSelectedListener(this)
+            nav_view.setNavigationItemSelectedListener(this)
+        }
 
     }
 

@@ -3,4 +3,7 @@
     <color name="colorPrimary">#008577</color>
     <color name="colorPrimaryDark">#00574B</color>
     <color name="colorAccent">#D81B60</color>
+    <color name="lvHeaderTextColor">#168686</color>
+    <color name="lvHeaderDividerColor">#168686</color>
+    <color name="lvDividerColor">#E0E0E0</color>
 </resources>
