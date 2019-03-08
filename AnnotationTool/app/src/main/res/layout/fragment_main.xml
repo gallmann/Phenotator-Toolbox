@@ -7,15 +7,12 @@
               tools:context=".MainFragment" android:orientation="horizontal">
 
 
-    <LinearLayout
-        android:id="@+id/image_view"
-        android:orientation="horizontal"
-        android:layout_weight="1"
-        android:layout_width="match_parent"
-
-        android:layout_height="match_parent">
-
-    </LinearLayout>
+    <com.google.android.gms.maps.MapView
+            android:orientation="horizontal"
+            android:id="@+id/map_container"
+            android:layout_weight="1"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"/>
 
     <include layout="@layout/control_view"/>
 

@@ -8,6 +8,16 @@ import android.support.v4.app.Fragment
 import android.view.*
 import android.support.v4.view.MenuItemCompat.getActionView
 import android.widget.*
+import com.google.android.gms.common.GooglePlayServicesNotAvailableException
+import com.google.android.gms.maps.*
+import com.google.android.gms.maps.model.LatLng
+import com.google.android.gms.maps.model.MarkerOptions
+
+
+
+
+
+
 
 
 /**
@@ -19,10 +29,12 @@ import android.widget.*
  * create an instance of this fragment.
  *
  */
-class MainFragment : Fragment(), AdapterView.OnItemClickListener {
+class MainFragment : Fragment(), AdapterView.OnItemClickListener, OnMapReadyCallback {
     private var listener: OnFragmentInteractionListener? = null
     private lateinit var flowerListView: ListView
     private var annotationState: AnnotationState = AnnotationState()
+    private lateinit var mMapView: MapView
+    private lateinit var mMap: GoogleMap
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -35,11 +47,27 @@ class MainFragment : Fragment(), AdapterView.OnItemClickListener {
         inflater: LayoutInflater, container: ViewGroup?,
         savedInstanceState: Bundle?
     ): View? {
+
         // Inflate the layout for this fragment
         val view: View = inflater.inflate(R.layout.fragment_main, container, false)
         flowerListView = view.findViewById<ListView>(R.id.flower_list_view)
         flowerListView.onItemClickListener = this
         updateFlowerListView()
+
+
+        try {
+            MapsInitializer.initialize(activity!!)
+        } catch (e: GooglePlayServicesNotAvailableException) {
+            // TODO handle this situation
+        }
+
+
+        mMapView = view.findViewById(R.id.map_container) as MapView
+        mMapView.onCreate(null)
+        (view.findViewById(R.id.map_container) as MapView).getMapAsync(this)
+
+
+
         return view
     }
 
@@ -89,6 +117,21 @@ class MainFragment : Fragment(), AdapterView.OnItemClickListener {
         listener?.onFragmentInteraction(uri)
     }
 
+
+    private fun setUpMap() {
+        mMap.addMarker(MarkerOptions().position(LatLng(47.0, 13.0)).title("Marker"))
+        val maxZoom: Float = 30.toFloat()
+        mMap.setMaxZoomPreference(maxZoom)
+        mMap.setMinZoomPreference(15.toFloat())
+        
+    }
+
+
+    override fun onMapReady(map: GoogleMap) {
+        mMap = map
+        setUpMap()
+    }
+
     override fun onAttach(context: Context) {
         super.onAttach(context)
         if (context is OnFragmentInteractionListener) {
@@ -119,7 +162,20 @@ class MainFragment : Fragment(), AdapterView.OnItemClickListener {
         fun onFragmentInteraction(uri: Uri)
     }
 
+    override fun onResume() {
+        super.onResume()
+        mMapView.onResume()
+    }
 
+    override fun onPause() {
+        super.onPause()
+        mMapView.onPause()
+    }
+
+    override fun onDestroy() {
+        mMapView.onDestroy()
+        super.onDestroy()
+    }
 
 
 }
