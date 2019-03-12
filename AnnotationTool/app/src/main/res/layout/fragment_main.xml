@@ -8,15 +8,25 @@
 
 
     <LinearLayout
-        android:id="@+id/image_view"
-        android:orientation="horizontal"
-        android:layout_weight="1"
-        android:layout_width="match_parent"
-
-        android:layout_height="match_parent">
+            android:id="@+id/imageViewContainer"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:orientation="horizontal">
 
     </LinearLayout>
 
-    <include layout="@layout/control_view"/>
+    <!--
+
+<com.masterthesis.johannes.annotationtool.MyImageView
+        android:id="@+id/imageView"
+        android:orientation="horizontal"
+        android:layout_weight="1"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent">
+
+</com.masterthesis.johannes.annotationtool.MyImageView>
+-->
+<include layout="@layout/control_view"/>
 
 </LinearLayout>

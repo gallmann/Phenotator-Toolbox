@@ -6,4 +6,6 @@
     <color name="lvHeaderTextColor">#168686</color>
     <color name="lvHeaderDividerColor">#168686</color>
     <color name="lvDividerColor">#E0E0E0</color>
+    <color name="white">#FFFFFF</color>
+
 </resources>

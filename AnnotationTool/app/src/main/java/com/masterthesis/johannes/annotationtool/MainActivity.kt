@@ -13,6 +13,10 @@ import android.view.Menu
 import android.view.MenuItem
 import kotlinx.android.synthetic.main.activity_main.*
 import kotlinx.android.synthetic.main.app_bar_main.*
+import android.widget.Toast
+import android.content.pm.PackageManager
+
+
 
 class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelectedListener,
     MainFragment.OnFragmentInteractionListener, SettingsFragment.OnFragmentInteractionListener {
@@ -89,8 +93,6 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
         drawer_layout.closeDrawer(GravityCompat.START)
         return true
     }
-
-
 
 
     public override fun onFragmentInteraction(uri: Uri): Unit {

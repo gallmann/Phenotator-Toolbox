@@ -1,29 +1,32 @@
 package com.masterthesis.johannes.annotationtool
 
+import android.Manifest
 import android.app.Activity
 import android.content.Context
 import android.net.Uri
 import android.os.Bundle
 import android.support.v4.app.Fragment
 import android.view.*
-import android.support.v4.view.MenuItemCompat.getActionView
 import android.widget.*
+import com.davemorrissey.labs.subscaleview.ImageSource
+import android.content.pm.PackageManager
+import android.os.Environment
+import com.davemorrissey.labs.subscaleview.SubsamplingScaleImageView
+import android.graphics.PointF
+import android.widget.LinearLayout
 
 
-/**
- * A simple [Fragment] subclass.
- * Activities that contain this fragment must implement the
- * [MainFragment.OnFragmentInteractionListener] interface
- * to handle interaction events.
- * Use the [MainFragment.newInstance] factory method to
- * create an instance of this fragment.
- *
- */
-class MainFragment : Fragment(), AdapterView.OnItemClickListener {
+
+
+
+
+
+class MainFragment : Fragment(), AdapterView.OnItemClickListener, View.OnClickListener {
     private var listener: OnFragmentInteractionListener? = null
     private lateinit var flowerListView: ListView
     private var annotationState: AnnotationState = AnnotationState()
-
+    private lateinit var imageView: MyImageView
+    private val READ_PHONE_STORAGE_RETURN_CODE: Int = 1
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setHasOptionsMenu(true)
@@ -36,13 +39,43 @@ class MainFragment : Fragment(), AdapterView.OnItemClickListener {
         savedInstanceState: Bundle?
     ): View? {
         // Inflate the layout for this fragment
-        val view: View = inflater.inflate(R.layout.fragment_main, container, false)
-        flowerListView = view.findViewById<ListView>(R.id.flower_list_view)
+        val fragmentView: View = inflater.inflate(R.layout.fragment_main, container, false)
+        flowerListView = fragmentView.findViewById<ListView>(R.id.flower_list_view)
         flowerListView.onItemClickListener = this
-        updateFlowerListView()
-        return view
+        //updateFlowerListView()
+
+        val imageViewContainer: LinearLayout = fragmentView.findViewById<LinearLayout>(R.id.imageViewContainer)
+
+        imageView = MyImageView(context!!,annotationState,this)
+
+        imageViewContainer.addView(imageView)
+
+        requestPermissions(arrayOf(Manifest.permission.READ_EXTERNAL_STORAGE), READ_PHONE_STORAGE_RETURN_CODE)
+
+        /*
+        var tileView: TileView = view.findViewById(R.id.imageView)
+        TileView.Builder(tileView)
+            .setSize(17934, 13452)
+            .defineZoomLevel(0,"tiles/phi-1000000-%1\$d_%2\$d.jpg")
+            .defineZoomLevel(1, "tiles/phi-500000-%1\$d_%2\$d.jpg")
+            .defineZoomLevel(2, "tiles/phi-250000-%1\$d_%2\$d.jpg")
+            .defineZoomLevel(3, "tiles/phi-125000-%1\$d_%2\$d.jpg")
+
+            //.defineZoomLevel(1,"tiles/phi-500000-%1\$d_%2\$d.jpg")
+            //.defineZoomLevel(2,"tiles/phi-250000-%1\$d_%2\$d.jpg")
+            .build()
+
+        //tileView.setScaleLimits(0F,30F)
+        tileView.setMinimumScaleMode(ScalingScrollView.MinimumScaleMode.NONE)
+*/
+        return fragmentView
+
     }
 
+    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
+        super.onViewCreated(view, savedInstanceState)
+        updateFlowerListView()
+    }
 
     override fun onCreateOptionsMenu(menu: Menu, inflater: MenuInflater) {
         inflater.inflate(R.menu.main, menu);
@@ -78,10 +111,16 @@ class MainFragment : Fragment(), AdapterView.OnItemClickListener {
         }
     }
 
-    fun updateFlowerListView(){
-        var listItems: Array<String> = arrayOf("Sonnenblume", "Löwenzahn", "bla", "bla", "b", "hhh", "hf", "fhewf")
-        val adapter = FlowerListAdapter(activity as Activity , annotationState)
-        flowerListView.adapter = adapter
+    public fun updateFlowerListView(){
+        if(annotationState.currentFlower == null){
+            view!!.findViewById<LinearLayout>(R.id.annotation_edit_container).visibility = View.INVISIBLE
+            flowerListView.adapter = null
+        }
+        else{
+            view!!.findViewById<LinearLayout>(R.id.annotation_edit_container).visibility = View.VISIBLE
+            var adapter = FlowerListAdapter(activity as Activity,annotationState)
+            flowerListView.adapter = adapter
+        }
     }
 
     // TODO: Rename method, update argument and hook method into UI event
@@ -101,6 +140,30 @@ class MainFragment : Fragment(), AdapterView.OnItemClickListener {
     override fun onDetach() {
         super.onDetach()
         listener = null
+    }
+
+
+    fun initImageView(){
+        imageView.setImage(
+            ImageSource.uri(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS).toString() + "/tile_0_0.png").dimensions(
+                22343,
+                21929
+            )
+        );
+        imageView.maxScale = 30.0F
+    }
+
+    override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<out kotlin.String>, grantResults: IntArray): Unit {
+        if(requestCode == READ_PHONE_STORAGE_RETURN_CODE){
+            if (permissions[0].equals(Manifest.permission.READ_EXTERNAL_STORAGE) && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                initImageView()
+            }
+        }
+    }
+
+    override fun onClick(imageView: View?) {
+
+
     }
 
     /**
