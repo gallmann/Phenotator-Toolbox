@@ -9,11 +9,7 @@ import android.os.Bundle
 import android.support.v4.app.Fragment
 import android.view.*
 import android.widget.*
-import com.davemorrissey.labs.subscaleview.ImageSource
 import android.content.pm.PackageManager
-import android.os.Environment
-import com.davemorrissey.labs.subscaleview.SubsamplingScaleImageView
-import android.graphics.PointF
 import android.widget.LinearLayout
 
 
@@ -25,7 +21,7 @@ import android.widget.LinearLayout
 class MainFragment : Fragment(), AdapterView.OnItemClickListener, View.OnClickListener {
     private var listener: OnFragmentInteractionListener? = null
     private lateinit var flowerListView: ListView
-    private var annotationState: AnnotationState = AnnotationState()
+    private lateinit var annotationState: AnnotationState
     private lateinit var imageView: MyImageView
     private val READ_PHONE_STORAGE_RETURN_CODE: Int = 1
     private lateinit var imageUri: Uri
@@ -45,9 +41,8 @@ class MainFragment : Fragment(), AdapterView.OnItemClickListener, View.OnClickLi
         val fragmentView: View = inflater.inflate(R.layout.fragment_main, container, false)
         flowerListView = fragmentView.findViewById<ListView>(R.id.flower_list_view)
         flowerListView.onItemClickListener = this
-        //updateFlowerListView()
+        fragmentView.findViewById<LinearLayout>(R.id.annotation_edit_container).visibility = View.INVISIBLE
 
-        val imageViewContainer: RelativeLayout = fragmentView.findViewById<RelativeLayout>(R.id.imageViewContainer)
         fragmentView.findViewById<Button>(R.id.done_button).setOnClickListener(this)
         fragmentView.findViewById<Button>(R.id.cancel_button).setOnClickListener(this)
         fragmentView.findViewById<ImageButton>(R.id.upButton).setOnClickListener(this)
@@ -55,17 +50,8 @@ class MainFragment : Fragment(), AdapterView.OnItemClickListener, View.OnClickLi
         fragmentView.findViewById<ImageButton>(R.id.leftButton).setOnClickListener(this)
         fragmentView.findViewById<ImageButton>(R.id.rightButton).setOnClickListener(this)
 
-        imageView = MyImageView(context!!,annotationState,this)
-
-        imageViewContainer.addView(imageView)
-
         return fragmentView
 
-    }
-
-    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
-        super.onViewCreated(view, savedInstanceState)
-        updateFlowerListView()
     }
 
     override fun onCreateOptionsMenu(menu: Menu, inflater: MenuInflater) {
@@ -141,8 +127,10 @@ class MainFragment : Fragment(), AdapterView.OnItemClickListener, View.OnClickLi
 
     fun initImageView(){
         view!!.findViewById<ProgressBar>(R.id.progress_circular).visibility = View.VISIBLE
-        imageView.setImage(ImageSource.uri(imageUri))
-        imageView.maxScale = 30.0F
+        val imageViewContainer: RelativeLayout = view!!.findViewById<RelativeLayout>(R.id.imageViewContainer)
+        annotationState = AnnotationState(imageUri,context!!)
+        imageView = MyImageView(context!!,annotationState,this)
+        imageViewContainer.addView(imageView)
     }
 
 
@@ -186,14 +174,15 @@ class MainFragment : Fragment(), AdapterView.OnItemClickListener, View.OnClickLi
 
 
     private fun openImage(){
-        requestPermissions(arrayOf(Manifest.permission.READ_EXTERNAL_STORAGE), READ_PHONE_STORAGE_RETURN_CODE)
+        requestPermissions(arrayOf(Manifest.permission.READ_EXTERNAL_STORAGE, Manifest.permission.WRITE_EXTERNAL_STORAGE), READ_PHONE_STORAGE_RETURN_CODE)
     }
 
     override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<out kotlin.String>, grantResults: IntArray): Unit {
         if(requestCode == READ_PHONE_STORAGE_RETURN_CODE){
             if (permissions[0].equals(Manifest.permission.READ_EXTERNAL_STORAGE) && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
                 val intent = Intent(Intent.ACTION_OPEN_DOCUMENT).apply {
-                    type = "*/*"
+                    addCategory(Intent.CATEGORY_OPENABLE)
+                    type = "image/*"
                 }
                 startActivityForResult(intent, READ_REQUEST_CODE)
             }

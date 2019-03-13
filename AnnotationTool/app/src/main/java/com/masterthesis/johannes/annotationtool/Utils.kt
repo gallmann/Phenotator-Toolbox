@@ -4,6 +4,7 @@ import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.Canvas
 import android.os.Build
+import android.os.Environment
 import android.support.v4.content.ContextCompat
 import android.support.v4.graphics.drawable.DrawableCompat
 import android.view.ViewConfiguration
@@ -50,4 +51,9 @@ public fun isCoordinateVisible(canvas: Canvas, x: Float, y:Float, margin: Float)
     }
     return true
 }
+
+fun isExternalStorageWritable(): Boolean {
+    return Environment.getExternalStorageState() == Environment.MEDIA_MOUNTED
+}
+
 
