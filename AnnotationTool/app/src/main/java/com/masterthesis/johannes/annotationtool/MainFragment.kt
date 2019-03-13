@@ -45,6 +45,8 @@ class MainFragment : Fragment(), AdapterView.OnItemClickListener, View.OnClickLi
         //updateFlowerListView()
 
         val imageViewContainer: LinearLayout = fragmentView.findViewById<LinearLayout>(R.id.imageViewContainer)
+        fragmentView.findViewById<Button>(R.id.done_button).setOnClickListener(this)
+        fragmentView.findViewById<Button>(R.id.cancel_button).setOnClickListener(this)
 
         imageView = MyImageView(context!!,annotationState,this)
 
@@ -97,6 +99,7 @@ class MainFragment : Fragment(), AdapterView.OnItemClickListener, View.OnClickLi
     override fun onItemClick(p0: AdapterView<*>?, view: View, index: Int, p3: Long) {
 
         (flowerListView.adapter as FlowerListAdapter).selectedIndex(index)
+        imageView.invalidate()
     }
 
 
@@ -161,8 +164,20 @@ class MainFragment : Fragment(), AdapterView.OnItemClickListener, View.OnClickLi
         }
     }
 
-    override fun onClick(imageView: View?) {
+    override fun onClick(view: View) {
+        when(view.id){
+            R.id.done_button -> {
+                annotationState.permanentlyAddCurrentFlower()
+                updateFlowerListView()
+                imageView.invalidate()
+            }
+            R.id.cancel_button -> {
+                annotationState.cancelCurrentFlower()
+                updateFlowerListView()
+                imageView.invalidate()
+            }
 
+        }
 
     }
 

@@ -24,21 +24,55 @@
 
     <LinearLayout
             android:id="@+id/annotation_edit_container"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
             android:orientation="vertical"
             android:layout_margin="4dp"
             android:elevation="6dp"
             android:background="#fff">
 
+        <LinearLayout
+                android:orientation="horizontal"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content">
+            <Button
+                    android:id="@+id/cancel_button"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/cancel_button"
+                    android:textColor="@color/colorPrimaryDark"
+                    style="?android:attr/borderlessButtonStyle"
+            />
+            <LinearLayout
+                    android:layout_weight="1"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent">
+
+            </LinearLayout>
+            <Button
+                    android:id="@+id/done_button"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/done_button"
+                    android:textColor="@color/colorPrimaryDark"
+                    style="?android:attr/borderlessButtonStyle"
+
+            />
+
+        </LinearLayout>
+
         <ListView
+                android:layout_weight="1"
                 android:id="@+id/flower_list_view"
                 android:layout_width="match_parent"
-                android:layout_height="350dp">
+                android:layout_height="match_parent">
 
         </ListView>
 
+        <include layout="@layout/position_adjustment"/>
+
     </LinearLayout>
+
 
 
     </LinearLayout>

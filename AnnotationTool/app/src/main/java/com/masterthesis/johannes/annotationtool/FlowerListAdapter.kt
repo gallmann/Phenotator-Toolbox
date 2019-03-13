@@ -61,7 +61,7 @@ class FlowerListAdapter(var activity: Activity,
     }
 
     override fun getCount(): Int {
-        return annotationState.flowerList.size
+        return annotationState.flowerList.size + 2 + annotationState.favs.size
     }
 
     fun selectedIndex(i: Int) {

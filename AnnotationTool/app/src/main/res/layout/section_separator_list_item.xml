@@ -20,7 +20,7 @@
     <TextView
             android:textIsSelectable="false"
             android:id="@+id/lv_list_hdr"
-            android:textColor="@color/lvHeaderTextColor"
+            android:textColor="@color/colorPrimary"
             android:gravity="bottom|left"
             android:layout_width="wrap_content"
             android:layout_height="fill_parent"

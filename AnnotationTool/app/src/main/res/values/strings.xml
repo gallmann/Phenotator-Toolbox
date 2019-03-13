@@ -9,6 +9,9 @@
     <string name="action_undo">Undo</string>
     <string name="action_redo">Redo</string>
     <string name="action_import_image">Import Image</string>
+    <string name="cancel_button">CANCEL/DELETE</string>
+    <string name="done_button">DONE</string>
+
 
 
     <!-- TODO: Remove or change this placeholder text -->

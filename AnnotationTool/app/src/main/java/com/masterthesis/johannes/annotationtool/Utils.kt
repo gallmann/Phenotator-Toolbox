@@ -41,3 +41,13 @@ public fun isAClick(startX: Float, endX: Float, startY: Float, endY: Float, star
     return !(differenceX > CLICK_ACTION_THRESHOLD || differenceY > CLICK_ACTION_THRESHOLD)
 }
 
+public fun isCoordinateVisible(canvas: Canvas, x: Float, y:Float, margin: Float): Boolean{
+    if(x < 0 - margin || y < 0-margin){
+        return false
+    }
+    if(x>canvas.width+margin || y > canvas.height+margin){
+        return false
+    }
+    return true
+}
+

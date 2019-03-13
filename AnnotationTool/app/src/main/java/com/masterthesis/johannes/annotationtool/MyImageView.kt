@@ -6,25 +6,23 @@ import android.util.AttributeSet
 import com.davemorrissey.labs.subscaleview.SubsamplingScaleImageView
 import android.graphics.PointF
 import android.graphics.Bitmap
-import android.support.v4.graphics.drawable.DrawableCompat
-import android.os.Build
-import android.support.v4.content.ContextCompat
 import android.view.MotionEvent
 import android.view.View
-import android.view.ViewConfiguration
 import android.widget.LinearLayout
+import android.graphics.Color.parseColor
+
+
+
+
 
 
 class MyImageView constructor(context: Context, val annotationState: AnnotationState, val mainFragment: MainFragment, attr: AttributeSet? = null) :
     SubsamplingScaleImageView(context, attr), View.OnTouchListener {
 
-    private val paint = Paint()
-    private val vPin = PointF()
-    private var sPin: PointF? = null
-    private var pin: Bitmap? = null
+    private lateinit var pin: Bitmap
+    private val ZOOM_THRESH = 0.9
 
-
-
+    private var showCurrentFlower: Boolean = true
     private var startTime: Long = 0
     private var startX: Float = 0.toFloat()
     private var startY: Float = 0.toFloat()
@@ -38,22 +36,42 @@ class MyImageView constructor(context: Context, val annotationState: AnnotationS
             LinearLayout.LayoutParams.MATCH_PARENT,
             LinearLayout.LayoutParams.MATCH_PARENT
         )
-
+        setOnTouchListener(this)
         val density = resources.displayMetrics.densityDpi.toFloat()
         pin = getBitmapFromVectorDrawable(context,R.drawable.cross)
-
-        val w = density / 10f * pin!!.width
-        val h = density / 10f * pin!!.height
-        pin = Bitmap.createScaledBitmap(pin!!, w.toInt(), h.toInt(), true)
+        val w = density / 200f * pin.width
+        val h = density / 200f * pin.height
+        pin = Bitmap.createScaledBitmap(pin, w.toInt(), h.toInt(), true)
+        setCircleAnimation()
 
     }
 
     override fun onDraw(canvas: Canvas) {
         super.onDraw(canvas)
 
-        
+        // Don't draw pin before image is ready so it doesn't move around during setup.
+        if (!isReady || scale < ZOOM_THRESH) {
+            return
+        }
+
+        if(showCurrentFlower && annotationState.currentFlower != null){
+            var flower = annotationState.currentFlower!!
+            var viewcoord: PointF = sourceToViewCoord(flower.xPos, flower.yPos)!!
+            val vX = viewcoord.x - pin!!.width / 2
+            val vY = viewcoord.y - pin!!.height / 2
+            canvas.drawBitmap(pin, vX, vY, annotationState.getFlowerColor(flower.name,context))
+        }
 
 
+        for((index,flower) in annotationState.annotatedFlowers.withIndex()){
+            var viewcoord: PointF = sourceToViewCoord(flower.xPos, flower.yPos)!!
+
+            if(isCoordinateVisible(canvas,viewcoord.x,viewcoord.y,pin!!.width / 2F)){
+                val vX = viewcoord.x - pin!!.width / 2
+                val vY = viewcoord.y - pin!!.height / 2
+                canvas.drawBitmap(pin, vX, vY, annotationState.getFlowerColor(flower.name,context))
+            }
+        }
     }
 
     override fun onTouch(imageView: View, event: MotionEvent): Boolean {
@@ -69,8 +87,14 @@ class MyImageView constructor(context: Context, val annotationState: AnnotationS
                 val endY = event.y
                 val endTime = System.currentTimeMillis()
                 if (isAClick(startX, endX, startY, endY, startTime, endTime, context)) {
-                    if(isReady){
-                        addNewMark(event)
+                    if(isReady && scale >= ZOOM_THRESH){
+                        val editFlower = clickedOnExistingMark(endX,endY);
+                        if(editFlower != null){
+                            editMark(editFlower)
+                        }
+                        else {
+                            addNewMark(event)
+                        }
                     }
                 }
             }
@@ -78,10 +102,45 @@ class MyImageView constructor(context: Context, val annotationState: AnnotationS
         return false
     }
 
+    private fun clickedOnExistingMark(x: Float, y: Float):Flower?{
+        val w: Float = pin!!.width / 2F
+        for((index,flower) in annotationState.annotatedFlowers.withIndex()){
+            val sourceCoord = sourceToViewCoord(flower.xPos,flower.yPos)
+            val xPos = sourceCoord!!.x
+            val yPos = sourceCoord!!.y
+            val rect: RectF = RectF(xPos-w,yPos-w,xPos+w, yPos+w)
+            if(rect.contains(x,y)){
+                return flower
+            }
+        }
+        return null
+    }
+
+    private fun setCircleAnimation() {
+        postDelayed(object : Runnable {
+            override fun run() {
+                showCurrentFlower = !showCurrentFlower
+                invalidate()
+                if(showCurrentFlower){
+                    postDelayed(this, 600)
+                }
+                else{
+                    postDelayed(this, 200)
+                }
+            }
+        }, 300)
+    }
+
 
     private fun addNewMark(event: MotionEvent){
         var sourcecoord: PointF = viewToSourceCoord(PointF(event.x, event.y))!!
         annotationState.addNewFlowerMarker(sourcecoord.x, sourcecoord.y)
+        mainFragment.updateFlowerListView()
+        invalidate()
+    }
+
+    private fun editMark(flower: Flower){
+        annotationState.startEditingFlower(flower)
         mainFragment.updateFlowerListView()
         invalidate()
     }
