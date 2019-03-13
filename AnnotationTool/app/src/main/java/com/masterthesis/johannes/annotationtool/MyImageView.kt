@@ -9,11 +9,6 @@ import android.graphics.Bitmap
 import android.view.MotionEvent
 import android.view.View
 import android.widget.LinearLayout
-import android.graphics.Color.parseColor
-
-
-
-
 
 
 class MyImageView constructor(context: Context, val annotationState: AnnotationState, val mainFragment: MainFragment, attr: AttributeSet? = null) :
@@ -42,7 +37,7 @@ class MyImageView constructor(context: Context, val annotationState: AnnotationS
         val w = density / 200f * pin.width
         val h = density / 200f * pin.height
         pin = Bitmap.createScaledBitmap(pin, w.toInt(), h.toInt(), true)
-        setCircleAnimation()
+        setBlinkingAnimation()
 
     }
 
@@ -116,7 +111,7 @@ class MyImageView constructor(context: Context, val annotationState: AnnotationS
         return null
     }
 
-    private fun setCircleAnimation() {
+    private fun setBlinkingAnimation() {
         postDelayed(object : Runnable {
             override fun run() {
                 showCurrentFlower = !showCurrentFlower

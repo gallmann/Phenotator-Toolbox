@@ -1,16 +1,38 @@
 <?xml version="1.0" encoding="utf-8"?>
-<android.support.constraint.RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
-                                         android:layout_width="match_parent"
-                                         android:layout_height="wrap_content">
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+                android:layout_gravity="center_horizontal"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content">
 
 
     <ImageButton
-            android:id="@+id/imageButton1"
-            android:foregroundGravity="center_horizontal"
+            android:id="@+id/upButton"
+            android:layout_toRightOf="@id/leftButton"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:src="@drawable/checkmark_icon" />
+            android:src="@drawable/up" />
+    <ImageButton
+            android:id="@+id/leftButton"
+            android:foregroundGravity="center_horizontal"
+            android:layout_width="wrap_content"
+            android:layout_below="@+id/upButton"
+            android:layout_height="wrap_content"
+            android:src="@drawable/left" />
+    <ImageButton
+            android:id="@+id/rightButton"
+            android:foregroundGravity="center_horizontal"
+            android:layout_below="@+id/upButton"
+            android:layout_toRightOf="@id/upButton"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:src="@drawable/right" />
+    <ImageButton
+            android:id="@+id/downButton"
+            android:foregroundGravity="center_horizontal"
+            android:layout_below="@id/rightButton"
+            android:layout_toRightOf="@id/leftButton"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:src="@drawable/down" />
 
-
-
-</android.support.constraint.RelativeLayout>
+</RelativeLayout>

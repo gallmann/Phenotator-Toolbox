@@ -3,6 +3,7 @@ package com.masterthesis.johannes.annotationtool
 import android.Manifest
 import android.app.Activity
 import android.content.Context
+import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
 import android.support.v4.app.Fragment
@@ -27,6 +28,8 @@ class MainFragment : Fragment(), AdapterView.OnItemClickListener, View.OnClickLi
     private var annotationState: AnnotationState = AnnotationState()
     private lateinit var imageView: MyImageView
     private val READ_PHONE_STORAGE_RETURN_CODE: Int = 1
+    private lateinit var imageUri: Uri
+    val READ_REQUEST_CODE: Int = 42
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setHasOptionsMenu(true)
@@ -44,32 +47,18 @@ class MainFragment : Fragment(), AdapterView.OnItemClickListener, View.OnClickLi
         flowerListView.onItemClickListener = this
         //updateFlowerListView()
 
-        val imageViewContainer: LinearLayout = fragmentView.findViewById<LinearLayout>(R.id.imageViewContainer)
+        val imageViewContainer: RelativeLayout = fragmentView.findViewById<RelativeLayout>(R.id.imageViewContainer)
         fragmentView.findViewById<Button>(R.id.done_button).setOnClickListener(this)
         fragmentView.findViewById<Button>(R.id.cancel_button).setOnClickListener(this)
+        fragmentView.findViewById<ImageButton>(R.id.upButton).setOnClickListener(this)
+        fragmentView.findViewById<ImageButton>(R.id.downButton).setOnClickListener(this)
+        fragmentView.findViewById<ImageButton>(R.id.leftButton).setOnClickListener(this)
+        fragmentView.findViewById<ImageButton>(R.id.rightButton).setOnClickListener(this)
 
         imageView = MyImageView(context!!,annotationState,this)
 
         imageViewContainer.addView(imageView)
 
-        requestPermissions(arrayOf(Manifest.permission.READ_EXTERNAL_STORAGE), READ_PHONE_STORAGE_RETURN_CODE)
-
-        /*
-        var tileView: TileView = view.findViewById(R.id.imageView)
-        TileView.Builder(tileView)
-            .setSize(17934, 13452)
-            .defineZoomLevel(0,"tiles/phi-1000000-%1\$d_%2\$d.jpg")
-            .defineZoomLevel(1, "tiles/phi-500000-%1\$d_%2\$d.jpg")
-            .defineZoomLevel(2, "tiles/phi-250000-%1\$d_%2\$d.jpg")
-            .defineZoomLevel(3, "tiles/phi-125000-%1\$d_%2\$d.jpg")
-
-            //.defineZoomLevel(1,"tiles/phi-500000-%1\$d_%2\$d.jpg")
-            //.defineZoomLevel(2,"tiles/phi-250000-%1\$d_%2\$d.jpg")
-            .build()
-
-        //tileView.setScaleLimits(0F,30F)
-        tileView.setMinimumScaleMode(ScalingScrollView.MinimumScaleMode.NONE)
-*/
         return fragmentView
 
     }
@@ -92,6 +81,10 @@ class MainFragment : Fragment(), AdapterView.OnItemClickListener, View.OnClickLi
         // automatically handle clicks on the Home/Up button, so long
         // as you specify a parent activity in AndroidManifest.xml.
         when (item.itemId) {
+            R.id.action_import_image ->{
+                openImage()
+                return false
+            }
             else -> return super.onOptionsItemSelected(item)
         }
     }
@@ -147,22 +140,11 @@ class MainFragment : Fragment(), AdapterView.OnItemClickListener, View.OnClickLi
 
 
     fun initImageView(){
-        imageView.setImage(
-            ImageSource.uri(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS).toString() + "/tile_0_0.png").dimensions(
-                22343,
-                21929
-            )
-        );
+        view!!.findViewById<ProgressBar>(R.id.progress_circular).visibility = View.VISIBLE
+        imageView.setImage(ImageSource.uri(imageUri))
         imageView.maxScale = 30.0F
     }
 
-    override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<out kotlin.String>, grantResults: IntArray): Unit {
-        if(requestCode == READ_PHONE_STORAGE_RETURN_CODE){
-            if (permissions[0].equals(Manifest.permission.READ_EXTERNAL_STORAGE) && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-                initImageView()
-            }
-        }
-    }
 
     override fun onClick(view: View) {
         when(view.id){
@@ -176,10 +158,58 @@ class MainFragment : Fragment(), AdapterView.OnItemClickListener, View.OnClickLi
                 updateFlowerListView()
                 imageView.invalidate()
             }
+            R.id.upButton, R.id.downButton, R.id.leftButton, R.id.rightButton -> {
+                moveCurrentMark(view.id)
+            }
 
         }
 
     }
+
+    private fun moveCurrentMark(id: Int){
+        when(id){
+            R.id.leftButton -> {
+                annotationState.currentFlower!!.xPos = annotationState.currentFlower!!.xPos - 1
+            }
+            R.id.rightButton -> {
+                annotationState.currentFlower!!.xPos = annotationState.currentFlower!!.xPos + 1
+            }
+            R.id.upButton -> {
+                annotationState.currentFlower!!.yPos = annotationState.currentFlower!!.yPos - 1
+            }
+            R.id.downButton -> {
+                annotationState.currentFlower!!.yPos = annotationState.currentFlower!!.yPos + 1
+            }
+        }
+        imageView.invalidate()
+    }
+
+
+    private fun openImage(){
+        requestPermissions(arrayOf(Manifest.permission.READ_EXTERNAL_STORAGE), READ_PHONE_STORAGE_RETURN_CODE)
+    }
+
+    override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<out kotlin.String>, grantResults: IntArray): Unit {
+        if(requestCode == READ_PHONE_STORAGE_RETURN_CODE){
+            if (permissions[0].equals(Manifest.permission.READ_EXTERNAL_STORAGE) && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                val intent = Intent(Intent.ACTION_OPEN_DOCUMENT).apply {
+                    type = "*/*"
+                }
+                startActivityForResult(intent, READ_REQUEST_CODE)
+            }
+        }
+    }
+
+    override fun onActivityResult(requestCode: Int, resultCode: Int, resultData: Intent?) {
+
+        if (requestCode == READ_REQUEST_CODE && resultCode == Activity.RESULT_OK) {
+            resultData?.data?.also { uri ->
+                imageUri = uri
+                initImageView()
+            }
+        }
+    }
+
 
     /**
      * This interface must be implemented by activities that contain this
