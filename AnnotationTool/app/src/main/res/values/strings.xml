@@ -10,7 +10,8 @@
     <string name="action_redo">Redo</string>
     <string name="action_import_image">Import Image</string>
     <string name="cancel_button">CANCEL/DELETE</string>
-    <string name="done_button">DONE</string>
+    <string name="done_button">SAVE</string>
+    <string name="could_not_load_image">An Error occured while trying to load the Image. Please try again!</string>
 
 
 

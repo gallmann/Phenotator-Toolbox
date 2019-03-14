@@ -11,11 +11,11 @@ import android.view.*
 import android.widget.*
 import android.content.pm.PackageManager
 import android.widget.LinearLayout
-
-
-
-
-
+import android.content.Context.MODE_PRIVATE
+import android.os.Parcel
+import android.support.design.widget.Snackbar
+import com.google.gson.Gson
+import java.io.File
 
 
 class MainFragment : Fragment(), AdapterView.OnItemClickListener, View.OnClickListener {
@@ -24,7 +24,9 @@ class MainFragment : Fragment(), AdapterView.OnItemClickListener, View.OnClickLi
     private lateinit var annotationState: AnnotationState
     private lateinit var imageView: MyImageView
     private val READ_PHONE_STORAGE_RETURN_CODE: Int = 1
-    private lateinit var imageUri: Uri
+    private val READ_PHONE_STORAGE_RETURN_CODE_STARTUP: Int = 2
+
+    private lateinit var imagePath: String
     val READ_REQUEST_CODE: Int = 42
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -51,8 +53,19 @@ class MainFragment : Fragment(), AdapterView.OnItemClickListener, View.OnClickLi
         fragmentView.findViewById<ImageButton>(R.id.rightButton).setOnClickListener(this)
 
         return fragmentView
-
     }
+
+    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
+        super.onViewCreated(view, savedInstanceState)
+
+        val prefs = context!!.getSharedPreferences(SHARED_PREFERENCES_KEY, MODE_PRIVATE)
+        val restoredText = prefs.getString(LAST_OPENED_IMAGE_URI, null)
+        if (restoredText != null) {
+            imagePath = restoredText
+            requestPermissions(arrayOf(Manifest.permission.READ_EXTERNAL_STORAGE, Manifest.permission.WRITE_EXTERNAL_STORAGE), READ_PHONE_STORAGE_RETURN_CODE_STARTUP)
+        }
+    }
+
 
     override fun onCreateOptionsMenu(menu: Menu, inflater: MenuInflater) {
         inflater.inflate(R.menu.main, menu);
@@ -126,11 +139,25 @@ class MainFragment : Fragment(), AdapterView.OnItemClickListener, View.OnClickLi
 
 
     fun initImageView(){
+
+        if(!isExternalStorageWritable() || !File(imagePath).exists()){
+            Snackbar.make(view!!, R.string.could_not_load_image, Snackbar.LENGTH_LONG).show();
+            val editor = context!!.getSharedPreferences(SHARED_PREFERENCES_KEY, MODE_PRIVATE).edit()
+            editor.putString(LAST_OPENED_IMAGE_URI,null)
+            editor.apply()
+            return
+        }
+
+        println(imagePath)
         view!!.findViewById<ProgressBar>(R.id.progress_circular).visibility = View.VISIBLE
         val imageViewContainer: RelativeLayout = view!!.findViewById<RelativeLayout>(R.id.imageViewContainer)
-        annotationState = AnnotationState(imageUri,context!!)
+        annotationState = AnnotationState(imagePath,context!!)
         imageView = MyImageView(context!!,annotationState,this)
         imageViewContainer.addView(imageView)
+
+        val editor = context!!.getSharedPreferences(SHARED_PREFERENCES_KEY, MODE_PRIVATE).edit()
+        editor.putString(LAST_OPENED_IMAGE_URI,imagePath)
+        editor.apply()
     }
 
 
@@ -149,9 +176,7 @@ class MainFragment : Fragment(), AdapterView.OnItemClickListener, View.OnClickLi
             R.id.upButton, R.id.downButton, R.id.leftButton, R.id.rightButton -> {
                 moveCurrentMark(view.id)
             }
-
         }
-
     }
 
     private fun moveCurrentMark(id: Int){
@@ -187,13 +212,19 @@ class MainFragment : Fragment(), AdapterView.OnItemClickListener, View.OnClickLi
                 startActivityForResult(intent, READ_REQUEST_CODE)
             }
         }
+        else if(requestCode == READ_PHONE_STORAGE_RETURN_CODE_STARTUP){
+            if (permissions[0].equals(Manifest.permission.READ_EXTERNAL_STORAGE) && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                initImageView()
+            }
+
+        }
     }
 
     override fun onActivityResult(requestCode: Int, resultCode: Int, resultData: Intent?) {
 
         if (requestCode == READ_REQUEST_CODE && resultCode == Activity.RESULT_OK) {
             resultData?.data?.also { uri ->
-                imageUri = uri
+                imagePath = uriToPath(uri)
                 initImageView()
             }
         }

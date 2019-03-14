@@ -6,6 +6,7 @@ import android.util.AttributeSet
 import com.davemorrissey.labs.subscaleview.SubsamplingScaleImageView
 import android.graphics.PointF
 import android.graphics.Bitmap
+import android.net.Uri
 import android.view.MotionEvent
 import android.view.View
 import android.widget.LinearLayout
@@ -39,7 +40,7 @@ class MyImageView constructor(context: Context, val annotationState: AnnotationS
         val h = density / 200f * pin.height
         pin = Bitmap.createScaledBitmap(pin, w.toInt(), h.toInt(), true)
         setBlinkingAnimation()
-        setImage(ImageSource.uri(annotationState.imageUri))
+        setImage(ImageSource.uri(annotationState.imagePath))
         maxScale = 30.0F
     }
 

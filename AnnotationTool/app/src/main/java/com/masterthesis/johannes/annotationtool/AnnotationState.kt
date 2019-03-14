@@ -9,49 +9,49 @@ import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
 import com.google.gson.stream.JsonReader
 import java.io.*
+import kotlin.concurrent.thread
 
 
-class AnnotationState(var imageUri: Uri, val context: Context) {
+class AnnotationState(@Transient var imagePath: String, @Transient val context: Context) {
 
     var annotatedFlowers: ArrayList<Flower> = ArrayList<Flower>()
-    var currentFlower: Flower? = null
-    var flowerList: ArrayList<String> = arrayListOf("Sonnenblume", "Löwenzahn", "bla", "blm", "b", "hhh", "hf", "fhewf")
     var flowerCount: MutableMap<String,Int> = HashMap<String,Int>()
     var favs: ArrayList<String> = ArrayList<String>()
-    lateinit var annotationFileUri: Uri
+    @Transient var currentFlower: Flower? = null
+    @Transient var flowerList: ArrayList<String> = arrayListOf("Sonnenblume", "Löwenzahn", "bla", "blm", "b", "hhh", "hf", "fhewf")
+    @Transient lateinit var annotationFilePath: String
 
     init{
         for(s: String in flowerList){
             flowerCount[s] = 0
         }
-        // represent the path portion of the URL as a file
-        val imageFile = File(imageUri.path)
 
-        annotationFileUri = Uri.withAppendedPath(Uri.parse(imageFile.parent),imageFile.name.dropLast(4) + "_annotations.json")
-
+        annotationFilePath = createAnnotationFilePath(imagePath)
+        var annotationFile: File = File(annotationFilePath)
         if(!isExternalStorageWritable()){
             throw Exception("External Storage is not Writable")
         }
-
-        var annotationFile: File = File(annotationFileUri.path)
         if(annotationFile.exists()){
-
             val gson = Gson()
-            val reader = JsonReader(FileReader(annotationFileUri.path))
-            val myType = object : TypeToken<List<Flower>>() {}.type
-            annotatedFlowers = ArrayList<Flower>(gson.fromJson<List<Flower>>(reader, myType))
+            val reader = JsonReader(FileReader(annotationFile))
+            val myType = object : TypeToken<AnnotationState>() {}.type
+            val loadedState = gson.fromJson<AnnotationState>(reader, myType)
+            annotatedFlowers = loadedState.annotatedFlowers
+            favs = loadedState.favs
+            flowerCount = loadedState.flowerCount
         }
     }
 
     private fun saveToFile(){
-
-        val gson = Gson()
-        val jsonString = gson.toJson(annotatedFlowers);
-        val fOut = FileOutputStream(File(annotationFileUri.path))
-        val myOutWriter = OutputStreamWriter(fOut)
-        myOutWriter.append(jsonString)
-        myOutWriter.close()
-        fOut.close()
+        thread{
+            val gson = Gson()
+            val jsonString = gson.toJson(this);
+            val fOut = FileOutputStream(File(annotationFilePath))
+            val myOutWriter = OutputStreamWriter(fOut)
+            myOutWriter.append(jsonString)
+            myOutWriter.close()
+            fOut.close()
+        }
     }
 
     private fun updateFavourites(){
@@ -111,6 +111,7 @@ class AnnotationState(var imageUri: Uri, val context: Context) {
         }
         currentFlower = Flower(label, x,y)
         flowerCount[label] = flowerCount[label]!! + 1
+
     }
 
     public fun permanentlyAddCurrentFlower(){
