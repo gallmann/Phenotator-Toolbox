@@ -4,7 +4,6 @@ import android.graphics.Paint
 import android.graphics.PorterDuff
 import android.graphics.PorterDuffColorFilter
 import android.content.Context
-import android.net.Uri
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
 import com.google.gson.stream.JsonReader
@@ -18,18 +17,16 @@ class AnnotationState(@Transient var imagePath: String, @Transient val context: 
     var flowerCount: MutableMap<String,Int> = HashMap<String,Int>()
     var favs: ArrayList<String> = ArrayList<String>()
     @Transient var currentFlower: Flower? = null
-    @Transient var flowerList: ArrayList<String> = arrayListOf("Sonnenblume", "Löwenzahn", "bla", "blm", "b", "hhh", "hf", "fhewf")
+    @Transient lateinit var flowerList: MutableList<String>
     @Transient lateinit var annotationFilePath: String
 
     init{
-        for(s: String in flowerList){
-            flowerCount[s] = 0
-        }
-
+        flowerList = getFlowerListFromPreferences(context)
         annotationFilePath = createAnnotationFilePath(imagePath)
         var annotationFile: File = File(annotationFilePath)
         if(!isExternalStorageWritable()){
             throw Exception("External Storage is not Writable")
+            //TODO!!!!! handle gracefully
         }
         if(annotationFile.exists()){
             val gson = Gson()
@@ -39,6 +36,18 @@ class AnnotationState(@Transient var imagePath: String, @Transient val context: 
             annotatedFlowers = loadedState.annotatedFlowers
             favs = loadedState.favs
             flowerCount = loadedState.flowerCount
+            for(flower in annotatedFlowers){
+                if(!flowerList.contains(flower.name)){
+                    flowerList.add(flower.name)
+                }
+            }
+            putFlowerListToPreferences(flowerList,context)
+            flowerList = getFlowerListFromPreferences(context)
+        }
+        for(s: String in flowerList){
+            if(!flowerCount.containsKey(s)){
+                flowerCount[s] = 0
+            }
         }
     }
 
