@@ -13,10 +13,14 @@ import android.view.ViewConfiguration
 import android.provider.MediaStore
 import android.provider.DocumentsContract
 import java.lang.Exception
+import android.util.DisplayMetrics
+
+
 
 
 val SHARED_PREFERENCES_KEY = "Shared_Preferences_Key"
-public val LAST_OPENED_IMAGE_URI = "imageURI"
+val LAST_OPENED_IMAGE_URI = "imageURI"
+val USER_FLOWER_LIST = Pair(mutableSetOf("Sonnenblume", "Löwenzahn"),"flowerListKey")
 
 val DEFAULT_MAX_ZOOM_VALUE = Pair(30F,"MAX_ZOOM_KEY")
 val DEFAULT_ANNOTATION_SHOW_VALUE = Pair(0.9F,"ANNOTATION_SHOW_KEY")
@@ -69,32 +73,6 @@ fun isExternalStorageWritable(): Boolean {
     return Environment.getExternalStorageState() == Environment.MEDIA_MOUNTED
 }
 
-fun getRealPathFromURI(uri: Uri, context: Context): String {
-    var filePath = ""
-    val wholeID = DocumentsContract.getDocumentId(uri)
-
-    // Split at colon, use second item in the array
-    val id = wholeID.split(":".toRegex()).dropLastWhile { it.isEmpty() }.toTypedArray()[1]
-
-    val column = arrayOf(MediaStore.Images.Media.DATA)
-
-    // where id is equal to
-    val sel = MediaStore.Images.Media._ID + "=?"
-
-    val cursor = context.contentResolver.query(
-        MediaStore.Images.Media.EXTERNAL_CONTENT_URI,
-        column, sel, arrayOf(id), null
-    )
-
-    val columnIndex = cursor.getColumnIndex(column[0])
-
-    if (cursor.moveToFirst()) {
-        filePath = cursor.getString(columnIndex)
-    }
-    cursor.close()
-    return filePath
-}
-
 
 fun createAnnotationFilePath(imagePath: String): String{
     if(imagePath.endsWith(".png") || imagePath.endsWith(".jpg")){
@@ -118,6 +96,18 @@ fun setValueToPreferences(id: Pair<Float,String>, value: Float, context: Context
     val editor = context.getSharedPreferences(SHARED_PREFERENCES_KEY, Context.MODE_PRIVATE).edit()
     editor.putFloat(id.second,value)
     editor.apply()
+}
+fun putFlowerListToPreferences(items:MutableList<String>, context: Context){
+    val editor = context.getSharedPreferences(SHARED_PREFERENCES_KEY, Context.MODE_PRIVATE).edit()
+    editor.putStringSet(USER_FLOWER_LIST.second,items.toMutableSet())
+    editor.commit()
+}
+fun getFlowerListFromPreferences(context:Context):MutableList<String>{
+    val prefs = context!!.getSharedPreferences(SHARED_PREFERENCES_KEY, Context.MODE_PRIVATE)
+    val restoredValue = prefs.getStringSet(USER_FLOWER_LIST.second, USER_FLOWER_LIST.first)
+    var items = restoredValue.toMutableList()
+    items = items.sortedWith(compareBy(String.CASE_INSENSITIVE_ORDER, { it })).toMutableList()
+    return items
 }
 
 

@@ -2,14 +2,17 @@
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
               android:orientation="horizontal"
               android:layout_width="match_parent"
-              android:layout_height="match_parent">
+              android:layout_height="wrap_content">
 
     <TextView xmlns:android="http://schemas.android.com/apk/res/android"
               android:id="@+id/settingTitle"
-              android:layout_width="300dp"
+              android:text="Hello"
+              android:layout_width="wrap_content"
               android:layout_height="wrap_content"
               android:textAppearance="?android:attr/textAppearanceListItemSmall"
               android:gravity="center_vertical"
+              android:textStyle="bold"
+              android:textSize="19sp"
               android:paddingStart="?android:attr/listPreferredItemPaddingStart"
               android:paddingEnd="?android:attr/listPreferredItemPaddingEnd"
               android:paddingLeft="?android:attr/listPreferredItemPaddingLeft"
@@ -24,13 +27,18 @@
               android:textAppearance="?android:attr/textAppearanceListItemSmall"
               android:textSize="@dimen/lvSecondaryTextSize"
               android:gravity="left"
-              android:layout_weight="1"
               android:paddingStart="?android:attr/listPreferredItemPaddingStart"
               android:paddingEnd="?android:attr/listPreferredItemPaddingEnd"
               android:paddingLeft="?android:attr/listPreferredItemPaddingLeft"
               android:paddingRight="?android:attr/listPreferredItemPaddingRight"
               android:minHeight="?android:attr/listPreferredItemHeightSmall" />
 
+    <LinearLayout
+            android:layout_weight="1"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content">
+
+    </LinearLayout>
 
     <EditText
             android:selectAllOnFocus="true"
@@ -40,6 +48,7 @@
             android:layout_height="match_parent"
             android:gravity="center_vertical"
             android:layout_gravity="right"
+            android:textStyle="bold"
             android:paddingStart="?android:attr/listPreferredItemPaddingStart"
             android:paddingEnd="?android:attr/listPreferredItemPaddingEnd"
             android:paddingLeft="?android:attr/listPreferredItemPaddingLeft"

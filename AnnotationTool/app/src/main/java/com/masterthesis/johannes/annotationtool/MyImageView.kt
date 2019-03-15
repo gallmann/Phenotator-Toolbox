@@ -43,13 +43,10 @@ class MyImageView constructor(context: Context, val annotationState: AnnotationS
         setImage(ImageSource.uri(annotationState.imagePath))
         maxScale = getValueFromPreferences(DEFAULT_MAX_ZOOM_VALUE,context)
         ZOOM_THRESH = getValueFromPreferences(DEFAULT_ANNOTATION_SHOW_VALUE,context)
-
-
     }
 
     override fun onDraw(canvas: Canvas) {
         super.onDraw(canvas)
-        println(scale)
         // Don't draw pin before image is ready so it doesn't move around during setup.
         if (!isReady || scale < ZOOM_THRESH) {
             return

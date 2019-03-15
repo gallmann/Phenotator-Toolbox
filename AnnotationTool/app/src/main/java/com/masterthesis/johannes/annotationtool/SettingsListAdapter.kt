@@ -1,74 +1,68 @@
-package layout
+package com.masterthesis.johannes.annotationtool
 
 import android.app.Activity
-import android.content.Context
-import android.text.Editable
-import android.text.TextWatcher
+import android.support.v7.widget.RecyclerView
 import android.view.LayoutInflater
-import android.view.View
 import android.view.ViewGroup
-import android.widget.BaseAdapter
 import android.widget.TextView
-import com.masterthesis.johannes.annotationtool.*
+import android.support.v4.view.accessibility.AccessibilityEventCompat.setAction
+import android.support.design.widget.Snackbar
+import android.content.Context
+import android.support.v4.view.accessibility.AccessibilityEventCompat.setAction
+import android.view.View
 
-class SettingsListAdapter(var activity: Activity): BaseAdapter() {
 
-    val inflater = activity?.getSystemService(Context.LAYOUT_INFLATER_SERVICE) as LayoutInflater
-    val number_of_settings: Int = 2
+class SettingsListAdapter(private var items: MutableList<String>, val parentView: View, val context: Context) :
+    RecyclerView.Adapter<SettingsListAdapter.MyViewHolder>() {
 
-    override fun getView(i: Int, view: View?, parent: ViewGroup?): View {
-        val rowView = inflater.inflate(R.layout.default_settings_list_cell, parent, false)
-        when(i){
-            0 -> {
-                rowView.findViewById<TextView>(R.id.settingTitle).text = "Max Zoom"
-                rowView.findViewById<TextView>(R.id.value_edit_text).text = getValueFromPreferences(DEFAULT_MAX_ZOOM_VALUE,activity).toString()
-                rowView.findViewById<TextView>(R.id.value_edit_text).addTextChangedListener(object : TextWatcher {
-                    override fun afterTextChanged(editable: Editable?) {}
-                    override fun beforeTextChanged(p0: CharSequence?, p1: Int, p2: Int, p3: Int) {}
-                    override fun onTextChanged(p0: CharSequence, p1: Int, p2: Int, p3: Int) {
-                        try {
-                            setValueToPreferences(DEFAULT_MAX_ZOOM_VALUE,p0.toString().toFloat(),activity)
-                        }
-                        catch (e: NumberFormatException){
+    class MyViewHolder(val textView: TextView) : RecyclerView.ViewHolder(textView)
 
-                        }
-                    }
-                })
-            }
-            1 -> {
-                rowView.findViewById<TextView>(R.id.settingTitle).text = "Show annotations at zoom level"
-                rowView.findViewById<TextView>(R.id.settingDetails).text = "A value smaller than 10 may slow the App down"
-                rowView.findViewById<TextView>(R.id.value_edit_text).text = getValueFromPreferences(DEFAULT_ANNOTATION_SHOW_VALUE, activity).toString()
-                rowView.findViewById<TextView>(R.id.value_edit_text).addTextChangedListener(object : TextWatcher {
-                    override fun afterTextChanged(editable: Editable?) {}
-                    override fun beforeTextChanged(p0: CharSequence?, p1: Int, p2: Int, p3: Int) {}
-                    override fun onTextChanged(p0: CharSequence, p1: Int, p2: Int, p3: Int) {
-                        try {
-                            setValueToPreferences(DEFAULT_ANNOTATION_SHOW_VALUE,p0.toString().toFloat(), activity)
-                        }
-                        catch (e: NumberFormatException){
+    var mRecentlyDeletedItem: Pair<String, Int> = Pair("",0)
 
-                        }
-                    }
-                })
-            }
-        }
-        return rowView
+    override fun onCreateViewHolder(parent: ViewGroup,
+                                    viewType: Int): SettingsListAdapter.MyViewHolder {
+        val textView = LayoutInflater.from(parent.context)
+            .inflate(android.R.layout.simple_list_item_1, parent, false) as TextView
+        return MyViewHolder(textView)
+    }
+
+    override fun onBindViewHolder(holder: MyViewHolder, position: Int) {
+        holder.textView.text = items[position]
+    }
+
+    override fun getItemCount() = items.size
+
+    fun deleteItem(position: Int) {
+        mRecentlyDeletedItem = Pair(items.get(position), position);
+        items.removeAt(position);
+        notifyItemRemoved(position);
+        putFlowerListToPreferences(items,context)
+        showUndoSnackbar();
     }
 
 
-    override fun getItem(position: Int): Any {
-        return 0
+    private fun showUndoSnackbar() {
+        val snack: Snackbar = Snackbar.make(parentView, R.string.snackbar_item_deleted, Snackbar.LENGTH_LONG)
+        snack.setAction(R.string.undo, View.OnClickListener {undoDelete()})
+        snack.show()
     }
 
-
-    override fun getItemId(position: Int): Long {
-        return position.toLong()
+    private fun undoDelete() {
+        items.add(mRecentlyDeletedItem.second,mRecentlyDeletedItem.first)
+        notifyItemInserted(mRecentlyDeletedItem.second)
+        putFlowerListToPreferences(items,context)
     }
 
-    override fun getCount(): Int {
-        return number_of_settings
+    public fun insertItem(item:String){
+        items.add(item)
+        putFlowerListToPreferences(items,context)
+        items = getFlowerListFromPreferences(context)
+        notifyItemInserted(items.indexOf(item))
     }
 
-
+    fun refresh(newItems: MutableList<String>){
+        items = newItems
+        notifyDataSetChanged()
+    }
 }
+

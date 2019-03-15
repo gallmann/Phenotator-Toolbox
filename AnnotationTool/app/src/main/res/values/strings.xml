@@ -15,6 +15,22 @@
     <string name="action_restore_defaults">Restore Default Values</string>
 
 
+    <string name="max_zoom_title">Max Zoom</string>
+    <string name="max_zoom_detail"></string>
+    <string name="annotation_show_title">Show annotations at zoom level</string>
+    <string name="annotation_show_detail">A value smaller than 0.8 may slow down the app!</string>
+
+
+    <string name="load_from_csv">IMPORT FROM CSV</string>
+    <string name="add">ADD</string>
+    <string name="delete">Delete</string>
+
+    <string name="snackbar_item_deleted">One Item Deleted</string>
+    <string name="undo">Undo</string>
+    <string name="insert_flower_name">Type in the name of the new Flower.</string>
+    <string name="cancel">CANCEL</string>
+
+
     <!-- TODO: Remove or change this placeholder text -->
     <string name="hello_blank_fragment">Hello blank fragment</string>
 </resources>

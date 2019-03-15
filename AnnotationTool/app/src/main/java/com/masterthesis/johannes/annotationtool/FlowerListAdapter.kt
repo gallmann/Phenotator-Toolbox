@@ -8,6 +8,7 @@ import android.view.ViewGroup
 import android.widget.BaseAdapter
 import android.widget.ImageView
 import android.widget.TextView
+import com.baoyz.swipemenulistview.SwipeMenuListView
 
 class FlowerListAdapter(var activity: Activity,
                         val annotationState: AnnotationState): BaseAdapter() {
