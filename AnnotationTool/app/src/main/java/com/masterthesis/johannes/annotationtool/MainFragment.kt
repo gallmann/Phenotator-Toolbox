@@ -70,9 +70,6 @@ class MainFragment : Fragment(), AdapterView.OnItemClickListener, View.OnClickLi
     override fun onCreateOptionsMenu(menu: Menu, inflater: MenuInflater) {
         inflater.inflate(R.menu.main, menu);
         super.onCreateOptionsMenu(menu, inflater)
-
-        enableMenuItem(menu.findItem(R.id.action_redo), false)
-        enableMenuItem(menu.findItem(R.id.action_undo), false)
     }
 
     override fun onOptionsItemSelected(item: MenuItem): Boolean {
@@ -94,17 +91,6 @@ class MainFragment : Fragment(), AdapterView.OnItemClickListener, View.OnClickLi
         imageView.invalidate()
     }
 
-
-    fun enableMenuItem(button: MenuItem, enable: Boolean){
-        if(enable){
-            button.icon.alpha = 0
-            button.setEnabled(true)
-        }
-        else {
-            button.icon.alpha = 120
-            button.setEnabled(false)
-        }
-    }
 
     public fun updateFlowerListView(){
         if(annotationState.currentFlower == null){

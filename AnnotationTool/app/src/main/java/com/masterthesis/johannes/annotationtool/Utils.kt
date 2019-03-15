@@ -1,5 +1,6 @@
 package com.masterthesis.johannes.annotationtool
 
+import android.app.Activity
 import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.Canvas
@@ -16,6 +17,9 @@ import java.lang.Exception
 
 val SHARED_PREFERENCES_KEY = "Shared_Preferences_Key"
 public val LAST_OPENED_IMAGE_URI = "imageURI"
+
+val DEFAULT_MAX_ZOOM_VALUE = Pair(30F,"MAX_ZOOM_KEY")
+val DEFAULT_ANNOTATION_SHOW_VALUE = Pair(0.9F,"ANNOTATION_SHOW_KEY")
 
 
 
@@ -103,6 +107,17 @@ fun createAnnotationFilePath(imagePath: String): String{
 fun uriToPath(uri: Uri): String{
 
     return uri.path.substringAfter(":")
+}
+
+fun getValueFromPreferences(id: Pair<Float,String>, context: Context): Float{
+    val prefs = context.getSharedPreferences(SHARED_PREFERENCES_KEY, Context.MODE_PRIVATE)
+    val restoredValue = prefs.getFloat(id.second,id.first)
+    return restoredValue
+}
+fun setValueToPreferences(id: Pair<Float,String>, value: Float, context: Context){
+    val editor = context.getSharedPreferences(SHARED_PREFERENCES_KEY, Context.MODE_PRIVATE).edit()
+    editor.putFloat(id.second,value)
+    editor.apply()
 }
 
 

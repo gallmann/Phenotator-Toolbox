@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+              android:orientation="horizontal"
+              android:layout_width="match_parent"
+              android:layout_height="match_parent">
+
+    <TextView xmlns:android="http://schemas.android.com/apk/res/android"
+              android:id="@+id/settingTitle"
+              android:layout_width="300dp"
+              android:layout_height="wrap_content"
+              android:textAppearance="?android:attr/textAppearanceListItemSmall"
+              android:gravity="center_vertical"
+              android:paddingStart="?android:attr/listPreferredItemPaddingStart"
+              android:paddingEnd="?android:attr/listPreferredItemPaddingEnd"
+              android:paddingLeft="?android:attr/listPreferredItemPaddingLeft"
+              android:paddingRight="?android:attr/listPreferredItemPaddingRight"
+              android:minHeight="?android:attr/listPreferredItemHeightSmall" />
+
+
+    <TextView xmlns:android="http://schemas.android.com/apk/res/android"
+              android:id="@+id/settingDetails"
+              android:layout_width="wrap_content"
+              android:layout_height="wrap_content"
+              android:textAppearance="?android:attr/textAppearanceListItemSmall"
+              android:textSize="@dimen/lvSecondaryTextSize"
+              android:gravity="left"
+              android:layout_weight="1"
+              android:paddingStart="?android:attr/listPreferredItemPaddingStart"
+              android:paddingEnd="?android:attr/listPreferredItemPaddingEnd"
+              android:paddingLeft="?android:attr/listPreferredItemPaddingLeft"
+              android:paddingRight="?android:attr/listPreferredItemPaddingRight"
+              android:minHeight="?android:attr/listPreferredItemHeightSmall" />
+
+
+    <EditText
+            android:selectAllOnFocus="true"
+            android:inputType="numberDecimal"
+            android:id="@+id/value_edit_text"
+            android:layout_width="100dp"
+            android:layout_height="match_parent"
+            android:gravity="center_vertical"
+            android:layout_gravity="right"
+            android:paddingStart="?android:attr/listPreferredItemPaddingStart"
+            android:paddingEnd="?android:attr/listPreferredItemPaddingEnd"
+            android:paddingLeft="?android:attr/listPreferredItemPaddingLeft"
+            android:paddingRight="?android:attr/listPreferredItemPaddingRight"
+            android:minHeight="?android:attr/listPreferredItemHeightSmall"/>
+
+</LinearLayout>

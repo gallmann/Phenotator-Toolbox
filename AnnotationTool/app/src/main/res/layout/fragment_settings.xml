@@ -5,10 +5,26 @@
              android:layout_height="match_parent"
              tools:context=".SettingsFragment">
 
-    <!-- TODO: Update blank fragment layout -->
-    <TextView
+
+    <LinearLayout
+            android:id="@+id/annotation_edit_container"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
-            android:text="@string/hello_blank_fragment"/>
+            android:orientation="vertical"
+            android:layout_margin="6dp"
+            android:elevation="6dp"
+            android:background="#fff">
+
+        <ListView
+                android:id="@+id/settingsListView"
+                android:descendantFocusability="afterDescendants"
+                android:focusable="false"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent">
+
+        </ListView>
+
+    </LinearLayout>
+
 
 </FrameLayout>

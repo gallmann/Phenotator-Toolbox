@@ -17,7 +17,7 @@ class MyImageView constructor(context: Context, val annotationState: AnnotationS
     SubsamplingScaleImageView(context, attr), View.OnTouchListener {
 
     private lateinit var pin: Bitmap
-    private val ZOOM_THRESH = 0.9
+    private var ZOOM_THRESH: Float = 0.9F
 
     private var showCurrentFlower: Boolean = true
     private var startTime: Long = 0
@@ -41,12 +41,15 @@ class MyImageView constructor(context: Context, val annotationState: AnnotationS
         pin = Bitmap.createScaledBitmap(pin, w.toInt(), h.toInt(), true)
         setBlinkingAnimation()
         setImage(ImageSource.uri(annotationState.imagePath))
-        maxScale = 30.0F
+        maxScale = getValueFromPreferences(DEFAULT_MAX_ZOOM_VALUE,context)
+        ZOOM_THRESH = getValueFromPreferences(DEFAULT_ANNOTATION_SHOW_VALUE,context)
+
+
     }
 
     override fun onDraw(canvas: Canvas) {
         super.onDraw(canvas)
-
+        println(scale)
         // Don't draw pin before image is ready so it doesn't move around during setup.
         if (!isReady || scale < ZOOM_THRESH) {
             return

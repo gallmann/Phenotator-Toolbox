@@ -1,9 +1,9 @@
 <resources>
-    <string name="app_name">AnnotationTool</string>
+    <string name="app_name">Annotation Tool</string>
     <string name="navigation_drawer_open">Open navigation drawer</string>
     <string name="navigation_drawer_close">Close navigation drawer</string>
-    <string name="nav_header_title">Android Studio</string>
-    <string name="nav_header_subtitle">android.studio@android.com</string>
+    <string name="nav_header_title">Annotation Tool</string>
+    <string name="nav_header_subtitle">ETH Crop Science</string>
     <string name="nav_header_desc">Navigation header</string>
     <string name="action_settings">Settings</string>
     <string name="action_undo">Undo</string>
@@ -12,7 +12,7 @@
     <string name="cancel_button">CANCEL/DELETE</string>
     <string name="done_button">SAVE</string>
     <string name="could_not_load_image">An Error occured while trying to load the Image. Please try again!</string>
-
+    <string name="action_restore_defaults">Restore Default Values</string>
 
 
     <!-- TODO: Remove or change this placeholder text -->

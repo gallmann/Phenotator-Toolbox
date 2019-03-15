@@ -2,19 +2,14 @@ package com.masterthesis.johannes.annotationtool
 
 import android.net.Uri
 import android.os.Bundle
-import android.provider.Settings
-import android.support.design.widget.Snackbar
 import android.support.design.widget.NavigationView
 import android.support.v4.app.Fragment
 import android.support.v4.view.GravityCompat
 import android.support.v7.app.ActionBarDrawerToggle
 import android.support.v7.app.AppCompatActivity
-import android.view.Menu
 import android.view.MenuItem
 import kotlinx.android.synthetic.main.activity_main.*
 import kotlinx.android.synthetic.main.app_bar_main.*
-import android.widget.Toast
-import android.content.pm.PackageManager
 
 
 
@@ -60,34 +55,19 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
 
     override fun onNavigationItemSelected(item: MenuItem): Boolean {
         // Handle navigation view item clicks here.
-        var newFragment: Fragment = MainFragment()
+        var newFragment: Fragment? = null
 
         when (item.itemId) {
-            R.id.nav_camera -> {
+            R.id.nav_annotations -> {
                 newFragment = MainFragment()
             }
-            R.id.nav_gallery -> {
+            R.id.nav_settings -> {
                 newFragment = SettingsFragment()
             }
-            R.id.nav_slideshow -> {
-
-            }
-            R.id.nav_manage -> {
-
-            }
-            R.id.nav_share -> {
-
-            }
-            R.id.nav_send -> {
-
-            }
-
-
         }
 
         val transaction = supportFragmentManager.beginTransaction()
-        transaction.replace(R.id.fragment_container, newFragment)
-        transaction.addToBackStack(null)
+        transaction.replace(R.id.fragment_container, newFragment!!)
         transaction.commit()
 
         drawer_layout.closeDrawer(GravityCompat.START)
