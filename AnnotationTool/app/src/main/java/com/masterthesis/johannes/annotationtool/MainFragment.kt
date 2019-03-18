@@ -12,8 +12,14 @@ import android.widget.*
 import android.content.pm.PackageManager
 import android.widget.LinearLayout
 import android.content.Context.MODE_PRIVATE
+import android.content.IntentSender
 import android.os.Parcel
 import android.support.design.widget.Snackbar
+import android.support.v4.app.ActivityCompat
+import android.support.v4.content.ContextCompat
+import com.google.android.gms.common.api.ResolvableApiException
+import com.google.android.gms.location.*
+import com.google.android.gms.tasks.Task
 import com.google.gson.Gson
 import java.io.File
 
@@ -26,11 +32,27 @@ class MainFragment : Fragment(), AdapterView.OnItemClickListener, View.OnClickLi
     private val READ_PHONE_STORAGE_RETURN_CODE: Int = 1
     private val READ_PHONE_STORAGE_RETURN_CODE_STARTUP: Int = 2
 
+
+    private lateinit var fusedLocationClient: FusedLocationProviderClient
+    private lateinit var locationCallback: LocationCallback
+
     private lateinit var imagePath: String
     val READ_REQUEST_CODE: Int = 42
+
+
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setHasOptionsMenu(true)
+        fusedLocationClient = LocationServices.getFusedLocationProviderClient(activity!!)
+        locationCallback = object : LocationCallback() {
+            override fun onLocationResult(locationResult: LocationResult?) {
+                locationResult ?: return
+                for (location in locationResult.locations){
+                    imageView.updateLocation(location)
+                }
+            }
+        }
 
     }
 
@@ -140,10 +162,50 @@ class MainFragment : Fragment(), AdapterView.OnItemClickListener, View.OnClickLi
         annotationState = AnnotationState(imagePath,context!!)
         imageView = MyImageView(context!!,annotationState,this)
         imageViewContainer.addView(imageView)
-
         val editor = context!!.getSharedPreferences(SHARED_PREFERENCES_KEY, MODE_PRIVATE).edit()
         editor.putString(LAST_OPENED_IMAGE_URI,imagePath)
         editor.apply()
+        if(annotationState.hasLocationInformation()){
+            startLocationUpdates()
+        }
+    }
+
+    private fun stopLocationUpdates() {
+        fusedLocationClient.removeLocationUpdates(locationCallback)
+    }
+
+    private fun startLocationUpdates(){
+        if (ContextCompat.checkSelfPermission(activity!!, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+            requestPermissions(arrayOf(Manifest.permission.ACCESS_FINE_LOCATION), LOCATION_PERMISSION_REQUEST)
+        }
+        else{
+            val locationRequest = LocationRequest.create()?.apply {
+                interval = 6000
+                fastestInterval = 3000
+                priority = LocationRequest.PRIORITY_HIGH_ACCURACY
+            }
+            val builder = LocationSettingsRequest.Builder()
+                .addLocationRequest(locationRequest!!)
+            val client: SettingsClient = LocationServices.getSettingsClient(activity!!)
+            val task: Task<LocationSettingsResponse> = client.checkLocationSettings(builder.build())
+            task.addOnSuccessListener { locationSettingsResponse ->
+                fusedLocationClient.requestLocationUpdates(locationRequest,
+                    locationCallback,
+                    null /* Looper */)
+            }
+
+            task.addOnFailureListener { exception ->
+                if (exception is ResolvableApiException){
+                    try {
+                        startIntentSenderForResult(exception.getResolution().getIntentSender(), TURN_ON_LOCATION_USER_REQUEST, null, 0, 0, 0, null);
+                    } catch (sendEx: IntentSender.SendIntentException) {
+                    }
+                }
+            }
+
+
+
+        }
     }
 
 
@@ -204,6 +266,12 @@ class MainFragment : Fragment(), AdapterView.OnItemClickListener, View.OnClickLi
             }
 
         }
+        else if(requestCode == LOCATION_PERMISSION_REQUEST) {
+            //TODO: arrayoutofbounds exception
+            if (grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                startLocationUpdates()
+            }
+        }
     }
 
     override fun onActivityResult(requestCode: Int, resultCode: Int, resultData: Intent?) {
@@ -214,7 +282,26 @@ class MainFragment : Fragment(), AdapterView.OnItemClickListener, View.OnClickLi
                 initImageView()
             }
         }
+        if (requestCode == TURN_ON_LOCATION_USER_REQUEST) {
+            startLocationUpdates()
+        }
     }
+
+    override fun onResume() {
+        super.onResume()
+        if(::annotationState.isInitialized){
+            if (annotationState.hasLocationInformation()){
+                stopLocationUpdates()
+                startLocationUpdates()
+            }
+        }
+    }
+
+    override fun onPause() {
+        super.onPause()
+        stopLocationUpdates()
+    }
+
 
 
     /**

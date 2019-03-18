@@ -16,6 +16,7 @@ class AnnotationState(@Transient var imagePath: String, @Transient val context: 
     var annotatedFlowers: ArrayList<Flower> = ArrayList<Flower>()
     var flowerCount: MutableMap<String,Int> = HashMap<String,Int>()
     var favs: ArrayList<String> = ArrayList<String>()
+    var geoInfo: GeoInfo? = null
     @Transient var currentFlower: Flower? = null
     @Transient lateinit var flowerList: MutableList<String>
     @Transient lateinit var annotationFilePath: String
@@ -24,10 +25,21 @@ class AnnotationState(@Transient var imagePath: String, @Transient val context: 
         flowerList = getFlowerListFromPreferences(context)
         annotationFilePath = createAnnotationFilePath(imagePath)
         var annotationFile: File = File(annotationFilePath)
+        var geoInfoFile: File = File(createGeoInfoFilePath(imagePath))
         if(!isExternalStorageWritable()){
             throw Exception("External Storage is not Writable")
             //TODO!!!!! handle gracefully
         }
+
+        if(geoInfoFile.exists()){
+            val gson = Gson()
+            val reader = JsonReader(FileReader(geoInfoFile))
+            val myType = object : TypeToken<GeoInfo>() {}.type
+            geoInfo = gson.fromJson<GeoInfo>(reader, myType)
+        }
+
+
+
         if(annotationFile.exists()){
             val gson = Gson()
             val reader = JsonReader(FileReader(annotationFile))
@@ -160,4 +172,24 @@ class AnnotationState(@Transient var imagePath: String, @Transient val context: 
         }
     }
 
+    fun hasLocationInformation(): Boolean{
+        if(geoInfo != null){
+            return true
+        }
+        return false
+    }
+
+    fun getTopLeftCoordinates():Pair<Double,Double>{
+        if(geoInfo != null){
+            return Pair(geoInfo!!.ul_lat,geoInfo!!.ul_lon)
+        }
+        return Pair(0.0,0.0)
+    }
+
+    fun getBottomRightCoordinates():Pair<Double,Double>{
+        if(geoInfo != null){
+            return Pair(geoInfo!!.lr_lat,geoInfo!!.lr_lon)
+        }
+        return Pair(0.0,0.0)
+    }
 }

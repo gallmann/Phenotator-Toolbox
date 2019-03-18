@@ -24,7 +24,8 @@ val USER_FLOWER_LIST = Pair(mutableSetOf("Sonnenblume", "Löwenzahn"),"flowerLis
 
 val DEFAULT_MAX_ZOOM_VALUE = Pair(30F,"MAX_ZOOM_KEY")
 val DEFAULT_ANNOTATION_SHOW_VALUE = Pair(0.9F,"ANNOTATION_SHOW_KEY")
-
+val LOCATION_PERMISSION_REQUEST = 349
+val TURN_ON_LOCATION_USER_REQUEST = 347
 
 
 public fun getBitmapFromVectorDrawable(context: Context, drawableId: Int): Bitmap {
@@ -81,6 +82,15 @@ fun createAnnotationFilePath(imagePath: String): String{
 
     throw Exception("File is not an Image of .png or .jpg Format")
 }
+
+fun createGeoInfoFilePath(imagePath: String): String{
+    if(imagePath.endsWith(".png") || imagePath.endsWith(".jpg")){
+        return imagePath.dropLast(4).plus("_geoinfo.json")
+    }
+
+    throw Exception("File is not an Image of .png or .jpg Format")
+}
+
 
 fun uriToPath(uri: Uri): String{
 

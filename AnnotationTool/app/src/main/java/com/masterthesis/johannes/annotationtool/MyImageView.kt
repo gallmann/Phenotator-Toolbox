@@ -6,7 +6,8 @@ import android.util.AttributeSet
 import com.davemorrissey.labs.subscaleview.SubsamplingScaleImageView
 import android.graphics.PointF
 import android.graphics.Bitmap
-import android.net.Uri
+import android.location.Location
+import android.support.v4.content.ContextCompat
 import android.view.MotionEvent
 import android.view.View
 import android.widget.LinearLayout
@@ -17,12 +18,14 @@ class MyImageView constructor(context: Context, val annotationState: AnnotationS
     SubsamplingScaleImageView(context, attr), View.OnTouchListener {
 
     private lateinit var pin: Bitmap
+    private lateinit var locationPin: Bitmap
     private var ZOOM_THRESH: Float = 0.9F
 
     private var showCurrentFlower: Boolean = true
     private var startTime: Long = 0
     private var startX: Float = 0.toFloat()
     private var startY: Float = 0.toFloat()
+    private var userLocation: Location? = null
 
     init {
         initialise()
@@ -36,9 +39,17 @@ class MyImageView constructor(context: Context, val annotationState: AnnotationS
         setOnTouchListener(this)
         val density = resources.displayMetrics.densityDpi.toFloat()
         pin = getBitmapFromVectorDrawable(context,R.drawable.cross)
-        val w = density / 200f * pin.width
-        val h = density / 200f * pin.height
+        var w = density / 200f * pin.width
+        var h = density / 200f * pin.height
         pin = Bitmap.createScaledBitmap(pin, w.toInt(), h.toInt(), true)
+
+        locationPin = getBitmapFromVectorDrawable(context,R.drawable.my_location)
+        w = density / 200f * locationPin.width
+        h = density / 200f * locationPin.height
+        locationPin = Bitmap.createScaledBitmap(locationPin, w.toInt(), h.toInt(), true)
+
+
+
         setBlinkingAnimation()
         setImage(ImageSource.uri(annotationState.imagePath))
         maxScale = getValueFromPreferences(DEFAULT_MAX_ZOOM_VALUE,context)
@@ -48,28 +59,59 @@ class MyImageView constructor(context: Context, val annotationState: AnnotationS
     override fun onDraw(canvas: Canvas) {
         super.onDraw(canvas)
         // Don't draw pin before image is ready so it doesn't move around during setup.
-        if (!isReady || scale < ZOOM_THRESH) {
+        if (!isReady) {
             return
         }
 
+
+        //draw user position
+
+        
+        if(userLocation != null){
+            var tlLat = annotationState.getTopLeftCoordinates().first
+            var tlLon = annotationState.getTopLeftCoordinates().second
+            var brLat = annotationState.getBottomRightCoordinates().first
+            var brLon = annotationState.getBottomRightCoordinates().second
+            var uLon = userLocation!!.longitude
+            var uLat = userLocation!!.latitude
+            var imageWidth = sWidth
+            var imageHeight = sHeight
+            //println("width: $imageWidth height: $imageHeight")
+            var userX = imageWidth*(uLon-tlLon)/(brLon-tlLon);
+            var userY = imageHeight-imageHeight*(uLat-brLat)/(tlLat-brLat);
+
+            if(userX < imageWidth && userX >= 0 && userY < imageHeight && userY >= 0){
+                val paint = Paint()
+                val filter = PorterDuffColorFilter(ContextCompat.getColor(context, R.color.Blue), PorterDuff.Mode.SRC_IN)
+                paint.colorFilter = filter
+                drawPin(userX.toFloat(), userY.toFloat(),canvas,paint,locationPin)
+            }
+        }
+
+
+
+        if(scale<ZOOM_THRESH) return
+
         if(showCurrentFlower && annotationState.currentFlower != null){
             var flower = annotationState.currentFlower!!
-            var viewcoord: PointF = sourceToViewCoord(flower.xPos, flower.yPos)!!
-            val vX = viewcoord.x - pin!!.width / 2
-            val vY = viewcoord.y - pin!!.height / 2
-            canvas.drawBitmap(pin, vX, vY, annotationState.getFlowerColor(flower.name,context))
+            drawPin(flower.xPos, flower.yPos,canvas,annotationState.getFlowerColor(flower.name,context), pin)
         }
 
 
         for((index,flower) in annotationState.annotatedFlowers.withIndex()){
-            var viewcoord: PointF = sourceToViewCoord(flower.xPos, flower.yPos)!!
-
-            if(isCoordinateVisible(canvas,viewcoord.x,viewcoord.y,pin!!.width / 2F)){
-                val vX = viewcoord.x - pin!!.width / 2
-                val vY = viewcoord.y - pin!!.height / 2
-                canvas.drawBitmap(pin, vX, vY, annotationState.getFlowerColor(flower.name,context))
-            }
+            drawPin(flower.xPos, flower.yPos,canvas,annotationState.getFlowerColor(flower.name,context), pin)
         }
+    }
+
+    private fun drawPin(xPos: Float, yPos: Float, canvas: Canvas, color: Paint, pin: Bitmap){
+        var viewcoord: PointF = sourceToViewCoord(xPos, yPos)!!
+
+        if(isCoordinateVisible(canvas,viewcoord.x,viewcoord.y,pin!!.width / 2F)){
+            val vX = viewcoord.x - pin!!.width / 2
+            val vY = viewcoord.y - pin!!.height / 2
+            canvas.drawBitmap(pin, vX, vY, color)
+        }
+
     }
 
     override fun onTouch(imageView: View, event: MotionEvent): Boolean {
@@ -140,6 +182,12 @@ class MyImageView constructor(context: Context, val annotationState: AnnotationS
     private fun editMark(flower: Flower){
         annotationState.startEditingFlower(flower)
         mainFragment.updateFlowerListView()
+        invalidate()
+    }
+
+    fun updateLocation(location: Location){
+        println("received update: ${location.latitude}, ${location.longitude}")
+        this.userLocation = location
         invalidate()
     }
 
