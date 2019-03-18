@@ -3,12 +3,12 @@ package com.masterthesis.johannes.annotationtool
 import android.content.Context
 import android.graphics.Canvas
 import android.graphics.Color
-import android.support.v7.view.menu.MenuAdapter
-import android.support.v7.widget.helper.ItemTouchHelper
-import android.support.v7.widget.RecyclerView
+import androidx.appcompat.view.menu.MenuAdapter
+import androidx.recyclerview.widget.ItemTouchHelper
+import androidx.recyclerview.widget.RecyclerView
 import android.graphics.drawable.ColorDrawable
 import android.graphics.drawable.Drawable
-import android.support.v4.content.ContextCompat
+import androidx.core.content.ContextCompat
 import android.opengl.ETC1.getHeight
 
 

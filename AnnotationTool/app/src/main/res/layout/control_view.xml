@@ -36,16 +36,14 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_margin="4dp"
-                android:elevation="6dp"
                 android:background="#fff">
 
-        <Button
+            <com.google.android.material.button.MaterialButton
                     android:id="@+id/cancel_button"
+                    style="@style/Widget.MaterialComponents.Button.OutlinedButton"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="@string/cancel_button"
-                    android:textColor="@color/colorPrimaryDark"
-                    style="?android:attr/borderlessButtonStyle"
             />
             <LinearLayout
                     android:layout_weight="1"
@@ -53,14 +51,13 @@
                     android:layout_height="match_parent">
 
             </LinearLayout>
-            <Button
+
+            <com.google.android.material.button.MaterialButton
                     android:id="@+id/done_button"
+                    style="@style/Widget.MaterialComponents.Button"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="@string/done_button"
-                    android:textColor="@color/colorPrimaryDark"
-                    style="?android:attr/borderlessButtonStyle"
-
             />
 
         </LinearLayout>
@@ -82,6 +79,8 @@
             </ListView>
         </LinearLayout>
 
+
+
         <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
@@ -90,8 +89,39 @@
                 android:elevation="6dp"
                 android:background="#fff">
 
+
+
+            <LinearLayout
+                    android:layout_margin="4dp"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:background="#fff">
+                <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:textSize="@dimen/lvPrimaryTextSize"
+                        android:textColor="@color/Black"
+                        android:text="Draw Polygon"/>
+                <LinearLayout
+                        android:layout_weight="1"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content">
+
+                </LinearLayout>
+                <Switch
+                        android:id="@+id/simpleSwitch"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"/>
+
+            </LinearLayout>
+
+
+
             <include layout="@layout/position_adjustment"/>
         </LinearLayout>
+
+
 
     </LinearLayout>
 

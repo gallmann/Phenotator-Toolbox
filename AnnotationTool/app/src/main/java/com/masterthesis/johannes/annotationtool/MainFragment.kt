@@ -1,26 +1,24 @@
 package com.masterthesis.johannes.annotationtool
 
 import android.Manifest
-import android.app.Activity
+import androidx.appcompat.app.AppCompatActivity
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
-import android.support.v4.app.Fragment
+import androidx.fragment.app.Fragment
 import android.view.*
 import android.widget.*
 import android.content.pm.PackageManager
 import android.widget.LinearLayout
 import android.content.Context.MODE_PRIVATE
 import android.content.IntentSender
-import android.os.Parcel
-import android.support.design.widget.Snackbar
-import android.support.v4.app.ActivityCompat
-import android.support.v4.content.ContextCompat
+import com.google.android.material.snackbar.Snackbar
+import androidx.core.content.ContextCompat
 import com.google.android.gms.common.api.ResolvableApiException
 import com.google.android.gms.location.*
 import com.google.android.gms.tasks.Task
-import com.google.gson.Gson
+import com.google.android.material.button.MaterialButton
 import java.io.File
 
 
@@ -121,7 +119,7 @@ class MainFragment : Fragment(), AdapterView.OnItemClickListener, View.OnClickLi
         }
         else{
             view!!.findViewById<LinearLayout>(R.id.annotation_edit_container).visibility = View.VISIBLE
-            var adapter = FlowerListAdapter(activity as Activity,annotationState)
+            var adapter = FlowerListAdapter(activity as AppCompatActivity,annotationState)
             flowerListView.adapter = adapter
         }
     }
@@ -276,7 +274,7 @@ class MainFragment : Fragment(), AdapterView.OnItemClickListener, View.OnClickLi
 
     override fun onActivityResult(requestCode: Int, resultCode: Int, resultData: Intent?) {
 
-        if (requestCode == READ_REQUEST_CODE && resultCode == Activity.RESULT_OK) {
+        if (requestCode == READ_REQUEST_CODE && resultCode == AppCompatActivity.RESULT_OK) {
             resultData?.data?.also { uri ->
                 imagePath = uriToPath(uri)
                 initImageView()

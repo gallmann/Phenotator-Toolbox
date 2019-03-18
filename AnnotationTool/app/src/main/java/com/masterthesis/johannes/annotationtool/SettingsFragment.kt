@@ -1,27 +1,26 @@
 package com.masterthesis.johannes.annotationtool
 
 import android.Manifest
-import android.app.Activity
-import android.app.AlertDialog
+import androidx.appcompat.app.AppCompatActivity
+import androidx.appcompat.app.AlertDialog
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.net.Uri
 import android.os.Bundle
-import android.support.v4.app.Fragment
+import androidx.fragment.app.Fragment
 import android.text.Editable
 import android.text.TextWatcher
 import android.view.*
-import android.support.v7.widget.DividerItemDecoration
-import android.support.v7.widget.LinearLayoutManager
-import android.support.v7.widget.RecyclerView
-import android.support.v7.widget.helper.ItemTouchHelper
+import androidx.recyclerview.widget.DividerItemDecoration
+import androidx.recyclerview.widget.LinearLayoutManager
+import androidx.recyclerview.widget.RecyclerView
+import androidx.recyclerview.widget.ItemTouchHelper
 import android.text.InputType
 import android.webkit.MimeTypeMap
 import android.widget.*
 import java.io.BufferedReader
 import java.io.IOException
-import java.io.InputStream
 import java.io.InputStreamReader
 
 
@@ -65,7 +64,12 @@ class SettingsFragment : Fragment(), View.OnClickListener  {
         recyclerView = fragmentView.findViewById<RecyclerView>(R.id.flower_list_view).apply {
             setHasFixedSize(true)
         }
-        recyclerView.addItemDecoration(DividerItemDecoration(recyclerView.context, DividerItemDecoration.VERTICAL))
+        recyclerView.addItemDecoration(
+            DividerItemDecoration(
+                recyclerView.context,
+                DividerItemDecoration.VERTICAL
+            )
+        )
         recyclerView.adapter = viewAdapter
         recyclerView.layoutManager = LinearLayoutManager(context!!)
         val itemTouchHelper = ItemTouchHelper(SwipeToDeleteCallback(context!!,viewAdapter))
@@ -125,7 +129,7 @@ class SettingsFragment : Fragment(), View.OnClickListener  {
     override fun onClick(view: View) {
         when(view.id){
             R.id.add_button -> {
-                val builder = AlertDialog.Builder(activity)
+                val builder = AlertDialog.Builder(context!!)
                 builder.setTitle(resources.getString(R.string.insert_flower_name));
                 var input: EditText = EditText(activity);
                 input.setInputType(InputType.TYPE_CLASS_TEXT);
@@ -179,7 +183,7 @@ class SettingsFragment : Fragment(), View.OnClickListener  {
 
     override fun onActivityResult(requestCode: Int, resultCode: Int, resultData: Intent?) {
 
-        if (requestCode == READ_REQUEST_CODE && resultCode == Activity.RESULT_OK) {
+        if (requestCode == READ_REQUEST_CODE && resultCode == AppCompatActivity.RESULT_OK) {
             resultData?.data?.also { uri ->
                 readCSVFile(uri)
             }

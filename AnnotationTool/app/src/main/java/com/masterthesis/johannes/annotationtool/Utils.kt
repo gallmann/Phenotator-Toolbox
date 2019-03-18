@@ -1,21 +1,15 @@
 package com.masterthesis.johannes.annotationtool
 
-import android.app.Activity
 import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.Canvas
 import android.net.Uri
 import android.os.Build
 import android.os.Environment
-import android.support.v4.content.ContextCompat
-import android.support.v4.graphics.drawable.DrawableCompat
+import androidx.core.content.ContextCompat
+import androidx.core.graphics.drawable.DrawableCompat
 import android.view.ViewConfiguration
-import android.provider.MediaStore
-import android.provider.DocumentsContract
 import java.lang.Exception
-import android.util.DisplayMetrics
-
-
 
 
 val SHARED_PREFERENCES_KEY = "Shared_Preferences_Key"

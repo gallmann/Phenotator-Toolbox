@@ -6,9 +6,9 @@
     <dimen name="nav_header_height">176dp</dimen>
     <dimen name="fab_margin">16dp</dimen>
     <dimen name="lvPrimaryTextSize">18sp</dimen>
-    <dimen name="lvSecondaryTextSize">14sp</dimen>
+    <dimen name="lvSecondaryTextSize">13sp</dimen>
 
-    <dimen name="lvHdrItemHeight">45dp</dimen>
+    <dimen name="lvHdrItemHeight">35dp</dimen>
     <dimen name="lvItemHeight">65dp</dimen>
 
     <dimen name="lvHeadingPaddingLeft">8dp</dimen>

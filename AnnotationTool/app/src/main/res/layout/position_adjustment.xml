@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
-                android:layout_gravity="center_horizontal"
+                xmlns:app="http://schemas.android.com/apk/res-auto" android:layout_gravity="center_horizontal"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content">
 
@@ -10,14 +10,14 @@
             android:layout_toRightOf="@id/leftButton"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:src="@drawable/up" />
+            app:srcCompat="@drawable/up" />
     <ImageButton
             android:id="@+id/leftButton"
             android:foregroundGravity="center_horizontal"
             android:layout_width="wrap_content"
             android:layout_below="@+id/upButton"
             android:layout_height="wrap_content"
-            android:src="@drawable/left" />
+            app:srcCompat="@drawable/left" />
     <ImageButton
             android:id="@+id/rightButton"
             android:foregroundGravity="center_horizontal"
@@ -25,7 +25,7 @@
             android:layout_toRightOf="@id/upButton"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:src="@drawable/right" />
+            app:srcCompat="@drawable/right" />
     <ImageButton
             android:id="@+id/downButton"
             android:foregroundGravity="center_horizontal"
@@ -33,6 +33,6 @@
             android:layout_toRightOf="@id/leftButton"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:src="@drawable/down" />
+            app:srcCompat="@drawable/down" />
 
 </RelativeLayout>
