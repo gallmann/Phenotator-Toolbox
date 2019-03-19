@@ -2,6 +2,8 @@ package com.masterthesis.johannes.annotationtool
 
 import android.net.Uri
 import android.os.Bundle
+import android.os.PersistableBundle
+import android.provider.Settings
 import com.google.android.material.navigation.NavigationView
 import androidx.fragment.app.Fragment
 import androidx.core.view.GravityCompat
@@ -16,31 +18,31 @@ import kotlinx.android.synthetic.main.app_bar_main.*
 class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelectedListener,
     MainFragment.OnFragmentInteractionListener, SettingsFragment.OnFragmentInteractionListener {
 
+    lateinit var currentFragment: Fragment
+    var fragments: MutableMap<Int,Fragment> = mutableMapOf()
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        if(savedInstanceState == null){
-            setContentView(R.layout.activity_main)
+        setContentView(R.layout.activity_main)
 
-
-            val fragmentManager = supportFragmentManager
-            val fragmentTransaction = fragmentManager.beginTransaction()
-
-            val fragment = MainFragment()
-            fragmentTransaction.add(R.id.fragment_container, fragment)
-            fragmentTransaction.commit()
-
-
-            setSupportActionBar(toolbar)
-
-            val toggle = ActionBarDrawerToggle(
-                this, drawer_layout, toolbar, R.string.navigation_drawer_open, R.string.navigation_drawer_close
-            )
-            drawer_layout.addDrawerListener(toggle)
-            toggle.syncState()
-
-            nav_view.setNavigationItemSelectedListener(this)
+        if(savedInstanceState != null){
+            loadFragment(savedInstanceState.getInt(CURRENT_FRAGMENT_KEY))
         }
+        else{
+            loadFragment(R.id.nav_annotations)
+        }
+
+        setSupportActionBar(toolbar)
+
+        val toggle = ActionBarDrawerToggle(
+            this, drawer_layout, toolbar, R.string.navigation_drawer_open, R.string.navigation_drawer_close
+        )
+        drawer_layout.addDrawerListener(toggle)
+        toggle.syncState()
+
+        nav_view.setNavigationItemSelectedListener(this)
+
 
     }
 
@@ -55,24 +57,65 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
 
     override fun onNavigationItemSelected(item: MenuItem): Boolean {
         // Handle navigation view item clicks here.
-        var newFragment: Fragment? = null
-
-        when (item.itemId) {
-            R.id.nav_annotations -> {
-                newFragment = MainFragment()
-            }
-            R.id.nav_settings -> {
-                newFragment = SettingsFragment()
-            }
-        }
-
-        val transaction = supportFragmentManager.beginTransaction()
-        transaction.replace(R.id.fragment_container, newFragment!!)
-        transaction.commit()
-
+        loadFragment(item.itemId)
         drawer_layout.closeDrawer(GravityCompat.START)
         return true
     }
+
+
+
+    fun loadFragment(id: Int){
+
+
+        val transaction = supportFragmentManager.beginTransaction()
+        if(::currentFragment.isInitialized){
+            transaction.hide(currentFragment)
+        }
+
+        when (id) {
+            R.id.nav_annotations -> {
+                if(fragments.containsKey(id)){
+                    currentFragment = fragments[id]!!
+                }
+                else{
+                    currentFragment = MainFragment()
+                    fragments[id] = currentFragment
+                }
+            }
+            R.id.nav_settings -> {
+                if(fragments.containsKey(id)){
+                    currentFragment = fragments[id]!!
+                }
+                else{
+                    currentFragment = SettingsFragment()
+                    fragments[id] = currentFragment
+                }
+            }
+        }
+        if (currentFragment.isAdded()) { // if the fragment is already in container
+            transaction.show(currentFragment);
+        } else { // fragment needs to be added to frame container
+            transaction.add(R.id.fragment_container, currentFragment, "A");
+        }
+
+        transaction.commit()
+    }
+
+    override fun onSaveInstanceState(outState: Bundle?) {
+        // Save the user's current game state
+        outState?.run {
+            if(currentFragment is MainFragment) {
+                putInt(CURRENT_FRAGMENT_KEY, R.id.nav_annotations)
+            }
+            else{
+                putInt(CURRENT_FRAGMENT_KEY, R.id.nav_settings)
+            }
+        }
+
+        // Always call the superclass so it can save the view hierarchy state
+        super.onSaveInstanceState(outState)
+    }
+
 
 
     public override fun onFragmentInteraction(uri: Uri): Unit {

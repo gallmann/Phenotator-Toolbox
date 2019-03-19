@@ -186,7 +186,6 @@ class MyImageView constructor(context: Context, val annotationState: AnnotationS
     }
 
     fun updateLocation(location: Location){
-        println("received update: ${location.latitude}, ${location.longitude}")
         this.userLocation = location
         invalidate()
     }

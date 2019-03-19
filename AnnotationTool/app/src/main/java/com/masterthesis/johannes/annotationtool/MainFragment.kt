@@ -27,8 +27,8 @@ class MainFragment : Fragment(), AdapterView.OnItemClickListener, View.OnClickLi
     private lateinit var flowerListView: ListView
     private lateinit var annotationState: AnnotationState
     private lateinit var imageView: MyImageView
-    private val READ_PHONE_STORAGE_RETURN_CODE: Int = 1
-    private val READ_PHONE_STORAGE_RETURN_CODE_STARTUP: Int = 2
+    private val READ_PHONE_STORAGE_RETURN_CODE: Int = 899
+    private val READ_PHONE_STORAGE_RETURN_CODE_STARTUP: Int = 898
 
 
     private lateinit var fusedLocationClient: FusedLocationProviderClient
@@ -259,7 +259,7 @@ class MainFragment : Fragment(), AdapterView.OnItemClickListener, View.OnClickLi
             }
         }
         else if(requestCode == READ_PHONE_STORAGE_RETURN_CODE_STARTUP){
-            if (permissions[0].equals(Manifest.permission.READ_EXTERNAL_STORAGE) && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+            if (grantResults.isNotEmpty() && permissions[0].equals(Manifest.permission.READ_EXTERNAL_STORAGE) && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
                 initImageView()
             }
 

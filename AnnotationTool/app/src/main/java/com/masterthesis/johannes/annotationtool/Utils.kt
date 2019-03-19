@@ -20,6 +20,7 @@ val DEFAULT_MAX_ZOOM_VALUE = Pair(30F,"MAX_ZOOM_KEY")
 val DEFAULT_ANNOTATION_SHOW_VALUE = Pair(0.9F,"ANNOTATION_SHOW_KEY")
 val LOCATION_PERMISSION_REQUEST = 349
 val TURN_ON_LOCATION_USER_REQUEST = 347
+val CURRENT_FRAGMENT_KEY = "currentFragment"
 
 
 public fun getBitmapFromVectorDrawable(context: Context, drawableId: Int): Bitmap {
