@@ -12,9 +12,10 @@ import android.view.MotionEvent
 import android.view.View
 import android.widget.LinearLayout
 import com.davemorrissey.labs.subscaleview.ImageSource
+import com.davemorrissey.labs.subscaleview.ImageViewState
 
 
-class MyImageView constructor(context: Context, val annotationState: AnnotationState, val mainFragment: MainFragment, attr: AttributeSet? = null) :
+class MyImageView constructor(context: Context?, var annotationState: AnnotationState, var mainFragment: MainFragment, attr: AttributeSet? = null, var stateToRestore: ImageViewState? = null) :
     SubsamplingScaleImageView(context, attr), View.OnTouchListener {
 
     private lateinit var pin: Bitmap
@@ -51,6 +52,14 @@ class MyImageView constructor(context: Context, val annotationState: AnnotationS
 
 
         setBlinkingAnimation()
+        setImage(ImageSource.uri(annotationState.imagePath), stateToRestore)
+        maxScale = getValueFromPreferences(DEFAULT_MAX_ZOOM_VALUE,context)
+        ZOOM_THRESH = getValueFromPreferences(DEFAULT_ANNOTATION_SHOW_VALUE,context)
+    }
+
+    public fun reload(annotationState: AnnotationState, mainFragment: MainFragment){
+        this.annotationState = annotationState
+        this.mainFragment = mainFragment
         setImage(ImageSource.uri(annotationState.imagePath))
         maxScale = getValueFromPreferences(DEFAULT_MAX_ZOOM_VALUE,context)
         ZOOM_THRESH = getValueFromPreferences(DEFAULT_ANNOTATION_SHOW_VALUE,context)
@@ -62,7 +71,7 @@ class MyImageView constructor(context: Context, val annotationState: AnnotationS
         if (!isReady) {
             return
         }
-
+        bringToFront()
 
         //draw user position
 
@@ -190,6 +199,5 @@ class MyImageView constructor(context: Context, val annotationState: AnnotationS
         this.userLocation = location
         invalidate()
     }
-
 
 }

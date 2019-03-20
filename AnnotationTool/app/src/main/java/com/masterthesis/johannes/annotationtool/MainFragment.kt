@@ -18,8 +18,12 @@ import androidx.core.content.ContextCompat
 import com.google.android.gms.common.api.ResolvableApiException
 import com.google.android.gms.location.*
 import com.google.android.gms.tasks.Task
-import com.google.android.material.button.MaterialButton
 import java.io.File
+import com.davemorrissey.labs.subscaleview.ImageViewState
+import android.R.id
+import com.davemorrissey.labs.subscaleview.SubsamplingScaleImageView
+
+
 
 
 class MainFragment : Fragment(), AdapterView.OnItemClickListener, View.OnClickListener {
@@ -29,13 +33,13 @@ class MainFragment : Fragment(), AdapterView.OnItemClickListener, View.OnClickLi
     private lateinit var imageView: MyImageView
     private val READ_PHONE_STORAGE_RETURN_CODE: Int = 1
     private val READ_PHONE_STORAGE_RETURN_CODE_STARTUP: Int = 2
-
+    var restoredImageViewState: ImageViewState? = null
 
     private lateinit var fusedLocationClient: FusedLocationProviderClient
     private lateinit var locationCallback: LocationCallback
 
     private lateinit var imagePath: String
-    val READ_REQUEST_CODE: Int = 42
+    val OPEN_IMAGE_REQUEST_CODE: Int = 42
 
 
 
@@ -77,6 +81,9 @@ class MainFragment : Fragment(), AdapterView.OnItemClickListener, View.OnClickLi
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
+        if(savedInstanceState != null && savedInstanceState.containsKey(IMAGE_VIEW_STATE_KEY)) {
+            restoredImageViewState = savedInstanceState.getSerializable(IMAGE_VIEW_STATE_KEY) as ImageViewState
+        }
 
         val prefs = context!!.getSharedPreferences(SHARED_PREFERENCES_KEY, MODE_PRIVATE)
         val restoredText = prefs.getString(LAST_OPENED_IMAGE_URI, null)
@@ -84,6 +91,8 @@ class MainFragment : Fragment(), AdapterView.OnItemClickListener, View.OnClickLi
             imagePath = restoredText
             requestPermissions(arrayOf(Manifest.permission.READ_EXTERNAL_STORAGE, Manifest.permission.WRITE_EXTERNAL_STORAGE), READ_PHONE_STORAGE_RETURN_CODE_STARTUP)
         }
+
+
     }
 
 
@@ -146,6 +155,7 @@ class MainFragment : Fragment(), AdapterView.OnItemClickListener, View.OnClickLi
 
     fun initImageView(){
 
+
         if(!isExternalStorageWritable() || !File(imagePath).exists()){
             Snackbar.make(view!!, R.string.could_not_load_image, Snackbar.LENGTH_LONG).show();
             val editor = context!!.getSharedPreferences(SHARED_PREFERENCES_KEY, MODE_PRIVATE).edit()
@@ -153,13 +163,24 @@ class MainFragment : Fragment(), AdapterView.OnItemClickListener, View.OnClickLi
             editor.apply()
             return
         }
-
         println(imagePath)
         view!!.findViewById<ProgressBar>(R.id.progress_circular).visibility = View.VISIBLE
-        val imageViewContainer: RelativeLayout = view!!.findViewById<RelativeLayout>(R.id.imageViewContainer)
+        view!!.findViewById<ProgressBar>(R.id.progress_circular).bringToFront()
         annotationState = AnnotationState(imagePath,context!!)
-        imageView = MyImageView(context!!,annotationState,this)
-        imageViewContainer.addView(imageView)
+        val imageViewContainer: RelativeLayout = view!!.findViewById<RelativeLayout>(R.id.imageViewContainer)
+
+
+
+        if(::imageView.isInitialized){
+            imageView.reload(annotationState,this)
+            //imageViewContainer.removeView(imageView)
+        }
+        else{
+            imageView = MyImageView(context!!,annotationState,this, stateToRestore = restoredImageViewState)
+            imageViewContainer.addView(imageView)
+        }
+
+
         val editor = context!!.getSharedPreferences(SHARED_PREFERENCES_KEY, MODE_PRIVATE).edit()
         editor.putString(LAST_OPENED_IMAGE_URI,imagePath)
         editor.apply()
@@ -255,11 +276,11 @@ class MainFragment : Fragment(), AdapterView.OnItemClickListener, View.OnClickLi
                     addCategory(Intent.CATEGORY_OPENABLE)
                     type = "image/*"
                 }
-                startActivityForResult(intent, READ_REQUEST_CODE)
+                startActivityForResult(intent, OPEN_IMAGE_REQUEST_CODE)
             }
         }
         else if(requestCode == READ_PHONE_STORAGE_RETURN_CODE_STARTUP){
-            if (permissions[0].equals(Manifest.permission.READ_EXTERNAL_STORAGE) && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+            if (grantResults.isNotEmpty() && permissions[0].equals(Manifest.permission.READ_EXTERNAL_STORAGE) && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
                 initImageView()
             }
 
@@ -274,7 +295,7 @@ class MainFragment : Fragment(), AdapterView.OnItemClickListener, View.OnClickLi
 
     override fun onActivityResult(requestCode: Int, resultCode: Int, resultData: Intent?) {
 
-        if (requestCode == READ_REQUEST_CODE && resultCode == AppCompatActivity.RESULT_OK) {
+        if (requestCode == OPEN_IMAGE_REQUEST_CODE && resultCode == AppCompatActivity.RESULT_OK) {
             resultData?.data?.also { uri ->
                 imagePath = uriToPath(uri)
                 initImageView()
@@ -300,6 +321,14 @@ class MainFragment : Fragment(), AdapterView.OnItemClickListener, View.OnClickLi
         stopLocationUpdates()
     }
 
+
+    override fun onSaveInstanceState(outState: Bundle) {
+        val state = imageView.state
+        if (state != null) {
+            outState.putSerializable(IMAGE_VIEW_STATE_KEY, imageView.state)
+        }
+        imageView.recycle()
+    }
 
 
     /**
