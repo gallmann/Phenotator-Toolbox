@@ -20,7 +20,7 @@ class MyImageView constructor(context: Context?, var annotationState: Annotation
 
     private lateinit var pin: Bitmap
     private lateinit var locationPin: Bitmap
-    private var ZOOM_THRESH: Float = 0.9F
+    var ZOOM_THRESH: Float = 0.9F
 
     private var showCurrentFlower: Boolean = true
     private var startTime: Long = 0
@@ -72,7 +72,6 @@ class MyImageView constructor(context: Context?, var annotationState: Annotation
             return
         }
         bringToFront()
-
         //draw user position
 
         

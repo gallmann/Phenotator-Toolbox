@@ -11,18 +11,16 @@ import java.io.*
 import kotlin.concurrent.thread
 
 
-class AnnotationState(@Transient var imagePath: String, @Transient val context: Context) {
+class AnnotationState(@Transient var imagePath: String,@Transient var flowerList: MutableList<String>) {
 
     var annotatedFlowers: ArrayList<Flower> = ArrayList<Flower>()
     var flowerCount: MutableMap<String,Int> = HashMap<String,Int>()
     var favs: ArrayList<String> = ArrayList<String>()
     var geoInfo: GeoInfo? = null
     @Transient var currentFlower: Flower? = null
-    @Transient lateinit var flowerList: MutableList<String>
     @Transient lateinit var annotationFilePath: String
 
     init{
-        flowerList = getFlowerListFromPreferences(context)
         annotationFilePath = createAnnotationFilePath(imagePath)
         var annotationFile: File = File(annotationFilePath)
         var geoInfoFile: File = File(createGeoInfoFilePath(imagePath))
@@ -53,14 +51,34 @@ class AnnotationState(@Transient var imagePath: String, @Transient val context: 
                     flowerList.add(flower.name)
                 }
             }
-            putFlowerListToPreferences(flowerList,context)
-            flowerList = getFlowerListFromPreferences(context)
+            flowerList = sortList(flowerList)
         }
         for(s: String in flowerList){
             if(!flowerCount.containsKey(s)){
                 flowerCount[s] = 0
             }
         }
+    }
+
+    fun updateFlowerList(new_list:MutableList<String>):MutableList<String>{
+        flowerList = new_list
+        for(flower in annotatedFlowers){
+            if(!flowerList.contains(flower.name)){
+                flowerList.add(flower.name)
+            }
+        }
+        flowerList = sortList(flowerList)
+        for(s: String in flowerList){
+            if(!flowerCount.containsKey(s)){
+                flowerCount[s] = 0
+            }
+        }
+        if(currentFlower!= null && flowerList.isNotEmpty()){
+            if(!flowerList.contains(currentFlower!!.name)){
+                currentFlower!!.name = flowerList[0]
+            }
+        }
+        return flowerList
     }
 
     private fun saveToFile(){

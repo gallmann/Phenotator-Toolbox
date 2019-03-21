@@ -1,10 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+              android:saveEnabled="false"
               android:orientation="horizontal"
               android:layout_width="match_parent"
               android:layout_height="wrap_content">
 
     <TextView xmlns:android="http://schemas.android.com/apk/res/android"
+              android:saveEnabled="false"
               android:id="@+id/settingTitle"
               android:text="Hello"
               android:layout_width="wrap_content"
@@ -21,6 +23,7 @@
 
 
     <TextView xmlns:android="http://schemas.android.com/apk/res/android"
+              android:saveEnabled="false"
               android:layout_weight="1"
               android:id="@+id/settingDetails"
               android:layout_width="match_parent"
@@ -37,6 +40,7 @@
               android:minHeight="?attr/listPreferredItemHeightSmall" />
 
     <EditText
+            android:saveEnabled="false"
             android:selectAllOnFocus="true"
             android:inputType="numberDecimal"
             android:id="@+id/value_edit_text"

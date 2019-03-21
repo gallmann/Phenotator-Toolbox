@@ -116,5 +116,10 @@ fun getFlowerListFromPreferences(context:Context):MutableList<String>{
     return items
 }
 
+fun sortList(list:MutableList<String>):MutableList<String>{
+    var new_list = list.sortedWith(compareBy(String.CASE_INSENSITIVE_ORDER, { it })).toMutableList()
+    return new_list
+}
+
 
 

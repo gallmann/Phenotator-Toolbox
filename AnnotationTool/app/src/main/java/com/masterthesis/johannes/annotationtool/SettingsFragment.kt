@@ -217,5 +217,13 @@ class SettingsFragment : Fragment(), View.OnClickListener  {
         viewAdapter.refresh(items)
     }
 
+    override fun onHiddenChanged(hidden: Boolean) {
+        super.onHiddenChanged(hidden)
+        if(!hidden){
+            items = getFlowerListFromPreferences(context!!)
+            viewAdapter.refresh(items)
+        }
+    }
+
 
 }

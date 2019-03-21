@@ -25,7 +25,7 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-            setContentView(R.layout.activity_main)
+        setContentView(R.layout.activity_main)
 
 
 
@@ -67,22 +67,30 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
         val transaction = supportFragmentManager.beginTransaction()
         when(id){
             R.id.nav_annotations ->{
-                if(::mainFragment.isInitialized){
+                if(::currentFragment.isInitialized){
+                    transaction.hide(currentFragment)
+                }
+                if(!::mainFragment.isInitialized){
+                    mainFragment = MainFragment()
+                    transaction.add(R.id.fragment_container, mainFragment)
                 }
                 else{
-                    mainFragment = MainFragment()
+                    transaction.show(mainFragment)
                 }
-                transaction.replace(R.id.fragment_container, mainFragment)
                 currentFragment = mainFragment
             }
 
             R.id.nav_settings ->{
-                if(::settingsFragment.isInitialized){
+                if(::currentFragment.isInitialized){
+                    transaction.hide(currentFragment)
+                }
+                if(!::settingsFragment.isInitialized){
+                    settingsFragment = SettingsFragment()
+                    transaction.add(R.id.fragment_container, settingsFragment)
                 }
                 else{
-                    settingsFragment = SettingsFragment()
+                    transaction.show(settingsFragment)
                 }
-                transaction.replace(R.id.fragment_container, settingsFragment)
                 currentFragment = settingsFragment
             }
         }

@@ -22,11 +22,10 @@ import java.io.File
 import com.davemorrissey.labs.subscaleview.ImageViewState
 import android.R.id
 import com.davemorrissey.labs.subscaleview.SubsamplingScaleImageView
+import java.lang.Exception
 
 
-
-
-class MainFragment : Fragment(), AdapterView.OnItemClickListener, View.OnClickListener {
+class MainFragment : Fragment(), AdapterView.OnItemClickListener, View.OnClickListener, SubsamplingScaleImageView.OnImageEventListener {
     private var listener: OnFragmentInteractionListener? = null
     private lateinit var flowerListView: ListView
     private lateinit var annotationState: AnnotationState
@@ -91,8 +90,6 @@ class MainFragment : Fragment(), AdapterView.OnItemClickListener, View.OnClickLi
             imagePath = restoredText
             requestPermissions(arrayOf(Manifest.permission.READ_EXTERNAL_STORAGE, Manifest.permission.WRITE_EXTERNAL_STORAGE), READ_PHONE_STORAGE_RETURN_CODE_STARTUP)
         }
-
-
     }
 
 
@@ -166,17 +163,21 @@ class MainFragment : Fragment(), AdapterView.OnItemClickListener, View.OnClickLi
         println(imagePath)
         view!!.findViewById<ProgressBar>(R.id.progress_circular).visibility = View.VISIBLE
         view!!.findViewById<ProgressBar>(R.id.progress_circular).bringToFront()
-        annotationState = AnnotationState(imagePath,context!!)
+        annotationState = AnnotationState(imagePath, getFlowerListFromPreferences(context!!))
+        putFlowerListToPreferences(annotationState.flowerList,context!!)
         val imageViewContainer: RelativeLayout = view!!.findViewById<RelativeLayout>(R.id.imageViewContainer)
 
 
 
         if(::imageView.isInitialized){
             imageView.reload(annotationState,this)
+            imageViewContainer.addView(imageView)
+
             //imageViewContainer.removeView(imageView)
         }
         else{
             imageView = MyImageView(context!!,annotationState,this, stateToRestore = restoredImageViewState)
+            imageView.setOnImageEventListener(this)
             imageViewContainer.addView(imageView)
         }
 
@@ -293,6 +294,21 @@ class MainFragment : Fragment(), AdapterView.OnItemClickListener, View.OnClickLi
         }
     }
 
+
+    override fun onImageLoaded() {}
+
+    override fun onReady() {
+        view!!.findViewById<ProgressBar>(R.id.progress_circular).visibility = View.INVISIBLE
+    }
+
+    override fun onTileLoadError(e: Exception?) {}
+
+    override fun onPreviewReleased() {}
+
+    override fun onImageLoadError(e: Exception?) {}
+
+    override fun onPreviewLoadError(e: Exception?) {}
+
     override fun onActivityResult(requestCode: Int, resultCode: Int, resultData: Intent?) {
 
         if (requestCode == OPEN_IMAGE_REQUEST_CODE && resultCode == AppCompatActivity.RESULT_OK) {
@@ -316,6 +332,23 @@ class MainFragment : Fragment(), AdapterView.OnItemClickListener, View.OnClickLi
         }
     }
 
+    override fun onHiddenChanged(hidden: Boolean) {
+        super.onHiddenChanged(hidden)
+        if(!hidden){
+            val new_scale = getValueFromPreferences(DEFAULT_MAX_ZOOM_VALUE,context!!)
+            if(imageView.scale > new_scale) {
+                imageView.setScaleAndCenter(new_scale,imageView.center)
+            }
+            imageView.maxScale = new_scale
+            imageView.ZOOM_THRESH = getValueFromPreferences(DEFAULT_ANNOTATION_SHOW_VALUE,context!!)
+            //imageView.reload(annotationState,this)
+            val new_list = annotationState.updateFlowerList(getFlowerListFromPreferences(context!!))
+            putFlowerListToPreferences(new_list, context!!)
+            imageView.invalidate()
+            updateFlowerListView()
+        }
+    }
+
     override fun onPause() {
         super.onPause()
         stopLocationUpdates()
@@ -327,6 +360,16 @@ class MainFragment : Fragment(), AdapterView.OnItemClickListener, View.OnClickLi
         if (state != null) {
             outState.putSerializable(IMAGE_VIEW_STATE_KEY, imageView.state)
         }
+        imageView.recycle()
+    }
+
+    override fun onDestroyView() {
+        val imageViewContainer: RelativeLayout = view!!.findViewById<RelativeLayout>(R.id.imageViewContainer)
+        imageViewContainer.removeView(imageView)
+        super.onDestroyView()
+    }
+    override fun onDestroy() {
+        super.onDestroy()
         imageView.recycle()
     }
 
