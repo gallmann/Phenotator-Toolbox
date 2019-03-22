@@ -20,7 +20,6 @@ import java.io.File
 import com.davemorrissey.labs.subscaleview.ImageViewState
 import android.graphics.PointF
 import com.davemorrissey.labs.subscaleview.SubsamplingScaleImageView
-import kotlinx.android.synthetic.main.control_view.*
 import java.lang.Exception
 
 
@@ -29,9 +28,9 @@ class MainFragment : Fragment(), AdapterView.OnItemClickListener, View.OnTouchLi
     private lateinit var polygonSwitch: Switch
     private lateinit var annotationState: AnnotationState
     private lateinit var imageView: MyImageView
-    private val READ_PHONE_STORAGE_RETURN_CODE: Int = 1
-    private val READ_PHONE_STORAGE_RETURN_CODE_STARTUP: Int = 2
     var restoredImageViewState: ImageViewState? = null
+    private var currentEditIndex: Int = 0
+    lateinit private var undoButton: MenuItem
 
     private var startTime: Long = 0
     private var startX: Float = 0.toFloat()
@@ -41,7 +40,6 @@ class MainFragment : Fragment(), AdapterView.OnItemClickListener, View.OnTouchLi
     private lateinit var locationCallback: LocationCallback
 
     private lateinit var imagePath: String
-    val OPEN_IMAGE_REQUEST_CODE: Int = 42
 
    /** FRAGMENT LIFECYCLE FUNCTIONS **/
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -130,6 +128,8 @@ class MainFragment : Fragment(), AdapterView.OnItemClickListener, View.OnTouchLi
     /** OPTIONS MENU FUNCTIONS **/
     override fun onCreateOptionsMenu(menu: Menu, inflater: MenuInflater) {
         inflater.inflate(R.menu.main, menu);
+        undoButton = menu.getItem(0)
+        enableUndoButton(false)
         super.onCreateOptionsMenu(menu, inflater)
     }
 
@@ -142,7 +142,21 @@ class MainFragment : Fragment(), AdapterView.OnItemClickListener, View.OnTouchLi
                 openImage()
                 return false
             }
+            R.id.action_undo -> {
+                removeCurrentPolygonPoint()
+                return false
+            }
             else -> return super.onOptionsItemSelected(item)
+        }
+    }
+
+    fun enableUndoButton(enable: Boolean){
+        undoButton.setEnabled(enable)
+        if(enable){
+            undoButton.getIcon().setAlpha(255);
+        }
+        else{
+            undoButton.getIcon().setAlpha(130);
         }
     }
 
@@ -158,9 +172,14 @@ class MainFragment : Fragment(), AdapterView.OnItemClickListener, View.OnTouchLi
     override fun onClick(view: View) {
         when(view.id){
             R.id.done_button -> {
-                annotationState.permanentlyAddCurrentFlower()
-                updateControlView()
-                imageView.invalidate()
+                if(annotationState.currentFlower!!.isPolygon && annotationState.currentFlower!!.polygon.size < 3){
+                    Snackbar.make(view!!, R.string.to_small_polygon, Snackbar.LENGTH_LONG).show();
+                }
+                else{
+                    annotationState.permanentlyAddCurrentFlower()
+                    updateControlView()
+                    imageView.invalidate()
+                }
             }
             R.id.cancel_button -> {
                 annotationState.cancelCurrentFlower()
@@ -186,6 +205,7 @@ class MainFragment : Fragment(), AdapterView.OnItemClickListener, View.OnTouchLi
         if(annotationState.currentFlower == null){
             view!!.findViewById<LinearLayout>(R.id.annotation_edit_container).visibility = View.INVISIBLE
             flowerListView.adapter = null
+            enableUndoButton(false)
         }
         else{
             view!!.findViewById<LinearLayout>(R.id.annotation_edit_container).visibility = View.VISIBLE
@@ -276,16 +296,16 @@ class MainFragment : Fragment(), AdapterView.OnItemClickListener, View.OnTouchLi
     private fun moveCurrentMark(id: Int){
         when(id){
             R.id.leftButton -> {
-                annotationState.currentFlower!!.decrementXPos()
+                annotationState.currentFlower!!.decrementXPos(currentEditIndex)
             }
             R.id.rightButton -> {
-                annotationState.currentFlower!!.incrementXPos()
+                annotationState.currentFlower!!.incrementXPos(currentEditIndex)
             }
             R.id.upButton -> {
-                annotationState.currentFlower!!.decrementYPos()
+                annotationState.currentFlower!!.decrementYPos(currentEditIndex)
             }
             R.id.downButton -> {
-                annotationState.currentFlower!!.incrementYPos()
+                annotationState.currentFlower!!.incrementYPos(currentEditIndex)
             }
         }
         imageView.invalidate()
@@ -353,10 +373,10 @@ class MainFragment : Fragment(), AdapterView.OnItemClickListener, View.OnTouchLi
                     if(imageView.isEditable()){
                         val editFlower = imageView.clickedOnExistingMark(endX,endY);
                         if(editFlower != null){
-                            editMark(editFlower)
+                            clickedOnExistingMark(editFlower)
                         }
                         else {
-                            addNewMark(event)
+                            clickedOnNewPosition(event)
                         }
                     }
                 }
@@ -365,19 +385,54 @@ class MainFragment : Fragment(), AdapterView.OnItemClickListener, View.OnTouchLi
         return false
     }
 
-    private fun addNewMark(event: MotionEvent){
-        var sourcecoord: PointF = imageView.viewToSourceCoord(PointF(event.x, event.y))!!
-        annotationState.addNewFlowerMarker(sourcecoord.x, sourcecoord.y)
-        updateControlView()
-        imageView.invalidate()
+    private fun clickedOnNewPosition(event: MotionEvent){
+        if(annotationState.currentFlower != null && annotationState.currentFlower!!.isPolygon){
+            var sourcecoord: PointF = imageView.viewToSourceCoord(PointF(event.x, event.y))!!
+            annotationState.currentFlower!!.addPolygonPoint(Coord(sourcecoord.x,sourcecoord.y))
+            setCurrentEditIndex(annotationState.currentFlower!!.polygon.size-1)
+            if(annotationState.currentFlower!!.polygon.size > 1) enableUndoButton(true)
+            imageView.invalidate()
+        }
+        else{
+            var sourcecoord: PointF = imageView.viewToSourceCoord(PointF(event.x, event.y))!!
+            annotationState.addNewFlowerMarker(sourcecoord.x, sourcecoord.y)
+            setCurrentEditIndex(0)
+            updateControlView()
+            imageView.invalidate()
+        }
     }
 
-    private fun editMark(flower: Flower){
-        annotationState.startEditingFlower(flower)
-        updateControlView()
-        imageView.invalidate()
+    private fun clickedOnExistingMark(flower: Pair<Flower,Int>){
+        if(flower.first.isPolygon){
+            setCurrentEditIndex(flower.second)
+            annotationState.startEditingFlower(flower.first)
+            setCurrentEditIndex(flower.second)
+            if(annotationState.currentFlower!!.polygon.size > 1) enableUndoButton(true)
+            updateControlView()
+            imageView.invalidate()
+        }
+        else{
+            annotationState.startEditingFlower(flower.first)
+            setCurrentEditIndex(0)
+            updateControlView()
+            imageView.invalidate()
+        }
     }
 
+    private fun removeCurrentPolygonPoint(){
+        if(annotationState.currentFlower != null){
+            annotationState.currentFlower!!.removePolygonPointAt(currentEditIndex)
+            setCurrentEditIndex(annotationState.currentFlower!!.polygon.size-1)
+            if(annotationState.currentFlower!!.polygon.size > 1) enableUndoButton(true)
+            else enableUndoButton(false)
+            imageView.invalidate()
+        }
+    }
+
+    private fun setCurrentEditIndex(index: Int){
+        currentEditIndex = index
+        imageView.currentEditIndex = index
+    }
 
 
 

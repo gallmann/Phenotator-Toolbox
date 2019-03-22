@@ -20,9 +20,11 @@ class MyImageView constructor(context: Context?, var annotationState: Annotation
     SubsamplingScaleImageView(context, attr) {
 
     private lateinit var pin: Bitmap
+    private lateinit var polygonPin: Bitmap
     private lateinit var locationPin: Bitmap
     var ZOOM_THRESH: Float = 0.9F
     lateinit var blinkingAnimation: Runnable
+    var currentEditIndex: Int = 0
 
     private var showCurrentFlower: Boolean = true
     private var userLocation: Location? = null
@@ -41,6 +43,12 @@ class MyImageView constructor(context: Context?, var annotationState: Annotation
         var w = density / 200f * pin.width
         var h = density / 200f * pin.height
         pin = Bitmap.createScaledBitmap(pin, w.toInt(), h.toInt(), true)
+
+        polygonPin = getBitmapFromVectorDrawable(context,R.drawable.point_image)
+        w = density / 400f * polygonPin.width
+        h = density / 400f * polygonPin.height
+        polygonPin = Bitmap.createScaledBitmap(polygonPin, w.toInt(), h.toInt(), true)
+
 
         locationPin = getBitmapFromVectorDrawable(context,R.drawable.my_location)
         w = density / 200f * locationPin.width
@@ -62,15 +70,35 @@ class MyImageView constructor(context: Context?, var annotationState: Annotation
         ZOOM_THRESH = getValueFromPreferences(DEFAULT_ANNOTATION_SHOW_VALUE,context)
     }
 
-    fun clickedOnExistingMark(x: Float, y: Float):Flower?{
+    fun clickedOnExistingMark(x: Float, y: Float):Pair<Flower,Int>?{
         val w: Float = pin!!.width / 2F
+
+        //CHECK CURRENT FLOWER
+        if(annotationState.currentFlower != null){
+            val flower: Flower = annotationState.currentFlower!!
+            for(i in 0..flower.polygon.size-1) {
+                val sourceCoord = sourceToViewCoord(flower.getXPos(i), flower.getYPos(i))
+                val xPos = sourceCoord!!.x
+                val yPos = sourceCoord!!.y
+                val rect: RectF = RectF(xPos - w, yPos - w, xPos + w, yPos + w)
+                if (rect.contains(x, y)) {
+                    return Pair(flower, i)
+                }
+            }
+        }
+
+
+
+        //CHECK ALL ANNOTATIONS IN STATE
         for((index,flower) in annotationState.annotatedFlowers.withIndex()){
-            val sourceCoord = sourceToViewCoord(flower.getXPos(),flower.getYPos())
-            val xPos = sourceCoord!!.x
-            val yPos = sourceCoord!!.y
-            val rect: RectF = RectF(xPos-w,yPos-w,xPos+w, yPos+w)
-            if(rect.contains(x,y)){
-                return flower
+            for(i in 0..flower.polygon.size-1){
+                val sourceCoord = sourceToViewCoord(flower.getXPos(i),flower.getYPos(i))
+                val xPos = sourceCoord!!.x
+                val yPos = sourceCoord!!.y
+                val rect: RectF = RectF(xPos-w,yPos-w,xPos+w, yPos+w)
+                if(rect.contains(x,y)){
+                    return Pair(flower,i)
+                }
             }
         }
         return null
@@ -83,8 +111,6 @@ class MyImageView constructor(context: Context?, var annotationState: Annotation
             return
         }
         bringToFront()
-
-
 
         //DRAW USER POSITION
         if(userLocation != null){
@@ -112,26 +138,67 @@ class MyImageView constructor(context: Context?, var annotationState: Annotation
         //DRAW FLOWER ANNOTATIONS
         if(scale<ZOOM_THRESH) return
 
-        if(showCurrentFlower && annotationState.currentFlower != null){
+        if(annotationState.currentFlower != null){
             var flower = annotationState.currentFlower!!
-            drawPin(flower.getXPos(), flower.getYPos(),canvas,annotationState.getFlowerColor(flower.name,context), pin)
+            if(flower.isPolygon){
+                drawPolygon(flower, canvas, true)
+            }
+            else{
+                drawFlower(flower, canvas, true)
+            }
         }
 
 
-        for((index,flower) in annotationState.annotatedFlowers.withIndex()){
-            drawPin(flower.getXPos(), flower.getYPos(),canvas,annotationState.getFlowerColor(flower.name,context), pin)
+        for(flower in annotationState.annotatedFlowers){
+            if(flower.isPolygon){
+                drawPolygon(flower, canvas)
+            }
+            else{
+                drawFlower(flower, canvas)
+            }
+        }
+    }
+
+    private fun drawFlower(flower: Flower, canvas: Canvas, isCurrentFlower: Boolean = false){
+        if((isCurrentFlower && showCurrentFlower) || !isCurrentFlower){
+            var color = annotationState.getFlowerColor(flower.name,context)
+            drawPin(flower.getXPos(),flower.getYPos(),canvas,color,pin)
+        }
+    }
+
+    private fun drawPolygon(flower: Flower, canvas: Canvas, isCurrentFlower: Boolean = false){
+        var color = annotationState.getFlowerColor(flower.name,context)
+        color.setStrokeWidth(polygonPin!!.width.toFloat() / 10);
+
+        for(i in 0..flower.polygon.size-1){
+            val nextPos = (i + 1) % flower.polygon.size
+
+
+            if(isCurrentFlower && !showCurrentFlower && i == currentEditIndex){
+                continue
+            }
+            var currViewCoord: PointF = sourceToViewCoord(flower.getXPos(i), flower.getYPos(i))!!
+            var nextViewCoord: PointF = sourceToViewCoord(flower.getXPos(nextPos), flower.getYPos(nextPos))!!
+
+            if(isCoordinateVisible(canvas,currViewCoord.x,currViewCoord.y,polygonPin!!.width / 2F) ||
+                isCoordinateVisible(canvas,nextViewCoord.x,nextViewCoord.y,polygonPin!!.width / 2F)) {
+                if(!(isCurrentFlower && !showCurrentFlower && nextPos == currentEditIndex)) {
+                    canvas.drawLine(currViewCoord.x, currViewCoord.y, nextViewCoord.x, nextViewCoord.y, color)
+                }
+                val vX = currViewCoord.x - polygonPin!!.width / 2
+                val vY = currViewCoord.y - polygonPin!!.height / 2
+                canvas.drawBitmap(polygonPin, vX, vY, color)
+            }
         }
     }
 
     private fun drawPin(xPos: Float, yPos: Float, canvas: Canvas, color: Paint, pin: Bitmap){
         var viewcoord: PointF = sourceToViewCoord(xPos, yPos)!!
-
         if(isCoordinateVisible(canvas,viewcoord.x,viewcoord.y,pin!!.width / 2F)){
             val vX = viewcoord.x - pin!!.width / 2
             val vY = viewcoord.y - pin!!.height / 2
             canvas.drawBitmap(pin, vX, vY, color)
         }
-
     }
 
     private fun setBlinkingAnimation() {

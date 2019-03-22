@@ -30,6 +30,10 @@
     <string name="insert_flower_name">Type in the name of the new Flower.</string>
     <string name="cancel">CANCEL</string>
 
+    <string name="remove_current_polygon_point">Remove current Polygon Point</string>
+    <string name="to_small_polygon">A Polygon must have at least 3 Points!</string>
+
+
 
     <!-- TODO: Remove or change this placeholder text -->
     <string name="hello_blank_fragment">Hello blank fragment</string>

@@ -154,6 +154,9 @@ class AnnotationState(@Transient var imagePath: String,@Transient var flowerList
     }
 
     public fun permanentlyAddCurrentFlower(){
+        if(!currentFlower!!.isPolygon){
+            currentFlower!!.deletePolygon()
+        }
         annotatedFlowers.add(currentFlower!!)
         updateFavourites()
         saveToFile()
@@ -177,7 +180,10 @@ class AnnotationState(@Transient var imagePath: String,@Transient var flowerList
 
     public fun startEditingFlower(flower: Flower){
         if(currentFlower != null){
-            cancelCurrentFlower()
+            if(currentFlower!!.equals(flower)){
+                return
+            }
+            permanentlyAddCurrentFlower()
         }
 
         if(annotatedFlowers.contains(flower)){

@@ -1,5 +1,8 @@
 package com.masterthesis.johannes.annotationtool
 
+import java.lang.Exception
+import java.lang.IndexOutOfBoundsException
+
 class Flower(name: String, xPos: Float, yPos: Float) {
     var name: String = name
     var polygon: MutableList<Coord> = mutableListOf(Coord(xPos,yPos))
@@ -18,8 +21,31 @@ class Flower(name: String, xPos: Float, yPos: Float) {
     fun getYPos():Float{
         return polygon[0].y
     }
+    fun setXPos(x:Float, pos:Int){
+        if(polygon.size > pos) polygon[pos].x = x
+        else throw IndexOutOfBoundsException()
+    }
+    fun setYPos(y:Float,pos:Int){
+        if(polygon.size > pos) polygon[pos].y = y
+        else throw IndexOutOfBoundsException()
+    }
+    fun getXPos(pos:Int):Float{
+        if(polygon.size > pos) return polygon[pos].x
+        else throw IndexOutOfBoundsException()
+    }
+    fun getYPos(pos:Int):Float{
+        if(polygon.size > pos) return polygon[pos].y
+        else throw IndexOutOfBoundsException()
+    }
+
     fun addPolygonPoint(coord: Coord){
         polygon.add(coord)
+    }
+
+    fun removePolygonPointAt(pos:Int){
+        if(polygon.size > 1 && polygon.size > pos){
+            polygon.removeAt(pos)
+        }
     }
     fun removeLastPolygonPoint(){
         if(polygon.size > 1){
@@ -45,22 +71,26 @@ class Flower(name: String, xPos: Float, yPos: Float) {
         polygon[0].y--
     }
 
-    fun incrementXPosAt(pos:Int){
+    fun incrementXPos(pos:Int){
         if(polygon.size > pos) polygon[pos].x++
+        else throw IndexOutOfBoundsException()
     }
-    fun incrementYPosAt(pos:Int){
+    fun incrementYPos(pos:Int){
         if(polygon.size > pos) polygon[pos].y++
+        else throw IndexOutOfBoundsException()
     }
-    fun decrementXPosAt(pos:Int){
+    fun decrementXPos(pos:Int){
         if(polygon.size > pos) polygon[pos].x--
+        else throw IndexOutOfBoundsException()
     }
-    fun decrementYPosAt(pos:Int){
+    fun decrementYPos(pos:Int){
         if(polygon.size > pos) polygon[pos].y--
+        else throw IndexOutOfBoundsException()
     }
 
     fun deletePolygon(){
-        for(i in polygon.size-1..1){
-            polygon.removeAt(i)
+        while (polygon.size > 1){
+            polygon.removeAt(1)
         }
     }
 
