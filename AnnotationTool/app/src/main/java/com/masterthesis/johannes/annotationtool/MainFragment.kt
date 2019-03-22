@@ -170,16 +170,14 @@ class MainFragment : Fragment(), AdapterView.OnItemClickListener, View.OnClickLi
 
 
         if(::imageView.isInitialized){
-            imageView.reload(annotationState,this)
-            imageViewContainer.addView(imageView)
-
+            imageView.recycle()
             //imageViewContainer.removeView(imageView)
         }
-        else{
-            imageView = MyImageView(context!!,annotationState,this, stateToRestore = restoredImageViewState)
-            imageView.setOnImageEventListener(this)
-            imageViewContainer.addView(imageView)
-        }
+
+        imageView = MyImageView(context!!,annotationState,this, stateToRestore = restoredImageViewState)
+        imageView.setOnImageEventListener(this)
+        imageViewContainer.addView(imageView)
+
 
 
         val editor = context!!.getSharedPreferences(SHARED_PREFERENCES_KEY, MODE_PRIVATE).edit()
@@ -250,16 +248,16 @@ class MainFragment : Fragment(), AdapterView.OnItemClickListener, View.OnClickLi
     private fun moveCurrentMark(id: Int){
         when(id){
             R.id.leftButton -> {
-                annotationState.currentFlower!!.xPos = annotationState.currentFlower!!.xPos - 1
+                annotationState.currentFlower!!.decrementXPos()
             }
             R.id.rightButton -> {
-                annotationState.currentFlower!!.xPos = annotationState.currentFlower!!.xPos + 1
+                annotationState.currentFlower!!.incrementXPos()
             }
             R.id.upButton -> {
-                annotationState.currentFlower!!.yPos = annotationState.currentFlower!!.yPos - 1
+                annotationState.currentFlower!!.decrementYPos()
             }
             R.id.downButton -> {
-                annotationState.currentFlower!!.yPos = annotationState.currentFlower!!.yPos + 1
+                annotationState.currentFlower!!.incrementYPos()
             }
         }
         imageView.invalidate()
@@ -314,6 +312,7 @@ class MainFragment : Fragment(), AdapterView.OnItemClickListener, View.OnClickLi
         if (requestCode == OPEN_IMAGE_REQUEST_CODE && resultCode == AppCompatActivity.RESULT_OK) {
             resultData?.data?.also { uri ->
                 imagePath = uriToPath(uri)
+                restoredImageViewState = null
                 initImageView()
             }
         }
@@ -329,23 +328,6 @@ class MainFragment : Fragment(), AdapterView.OnItemClickListener, View.OnClickLi
                 stopLocationUpdates()
                 startLocationUpdates()
             }
-        }
-    }
-
-    override fun onHiddenChanged(hidden: Boolean) {
-        super.onHiddenChanged(hidden)
-        if(!hidden){
-            val new_scale = getValueFromPreferences(DEFAULT_MAX_ZOOM_VALUE,context!!)
-            if(imageView.scale > new_scale) {
-                imageView.setScaleAndCenter(new_scale,imageView.center)
-            }
-            imageView.maxScale = new_scale
-            imageView.ZOOM_THRESH = getValueFromPreferences(DEFAULT_ANNOTATION_SHOW_VALUE,context!!)
-            //imageView.reload(annotationState,this)
-            val new_list = annotationState.updateFlowerList(getFlowerListFromPreferences(context!!))
-            putFlowerListToPreferences(new_list, context!!)
-            imageView.invalidate()
-            updateFlowerListView()
         }
     }
 
@@ -368,6 +350,8 @@ class MainFragment : Fragment(), AdapterView.OnItemClickListener, View.OnClickLi
         imageViewContainer.removeView(imageView)
         super.onDestroyView()
     }
+
+
     override fun onDestroy() {
         super.onDestroy()
         imageView.recycle()

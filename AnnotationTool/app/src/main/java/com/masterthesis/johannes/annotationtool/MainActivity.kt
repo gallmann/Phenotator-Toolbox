@@ -15,21 +15,28 @@ import android.R.attr.orientation
 import android.content.res.Configuration
 
 
+
+
 class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelectedListener,
     MainFragment.OnFragmentInteractionListener, SettingsFragment.OnFragmentInteractionListener {
 
-    lateinit var mainFragment: MainFragment
-    lateinit var settingsFragment: SettingsFragment
-    lateinit var currentFragment: Fragment
+    var mainFragment: MainFragment? = null
+    var settingsFragment: SettingsFragment? = null
+    var currentFragment: Fragment? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
         setContentView(R.layout.activity_main)
 
+        if (savedInstanceState == null) {
 
+            mainFragment = MainFragment()
 
-        if(savedInstanceState != null) {
+            activateFragment(R.id.nav_annotations)
+        }
+        else {
+
             for (fragment in supportFragmentManager.fragments) {
                 if(fragment is MainFragment){
                     mainFragment = fragment
@@ -42,12 +49,7 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
             if(savedInstanceState.containsKey(CURRENT_FRAGMENT_KEY)) {
                 activateFragment(savedInstanceState.getInt(CURRENT_FRAGMENT_KEY))
             }
-
         }
-        else{
-            activateFragment(R.id.nav_annotations)
-        }
-
 
         setSupportActionBar(toolbar)
 
@@ -57,43 +59,31 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
         drawer_layout.addDrawerListener(toggle)
         toggle.syncState()
 
-    //TODO:
         nav_view.setNavigationItemSelectedListener(this)
 
     }
 
-    private fun activateFragment(id:Int){
 
+    private fun activateFragment(id:Int) {
         val transaction = supportFragmentManager.beginTransaction()
-        when(id){
-            R.id.nav_annotations ->{
-                if(::currentFragment.isInitialized){
-                    transaction.hide(currentFragment)
-                }
-                if(!::mainFragment.isInitialized){
+        when (id) {
+            R.id.nav_annotations -> {
+                if(mainFragment == null){
                     mainFragment = MainFragment()
-                    transaction.add(R.id.fragment_container, mainFragment)
                 }
-                else{
-                    transaction.show(mainFragment)
-                }
+                transaction.replace(R.id.fragment_container, mainFragment!!, R.id.nav_annotations.toString())
                 currentFragment = mainFragment
             }
 
-            R.id.nav_settings ->{
-                if(::currentFragment.isInitialized){
-                    transaction.hide(currentFragment)
-                }
-                if(!::settingsFragment.isInitialized){
+            R.id.nav_settings -> {
+                if(settingsFragment == null){
                     settingsFragment = SettingsFragment()
-                    transaction.add(R.id.fragment_container, settingsFragment)
                 }
-                else{
-                    transaction.show(settingsFragment)
-                }
+                transaction.replace(R.id.fragment_container, settingsFragment!!, R.id.nav_settings.toString())
                 currentFragment = settingsFragment
             }
         }
+
         transaction.commit()
     }
 

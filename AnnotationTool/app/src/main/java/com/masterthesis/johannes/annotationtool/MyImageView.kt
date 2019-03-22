@@ -102,12 +102,12 @@ class MyImageView constructor(context: Context?, var annotationState: Annotation
 
         if(showCurrentFlower && annotationState.currentFlower != null){
             var flower = annotationState.currentFlower!!
-            drawPin(flower.xPos, flower.yPos,canvas,annotationState.getFlowerColor(flower.name,context), pin)
+            drawPin(flower.getXPos(), flower.getYPos(),canvas,annotationState.getFlowerColor(flower.name,context), pin)
         }
 
 
         for((index,flower) in annotationState.annotatedFlowers.withIndex()){
-            drawPin(flower.xPos, flower.yPos,canvas,annotationState.getFlowerColor(flower.name,context), pin)
+            drawPin(flower.getXPos(), flower.getYPos(),canvas,annotationState.getFlowerColor(flower.name,context), pin)
         }
     }
 
@@ -153,7 +153,7 @@ class MyImageView constructor(context: Context?, var annotationState: Annotation
     private fun clickedOnExistingMark(x: Float, y: Float):Flower?{
         val w: Float = pin!!.width / 2F
         for((index,flower) in annotationState.annotatedFlowers.withIndex()){
-            val sourceCoord = sourceToViewCoord(flower.xPos,flower.yPos)
+            val sourceCoord = sourceToViewCoord(flower.getXPos(),flower.getYPos())
             val xPos = sourceCoord!!.x
             val yPos = sourceCoord!!.y
             val rect: RectF = RectF(xPos-w,yPos-w,xPos+w, yPos+w)
