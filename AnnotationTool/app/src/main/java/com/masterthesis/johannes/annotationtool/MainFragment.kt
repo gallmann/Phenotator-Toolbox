@@ -2,9 +2,7 @@ package com.masterthesis.johannes.annotationtool
 
 import android.Manifest
 import androidx.appcompat.app.AppCompatActivity
-import android.content.Context
 import android.content.Intent
-import android.net.Uri
 import android.os.Bundle
 import androidx.fragment.app.Fragment
 import android.view.*
@@ -20,19 +18,24 @@ import com.google.android.gms.location.*
 import com.google.android.gms.tasks.Task
 import java.io.File
 import com.davemorrissey.labs.subscaleview.ImageViewState
-import android.R.id
+import android.graphics.PointF
 import com.davemorrissey.labs.subscaleview.SubsamplingScaleImageView
+import kotlinx.android.synthetic.main.control_view.*
 import java.lang.Exception
 
 
-class MainFragment : Fragment(), AdapterView.OnItemClickListener, View.OnClickListener, SubsamplingScaleImageView.OnImageEventListener {
-    private var listener: OnFragmentInteractionListener? = null
+class MainFragment : Fragment(), AdapterView.OnItemClickListener, View.OnTouchListener, View.OnClickListener, SubsamplingScaleImageView.OnImageEventListener, CompoundButton.OnCheckedChangeListener {
     private lateinit var flowerListView: ListView
+    private lateinit var polygonSwitch: Switch
     private lateinit var annotationState: AnnotationState
     private lateinit var imageView: MyImageView
     private val READ_PHONE_STORAGE_RETURN_CODE: Int = 1
     private val READ_PHONE_STORAGE_RETURN_CODE_STARTUP: Int = 2
     var restoredImageViewState: ImageViewState? = null
+
+    private var startTime: Long = 0
+    private var startX: Float = 0.toFloat()
+    private var startY: Float = 0.toFloat()
 
     private lateinit var fusedLocationClient: FusedLocationProviderClient
     private lateinit var locationCallback: LocationCallback
@@ -40,8 +43,7 @@ class MainFragment : Fragment(), AdapterView.OnItemClickListener, View.OnClickLi
     private lateinit var imagePath: String
     val OPEN_IMAGE_REQUEST_CODE: Int = 42
 
-
-
+   /** FRAGMENT LIFECYCLE FUNCTIONS **/
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setHasOptionsMenu(true)
@@ -57,11 +59,7 @@ class MainFragment : Fragment(), AdapterView.OnItemClickListener, View.OnClickLi
 
     }
 
-
-    override fun onCreateView(
-        inflater: LayoutInflater, container: ViewGroup?,
-        savedInstanceState: Bundle?
-    ): View? {
+    override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View? {
         // Inflate the layout for this fragment
         val fragmentView: View = inflater.inflate(R.layout.fragment_main, container, false)
         flowerListView = fragmentView.findViewById<ListView>(R.id.flower_list_view)
@@ -74,6 +72,8 @@ class MainFragment : Fragment(), AdapterView.OnItemClickListener, View.OnClickLi
         fragmentView.findViewById<ImageButton>(R.id.downButton).setOnClickListener(this)
         fragmentView.findViewById<ImageButton>(R.id.leftButton).setOnClickListener(this)
         fragmentView.findViewById<ImageButton>(R.id.rightButton).setOnClickListener(this)
+        polygonSwitch = fragmentView.findViewById<Switch>(R.id.polygonSwitch)
+        polygonSwitch.setOnCheckedChangeListener(this)
 
         return fragmentView
     }
@@ -92,7 +92,42 @@ class MainFragment : Fragment(), AdapterView.OnItemClickListener, View.OnClickLi
         }
     }
 
+    override fun onResume() {
+        super.onResume()
+        if(::annotationState.isInitialized){
+            if (annotationState.hasLocationInformation()){
+                stopLocationUpdates()
+                startLocationUpdates()
+            }
+        }
+    }
 
+    override fun onPause() {
+        super.onPause()
+        stopLocationUpdates()
+    }
+
+    override fun onSaveInstanceState(outState: Bundle) {
+        val state = imageView.state
+        if (state != null) {
+            outState.putSerializable(IMAGE_VIEW_STATE_KEY, imageView.state)
+        }
+        imageView.recycle()
+    }
+
+    override fun onDestroyView() {
+        val imageViewContainer: RelativeLayout = view!!.findViewById<RelativeLayout>(R.id.imageViewContainer)
+        imageViewContainer.removeView(imageView)
+        super.onDestroyView()
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        imageView.recycle()
+    }
+
+
+    /** OPTIONS MENU FUNCTIONS **/
     override fun onCreateOptionsMenu(menu: Menu, inflater: MenuInflater) {
         inflater.inflate(R.menu.main, menu);
         super.onCreateOptionsMenu(menu, inflater)
@@ -111,14 +146,43 @@ class MainFragment : Fragment(), AdapterView.OnItemClickListener, View.OnClickLi
         }
     }
 
+
+
+    /** CONTROL VIEW FUNCTIONS **/
     override fun onItemClick(p0: AdapterView<*>?, view: View, index: Int, p3: Long) {
 
         (flowerListView.adapter as FlowerListAdapter).selectedIndex(index)
         imageView.invalidate()
     }
 
+    override fun onClick(view: View) {
+        when(view.id){
+            R.id.done_button -> {
+                annotationState.permanentlyAddCurrentFlower()
+                updateControlView()
+                imageView.invalidate()
+            }
+            R.id.cancel_button -> {
+                annotationState.cancelCurrentFlower()
+                updateControlView()
+                imageView.invalidate()
+            }
+            R.id.upButton, R.id.downButton, R.id.leftButton, R.id.rightButton -> {
+                moveCurrentMark(view.id)
+            }
+        }
+    }
 
-    public fun updateFlowerListView(){
+    override fun onCheckedChanged(switch: CompoundButton, checked: Boolean) {
+        when(switch.id){
+            R.id.polygonSwitch ->{
+                annotationState.currentFlower!!.isPolygon = checked
+                imageView.invalidate()
+            }
+        }
+    }
+
+    fun updateControlView(){
         if(annotationState.currentFlower == null){
             view!!.findViewById<LinearLayout>(R.id.annotation_edit_container).visibility = View.INVISIBLE
             flowerListView.adapter = null
@@ -127,28 +191,12 @@ class MainFragment : Fragment(), AdapterView.OnItemClickListener, View.OnClickLi
             view!!.findViewById<LinearLayout>(R.id.annotation_edit_container).visibility = View.VISIBLE
             var adapter = FlowerListAdapter(activity as AppCompatActivity,annotationState)
             flowerListView.adapter = adapter
+            polygonSwitch.isChecked = annotationState.currentFlower!!.isPolygon
         }
     }
 
-    // TODO: Rename method, update argument and hook method into UI event
-    fun onButtonPressed(uri: Uri) {
-        listener?.onFragmentInteraction(uri)
-    }
 
-    override fun onAttach(context: Context) {
-        super.onAttach(context)
-        if (context is OnFragmentInteractionListener) {
-            listener = context
-        } else {
-            throw RuntimeException(context.toString() + " must implement OnFragmentInteractionListener")
-        }
-    }
-
-    override fun onDetach() {
-        super.onDetach()
-        listener = null
-    }
-
+    /** IMAGE VIEW FUNCTIONS **/
 
     fun initImageView(){
 
@@ -174,11 +222,10 @@ class MainFragment : Fragment(), AdapterView.OnItemClickListener, View.OnClickLi
             //imageViewContainer.removeView(imageView)
         }
 
-        imageView = MyImageView(context!!,annotationState,this, stateToRestore = restoredImageViewState)
+        imageView = MyImageView(context!!,annotationState, stateToRestore = restoredImageViewState)
+        imageView.setOnTouchListener(this)
         imageView.setOnImageEventListener(this)
         imageViewContainer.addView(imageView)
-
-
 
         val editor = context!!.getSharedPreferences(SHARED_PREFERENCES_KEY, MODE_PRIVATE).edit()
         editor.putString(LAST_OPENED_IMAGE_URI,imagePath)
@@ -226,25 +273,6 @@ class MainFragment : Fragment(), AdapterView.OnItemClickListener, View.OnClickLi
         }
     }
 
-
-    override fun onClick(view: View) {
-        when(view.id){
-            R.id.done_button -> {
-                annotationState.permanentlyAddCurrentFlower()
-                updateFlowerListView()
-                imageView.invalidate()
-            }
-            R.id.cancel_button -> {
-                annotationState.cancelCurrentFlower()
-                updateFlowerListView()
-                imageView.invalidate()
-            }
-            R.id.upButton, R.id.downButton, R.id.leftButton, R.id.rightButton -> {
-                moveCurrentMark(view.id)
-            }
-        }
-    }
-
     private fun moveCurrentMark(id: Int){
         when(id){
             R.id.leftButton -> {
@@ -262,7 +290,6 @@ class MainFragment : Fragment(), AdapterView.OnItemClickListener, View.OnClickLi
         }
         imageView.invalidate()
     }
-
 
     private fun openImage(){
         requestPermissions(arrayOf(Manifest.permission.READ_EXTERNAL_STORAGE, Manifest.permission.WRITE_EXTERNAL_STORAGE), READ_PHONE_STORAGE_RETURN_CODE)
@@ -292,20 +319,9 @@ class MainFragment : Fragment(), AdapterView.OnItemClickListener, View.OnClickLi
         }
     }
 
-
-    override fun onImageLoaded() {}
-
     override fun onReady() {
         view!!.findViewById<ProgressBar>(R.id.progress_circular).visibility = View.INVISIBLE
     }
-
-    override fun onTileLoadError(e: Exception?) {}
-
-    override fun onPreviewReleased() {}
-
-    override fun onImageLoadError(e: Exception?) {}
-
-    override fun onPreviewLoadError(e: Exception?) {}
 
     override fun onActivityResult(requestCode: Int, resultCode: Int, resultData: Intent?) {
 
@@ -321,58 +337,62 @@ class MainFragment : Fragment(), AdapterView.OnItemClickListener, View.OnClickLi
         }
     }
 
-    override fun onResume() {
-        super.onResume()
-        if(::annotationState.isInitialized){
-            if (annotationState.hasLocationInformation()){
-                stopLocationUpdates()
-                startLocationUpdates()
+    override fun onTouch(view: View, event: MotionEvent): Boolean {
+
+        when (event.action) {
+            MotionEvent.ACTION_DOWN -> {
+                startX = event.x
+                startY = event.y
+                startTime = System.currentTimeMillis()
+            }
+            MotionEvent.ACTION_UP -> {
+                val endX = event.x
+                val endY = event.y
+                val endTime = System.currentTimeMillis()
+                if (isAClick(startX, endX, startY, endY, startTime, endTime, context!!)) {
+                    if(imageView.isEditable()){
+                        val editFlower = imageView.clickedOnExistingMark(endX,endY);
+                        if(editFlower != null){
+                            editMark(editFlower)
+                        }
+                        else {
+                            addNewMark(event)
+                        }
+                    }
+                }
             }
         }
+        return false
     }
 
-    override fun onPause() {
-        super.onPause()
-        stopLocationUpdates()
+    private fun addNewMark(event: MotionEvent){
+        var sourcecoord: PointF = imageView.viewToSourceCoord(PointF(event.x, event.y))!!
+        annotationState.addNewFlowerMarker(sourcecoord.x, sourcecoord.y)
+        updateControlView()
+        imageView.invalidate()
     }
 
-
-    override fun onSaveInstanceState(outState: Bundle) {
-        val state = imageView.state
-        if (state != null) {
-            outState.putSerializable(IMAGE_VIEW_STATE_KEY, imageView.state)
-        }
-        imageView.recycle()
-    }
-
-    override fun onDestroyView() {
-        val imageViewContainer: RelativeLayout = view!!.findViewById<RelativeLayout>(R.id.imageViewContainer)
-        imageViewContainer.removeView(imageView)
-        super.onDestroyView()
+    private fun editMark(flower: Flower){
+        annotationState.startEditingFlower(flower)
+        updateControlView()
+        imageView.invalidate()
     }
 
 
-    override fun onDestroy() {
-        super.onDestroy()
-        imageView.recycle()
-    }
 
 
-    /**
-     * This interface must be implemented by activities that contain this
-     * fragment to allow an interaction in this fragment to be communicated
-     * to the activity and potentially other fragments contained in that
-     * activity.
-     *
-     *
-     * See the Android Training lesson [Communicating with Other Fragments]
-     * (http://developer.android.com/training/basics/fragments/communicating.html)
-     * for more information.
-     */
-    interface OnFragmentInteractionListener {
-        // TODO: Update argument type and name
-        fun onFragmentInteraction(uri: Uri)
-    }
+
+    /** UNUSED STUBS **/
+
+    override fun onImageLoaded() {}
+
+    override fun onTileLoadError(e: Exception?) {}
+
+    override fun onPreviewReleased() {}
+
+    override fun onImageLoadError(e: Exception?) {}
+
+    override fun onPreviewLoadError(e: Exception?) {}
 
 
 

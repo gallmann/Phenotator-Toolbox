@@ -3,7 +3,7 @@ package com.masterthesis.johannes.annotationtool
 class Flower(name: String, xPos: Float, yPos: Float) {
     var name: String = name
     var polygon: MutableList<Coord> = mutableListOf(Coord(xPos,yPos))
-
+    var isPolygon: Boolean = false
 
 
     fun setXPos(x:Float){
@@ -58,9 +58,10 @@ class Flower(name: String, xPos: Float, yPos: Float) {
         if(polygon.size > pos) polygon[pos].y--
     }
 
-    fun drawAsPolygon():Boolean{
-        if(polygon.size > 1) return true
-        return false
+    fun deletePolygon(){
+        for(i in polygon.size-1..1){
+            polygon.removeAt(i)
+        }
     }
 
 

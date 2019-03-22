@@ -17,8 +17,7 @@ import android.content.res.Configuration
 
 
 
-class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelectedListener,
-    MainFragment.OnFragmentInteractionListener, SettingsFragment.OnFragmentInteractionListener {
+class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelectedListener {
 
     var mainFragment: MainFragment? = null
     var settingsFragment: SettingsFragment? = null
@@ -114,9 +113,5 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
         activateFragment(item.itemId)
         drawer_layout.closeDrawer(GravityCompat.START)
         return true
-    }
-
-    public override fun onFragmentInteraction(uri: Uri): Unit {
-
     }
 }

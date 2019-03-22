@@ -26,7 +26,6 @@ import java.io.InputStreamReader
 
 class SettingsFragment : Fragment(), View.OnClickListener  {
 
-    private var listener: OnFragmentInteractionListener? = null
     private lateinit var recyclerView: RecyclerView
     private lateinit var viewAdapter: SettingsListAdapter
     private lateinit var viewManager: RecyclerView.LayoutManager
@@ -148,25 +147,6 @@ class SettingsFragment : Fragment(), View.OnClickListener  {
             }
         }
 
-    }
-
-    override fun onAttach(context: Context) {
-        super.onAttach(context)
-        if (context is OnFragmentInteractionListener) {
-            listener = context
-        } else {
-            throw RuntimeException(context.toString() + " must implement OnFragmentInteractionListener")
-        }
-    }
-
-    override fun onDetach() {
-        super.onDetach()
-        listener = null
-    }
-
-    interface OnFragmentInteractionListener {
-        // TODO: Update argument type and name
-        fun onFragmentInteraction(uri: Uri)
     }
 
     override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<out kotlin.String>, grantResults: IntArray): Unit {

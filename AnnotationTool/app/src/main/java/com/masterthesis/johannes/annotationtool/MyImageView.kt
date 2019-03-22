@@ -7,6 +7,7 @@ import com.davemorrissey.labs.subscaleview.SubsamplingScaleImageView
 import android.graphics.PointF
 import android.graphics.Bitmap
 import android.location.Location
+import android.os.Handler
 import androidx.core.content.ContextCompat
 import android.view.MotionEvent
 import android.view.View
@@ -15,17 +16,15 @@ import com.davemorrissey.labs.subscaleview.ImageSource
 import com.davemorrissey.labs.subscaleview.ImageViewState
 
 
-class MyImageView constructor(context: Context?, var annotationState: AnnotationState, var mainFragment: MainFragment, attr: AttributeSet? = null, var stateToRestore: ImageViewState? = null) :
-    SubsamplingScaleImageView(context, attr), View.OnTouchListener {
+class MyImageView constructor(context: Context?, var annotationState: AnnotationState, attr: AttributeSet? = null, var stateToRestore: ImageViewState? = null) :
+    SubsamplingScaleImageView(context, attr) {
 
     private lateinit var pin: Bitmap
     private lateinit var locationPin: Bitmap
     var ZOOM_THRESH: Float = 0.9F
+    lateinit var blinkingAnimation: Runnable
 
     private var showCurrentFlower: Boolean = true
-    private var startTime: Long = 0
-    private var startX: Float = 0.toFloat()
-    private var startY: Float = 0.toFloat()
     private var userLocation: Location? = null
 
     init {
@@ -37,7 +36,6 @@ class MyImageView constructor(context: Context?, var annotationState: Annotation
             LinearLayout.LayoutParams.MATCH_PARENT,
             LinearLayout.LayoutParams.MATCH_PARENT
         )
-        setOnTouchListener(this)
         val density = resources.displayMetrics.densityDpi.toFloat()
         pin = getBitmapFromVectorDrawable(context,R.drawable.cross)
         var w = density / 200f * pin.width
@@ -57,12 +55,25 @@ class MyImageView constructor(context: Context?, var annotationState: Annotation
         ZOOM_THRESH = getValueFromPreferences(DEFAULT_ANNOTATION_SHOW_VALUE,context)
     }
 
-    public fun reload(annotationState: AnnotationState, mainFragment: MainFragment){
+    fun reload(annotationState: AnnotationState, mainFragment: MainFragment){
         this.annotationState = annotationState
-        this.mainFragment = mainFragment
         setImage(ImageSource.uri(annotationState.imagePath))
         maxScale = getValueFromPreferences(DEFAULT_MAX_ZOOM_VALUE,context)
         ZOOM_THRESH = getValueFromPreferences(DEFAULT_ANNOTATION_SHOW_VALUE,context)
+    }
+
+    fun clickedOnExistingMark(x: Float, y: Float):Flower?{
+        val w: Float = pin!!.width / 2F
+        for((index,flower) in annotationState.annotatedFlowers.withIndex()){
+            val sourceCoord = sourceToViewCoord(flower.getXPos(),flower.getYPos())
+            val xPos = sourceCoord!!.x
+            val yPos = sourceCoord!!.y
+            val rect: RectF = RectF(xPos-w,yPos-w,xPos+w, yPos+w)
+            if(rect.contains(x,y)){
+                return flower
+            }
+        }
+        return null
     }
 
     override fun onDraw(canvas: Canvas) {
@@ -72,9 +83,10 @@ class MyImageView constructor(context: Context?, var annotationState: Annotation
             return
         }
         bringToFront()
-        //draw user position
 
-        
+
+
+        //DRAW USER POSITION
         if(userLocation != null){
             var tlLat = annotationState.getTopLeftCoordinates().first
             var tlLon = annotationState.getTopLeftCoordinates().second
@@ -97,7 +109,7 @@ class MyImageView constructor(context: Context?, var annotationState: Annotation
         }
 
 
-
+        //DRAW FLOWER ANNOTATIONS
         if(scale<ZOOM_THRESH) return
 
         if(showCurrentFlower && annotationState.currentFlower != null){
@@ -122,50 +134,8 @@ class MyImageView constructor(context: Context?, var annotationState: Annotation
 
     }
 
-    override fun onTouch(imageView: View, event: MotionEvent): Boolean {
-
-        when (event.action) {
-            MotionEvent.ACTION_DOWN -> {
-                startX = event.x
-                startY = event.y
-                startTime = System.currentTimeMillis()
-            }
-            MotionEvent.ACTION_UP -> {
-                val endX = event.x
-                val endY = event.y
-                val endTime = System.currentTimeMillis()
-                if (isAClick(startX, endX, startY, endY, startTime, endTime, context)) {
-                    if(isReady && scale >= ZOOM_THRESH){
-                        val editFlower = clickedOnExistingMark(endX,endY);
-                        if(editFlower != null){
-                            editMark(editFlower)
-                        }
-                        else {
-                            addNewMark(event)
-                        }
-                    }
-                }
-            }
-        }
-        return false
-    }
-
-    private fun clickedOnExistingMark(x: Float, y: Float):Flower?{
-        val w: Float = pin!!.width / 2F
-        for((index,flower) in annotationState.annotatedFlowers.withIndex()){
-            val sourceCoord = sourceToViewCoord(flower.getXPos(),flower.getYPos())
-            val xPos = sourceCoord!!.x
-            val yPos = sourceCoord!!.y
-            val rect: RectF = RectF(xPos-w,yPos-w,xPos+w, yPos+w)
-            if(rect.contains(x,y)){
-                return flower
-            }
-        }
-        return null
-    }
-
     private fun setBlinkingAnimation() {
-        postDelayed(object : Runnable {
+        blinkingAnimation = object : Runnable {
             override fun run() {
                 showCurrentFlower = !showCurrentFlower
                 invalidate()
@@ -176,27 +146,25 @@ class MyImageView constructor(context: Context?, var annotationState: Annotation
                     postDelayed(this, 200)
                 }
             }
-        }, 300)
-    }
-
-
-    private fun addNewMark(event: MotionEvent){
-        var sourcecoord: PointF = viewToSourceCoord(PointF(event.x, event.y))!!
-        annotationState.addNewFlowerMarker(sourcecoord.x, sourcecoord.y)
-        mainFragment.updateFlowerListView()
-        invalidate()
-    }
-
-    private fun editMark(flower: Flower){
-        annotationState.startEditingFlower(flower)
-        mainFragment.updateFlowerListView()
-        invalidate()
+        }
+        postDelayed(blinkingAnimation, 300)
     }
 
     fun updateLocation(location: Location){
-        println("received update: ${location.latitude}, ${location.longitude}")
         this.userLocation = location
         invalidate()
+    }
+
+    fun isEditable(): Boolean{
+        if(isReady && scale >= ZOOM_THRESH){
+            return true
+        }
+        return false
+    }
+
+    override fun recycle() {
+        super.recycle()
+        removeCallbacks(blinkingAnimation)
     }
 
 }
