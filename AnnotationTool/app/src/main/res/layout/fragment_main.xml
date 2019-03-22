@@ -2,7 +2,7 @@
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
               xmlns:tools="http://schemas.android.com/tools"
               android:layout_width="match_parent"
-              android:layout_height="match_parent"
+              android:layout_height="match_parent" xmlns:app="http://schemas.android.com/apk/res-auto"
               android:clipToPadding="false"
               tools:context=".MainFragment" android:orientation="horizontal">
 
@@ -13,6 +13,61 @@
             android:layout_height="match_parent"
             android:layout_weight="1"
             android:orientation="horizontal">
+
+        <ru.dimorinny.floatingtextbutton.FloatingTextButton
+                android:id="@+id/floating_button_bottom"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_centerHorizontal="true"
+                android:layout_alignParentBottom="true"
+                android:elevation="10dp"
+                android:visibility="invisible"
+                app:floating_background_color="@color/colorPrimaryDark"
+                app:floating_title="@string/next_tile"
+                app:floating_title_color="@android:color/white"
+        />
+
+        <ru.dimorinny.floatingtextbutton.FloatingTextButton
+                android:id="@+id/floating_button_right"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_centerVertical="true"
+                android:layout_marginRight="-30dp"
+                android:rotation="-90"
+                android:layout_alignParentRight="true"
+                android:elevation="10dp"
+                android:visibility="invisible"
+                app:floating_background_color="@color/colorPrimaryDark"
+                app:floating_title="@string/next_tile"
+                app:floating_title_color="@android:color/white"/>
+
+        <ru.dimorinny.floatingtextbutton.FloatingTextButton
+                android:id="@+id/floating_button_top"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_centerHorizontal="true"
+                android:layout_alignParentTop="true"
+                android:elevation="10dp"
+                android:visibility="invisible"
+                app:floating_background_color="@color/colorPrimaryDark"
+                app:floating_title="@string/next_tile"
+                app:floating_title_color="@android:color/white"/>
+
+        <ru.dimorinny.floatingtextbutton.FloatingTextButton
+                android:id="@+id/floating_button_left"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_centerVertical="true"
+                android:layout_marginLeft="-30dp"
+                android:rotation="90"
+                android:layout_alignParentLeft="true"
+                android:elevation="10dp"
+                android:visibility="invisible"
+                app:floating_background_color="@color/colorPrimaryDark"
+                app:floating_title="@string/next_tile"
+                app:floating_title_color="@android:color/white"/>
+
+
 
         <ProgressBar
                 android:id="@+id/progress_circular"

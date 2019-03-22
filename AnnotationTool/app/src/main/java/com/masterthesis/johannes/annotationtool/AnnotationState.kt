@@ -163,9 +163,11 @@ class AnnotationState(@Transient var imagePath: String,@Transient var flowerList
         currentFlower = null
     }
 
-    public fun cancelCurrentFlower(){
-        flowerCount[currentFlower!!.name] = flowerCount[currentFlower!!.name]!! - 1
-        currentFlower = null
+    fun cancelCurrentFlower(){
+        if(currentFlower != null){
+            flowerCount[currentFlower!!.name] = flowerCount[currentFlower!!.name]!! - 1
+            currentFlower = null
+        }
     }
 
     public fun getFlowerColor(name: String, context: Context): Paint{
@@ -216,4 +218,30 @@ class AnnotationState(@Transient var imagePath: String,@Transient var flowerList
         }
         return Pair(0.0,0.0)
     }
+
+    fun hasRightNeighbour(): Boolean{
+        val column: Int = imagePath.substringAfter("col").substringBefore('.').toInt()
+        val regex: Regex = "col([0-9]|[0-9][0-9]|[0-9][0-9][0-9]).".toRegex()
+        val neighbourFile: File = File(regex.replace(imagePath,"col" +(column+1).toString() + "."))
+        return neighbourFile.exists()
+    }
+    fun hasLeftNeighbour(): Boolean{
+        val column: Int = imagePath.substringAfter("col").substringBefore('.').toInt()
+        val regex: Regex = "col([0-9]|[0-9][0-9]|[0-9][0-9][0-9]).".toRegex()
+        val neighbourFile: File = File(regex.replace(imagePath,"col" +(column-1).toString() + "."))
+        return neighbourFile.exists()
+    }
+    fun hasTopNeighbour(): Boolean{
+        val row: Int = imagePath.substringAfter("row").substringBefore('_').toInt()
+        val regex: Regex = "row([0-9]|[0-9][0-9]|[0-9][0-9][0-9])_".toRegex()
+        val neighbourFile: File = File(regex.replace(imagePath,"row" +(row-1).toString() + "_"))
+        return neighbourFile.exists()
+    }
+    fun hasBottomNeighbour(): Boolean{
+        val row: Int = imagePath.substringAfter("row").substringBefore('_').toInt()
+        val regex: Regex = "row([0-9]|[0-9][0-9]|[0-9][0-9][0-9])_".toRegex()
+        val neighbourFile: File = File(regex.replace(imagePath,"row" +(row+1).toString() + "_"))
+        return neighbourFile.exists()
+    }
+
 }

@@ -32,6 +32,7 @@
 
     <string name="remove_current_polygon_point">Remove current Polygon Point</string>
     <string name="to_small_polygon">A Polygon must have at least 3 Points!</string>
+    <string name="next_tile">Next Tile</string>
 
 
 

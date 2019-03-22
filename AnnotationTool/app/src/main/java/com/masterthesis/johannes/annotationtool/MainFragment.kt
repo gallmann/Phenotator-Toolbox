@@ -11,6 +11,7 @@ import android.content.pm.PackageManager
 import android.widget.LinearLayout
 import android.content.Context.MODE_PRIVATE
 import android.content.IntentSender
+import android.graphics.Point
 import com.google.android.material.snackbar.Snackbar
 import androidx.core.content.ContextCompat
 import com.google.android.gms.common.api.ResolvableApiException
@@ -20,6 +21,7 @@ import java.io.File
 import com.davemorrissey.labs.subscaleview.ImageViewState
 import android.graphics.PointF
 import com.davemorrissey.labs.subscaleview.SubsamplingScaleImageView
+import ru.dimorinny.floatingtextbutton.FloatingTextButton
 import java.lang.Exception
 
 
@@ -28,6 +30,11 @@ class MainFragment : Fragment(), AdapterView.OnItemClickListener, View.OnTouchLi
     private lateinit var polygonSwitch: Switch
     private lateinit var annotationState: AnnotationState
     private lateinit var imageView: MyImageView
+    private lateinit var rightButton: FloatingTextButton
+    private lateinit var leftButton: FloatingTextButton
+    private lateinit var topButton: FloatingTextButton
+    private lateinit var bottomButton: FloatingTextButton
+
     var restoredImageViewState: ImageViewState? = null
     private var currentEditIndex: Int = 0
     lateinit private var undoButton: MenuItem
@@ -72,6 +79,16 @@ class MainFragment : Fragment(), AdapterView.OnItemClickListener, View.OnTouchLi
         fragmentView.findViewById<ImageButton>(R.id.rightButton).setOnClickListener(this)
         polygonSwitch = fragmentView.findViewById<Switch>(R.id.polygonSwitch)
         polygonSwitch.setOnCheckedChangeListener(this)
+
+        rightButton = fragmentView.findViewById<FloatingTextButton>(R.id.floating_button_right)
+        leftButton = fragmentView.findViewById<FloatingTextButton>(R.id.floating_button_left)
+        topButton = fragmentView.findViewById<FloatingTextButton>(R.id.floating_button_top)
+        bottomButton = fragmentView.findViewById<FloatingTextButton>(R.id.floating_button_bottom)
+        rightButton.setOnClickListener(object : View.OnClickListener { override fun onClick(view: View) {loadNextTile(R.id.floating_button_right)} })
+        leftButton.setOnClickListener(object : View.OnClickListener { override fun onClick(view: View) {loadNextTile(R.id.floating_button_left)} })
+        bottomButton.setOnClickListener(object : View.OnClickListener { override fun onClick(view: View) {loadNextTile(R.id.floating_button_bottom)} })
+        topButton.setOnClickListener(object : View.OnClickListener { override fun onClick(view: View) {loadNextTile(R.id.floating_button_top)} })
+
 
         return fragmentView
     }
@@ -179,6 +196,7 @@ class MainFragment : Fragment(), AdapterView.OnItemClickListener, View.OnTouchLi
                     annotationState.permanentlyAddCurrentFlower()
                     updateControlView()
                     imageView.invalidate()
+                    polygonSwitch.isChecked = false
                 }
             }
             R.id.cancel_button -> {
@@ -195,8 +213,10 @@ class MainFragment : Fragment(), AdapterView.OnItemClickListener, View.OnTouchLi
     override fun onCheckedChanged(switch: CompoundButton, checked: Boolean) {
         when(switch.id){
             R.id.polygonSwitch ->{
-                annotationState.currentFlower!!.isPolygon = checked
-                imageView.invalidate()
+                if(annotationState.currentFlower != null){
+                    annotationState.currentFlower!!.isPolygon = checked
+                    imageView.invalidate()
+                }
             }
         }
     }
@@ -217,6 +237,59 @@ class MainFragment : Fragment(), AdapterView.OnItemClickListener, View.OnTouchLi
 
 
     /** IMAGE VIEW FUNCTIONS **/
+    fun loadNextTile(id:Int){
+        when(id){
+            R.id.floating_button_right -> {
+                val column: Int = imagePath.substringAfter("col").substringBefore('.').toInt()
+                val regex: Regex = "col([0-9]|[0-9][0-9]|[0-9][0-9][0-9]).".toRegex()
+                imagePath = regex.replace(imagePath,"col" +(column+1).toString() + ".")
+            }
+            R.id.floating_button_left -> {
+                val column: Int = imagePath.substringAfter("col").substringBefore('.').toInt()
+                val regex: Regex = "col([0-9]|[0-9][0-9]|[0-9][0-9][0-9]).".toRegex()
+                imagePath = regex.replace(imagePath,"col" +(column-1).toString() + ".")
+            }
+            R.id.floating_button_top -> {
+                val row: Int = imagePath.substringAfter("row").substringBefore('_').toInt()
+                val regex: Regex = "row([0-9]|[0-9][0-9]|[0-9][0-9][0-9])_".toRegex()
+                imagePath = regex.replace(imagePath,"row" +(row-1).toString() + "_")
+            }
+            R.id.floating_button_bottom -> {
+                val row: Int = imagePath.substringAfter("row").substringBefore('_').toInt()
+                val regex: Regex = "row([0-9]|[0-9][0-9]|[0-9][0-9][0-9])_".toRegex()
+                imagePath = regex.replace(imagePath,"row" +(row+1).toString() + "_")
+            }
+        }
+
+        val currScale = imageView.scale
+        val old_center = imageView.center
+        annotationState.cancelCurrentFlower()
+        updateControlView()
+        restoredImageViewState = null
+        bottomButton.visibility = View.INVISIBLE
+        topButton.visibility = View.INVISIBLE
+        leftButton.visibility = View.INVISIBLE
+        rightButton.visibility = View.INVISIBLE
+        initImageView()
+        when(id){
+            R.id.floating_button_right -> {
+                val new_center: PointF = PointF(0F,old_center!!.y)
+                imageView.setScaleAndCenter(currScale,new_center)
+            }
+            R.id.floating_button_left -> {
+                val new_center: PointF = PointF(100000F,old_center!!.y)
+                imageView.setScaleAndCenter(currScale,new_center)
+            }
+            R.id.floating_button_top -> {
+                val new_center: PointF = PointF(old_center!!.x,100000F)
+                imageView.setScaleAndCenter(currScale,new_center)
+            }
+            R.id.floating_button_bottom -> {
+                val new_center: PointF = PointF(old_center!!.x,0F)
+                imageView.setScaleAndCenter(currScale,new_center)
+            }
+        }
+    }
 
     fun initImageView(){
 
@@ -239,10 +312,10 @@ class MainFragment : Fragment(), AdapterView.OnItemClickListener, View.OnTouchLi
 
         if(::imageView.isInitialized){
             imageView.recycle()
-            //imageViewContainer.removeView(imageView)
+            imageViewContainer.removeView(imageView)
         }
 
-        imageView = MyImageView(context!!,annotationState, stateToRestore = restoredImageViewState)
+        imageView = MyImageView(context!!,annotationState,rightButton,leftButton,topButton,bottomButton, stateToRestore = restoredImageViewState)
         imageView.setOnTouchListener(this)
         imageView.setOnImageEventListener(this)
         imageViewContainer.addView(imageView)
@@ -403,6 +476,10 @@ class MainFragment : Fragment(), AdapterView.OnItemClickListener, View.OnTouchLi
     }
 
     private fun clickedOnExistingMark(flower: Pair<Flower,Int>){
+        if(annotationState.currentFlower != null && annotationState.currentFlower!!.isPolygon && annotationState.currentFlower!!.polygon.size < 3){
+            Snackbar.make(view!!, R.string.to_small_polygon, Snackbar.LENGTH_LONG).show();
+            return
+        }
         if(flower.first.isPolygon){
             setCurrentEditIndex(flower.second)
             annotationState.startEditingFlower(flower.first)

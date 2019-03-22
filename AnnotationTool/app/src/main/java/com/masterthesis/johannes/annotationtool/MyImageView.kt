@@ -14,9 +14,16 @@ import android.view.View
 import android.widget.LinearLayout
 import com.davemorrissey.labs.subscaleview.ImageSource
 import com.davemorrissey.labs.subscaleview.ImageViewState
+import ru.dimorinny.floatingtextbutton.FloatingTextButton
 
 
-class MyImageView constructor(context: Context?, var annotationState: AnnotationState, attr: AttributeSet? = null, var stateToRestore: ImageViewState? = null) :
+class MyImageView constructor(context: Context?, var annotationState: AnnotationState,
+                              var rightButton: FloatingTextButton,
+                              var leftButton: FloatingTextButton,
+                              var topButton: FloatingTextButton,
+                              var bottomButton: FloatingTextButton,
+                              attr: AttributeSet? = null,
+                              var stateToRestore: ImageViewState? = null) :
     SubsamplingScaleImageView(context, attr) {
 
     private lateinit var pin: Bitmap
@@ -25,6 +32,7 @@ class MyImageView constructor(context: Context?, var annotationState: Annotation
     var ZOOM_THRESH: Float = 0.9F
     lateinit var blinkingAnimation: Runnable
     var currentEditIndex: Int = 0
+
 
     private var showCurrentFlower: Boolean = true
     private var userLocation: Location? = null
@@ -110,7 +118,6 @@ class MyImageView constructor(context: Context?, var annotationState: Annotation
         if (!isReady) {
             return
         }
-        bringToFront()
 
         //DRAW USER POSITION
         if(userLocation != null){
@@ -133,6 +140,14 @@ class MyImageView constructor(context: Context?, var annotationState: Annotation
                 drawPin(userX.toFloat(), userY.toFloat(),canvas,paint,locationPin)
             }
         }
+
+
+        //ACTIVATE "NEXT TILE" BUTTONS IF NECESSARY!
+        var topLeftCoord: PointF = viewToSourceCoord(0F,0F)!!
+        var bottomRightCoord: PointF = viewToSourceCoord(canvas.width.toFloat(),canvas.height.toFloat())!!
+
+        activateButtons(topLeftCoord, bottomRightCoord)
+
 
 
         //DRAW FLOWER ANNOTATIONS
@@ -232,6 +247,36 @@ class MyImageView constructor(context: Context?, var annotationState: Annotation
     override fun recycle() {
         super.recycle()
         removeCallbacks(blinkingAnimation)
+    }
+
+    fun activateButtons(topLeftCoord: PointF, bottomRightCoord: PointF){
+        if(topLeftCoord.x <= 0 && annotationState.hasLeftNeighbour()){
+            leftButton!!.visibility = View.VISIBLE
+        }
+        else{
+            leftButton!!.visibility = View.INVISIBLE
+        }
+
+        if(topLeftCoord.y <= 0 && annotationState.hasTopNeighbour()){
+            topButton!!.visibility = View.VISIBLE
+        }
+        else{
+            topButton!!.visibility = View.INVISIBLE
+        }
+
+        if(bottomRightCoord.x >= sWidth && annotationState.hasRightNeighbour()){
+            rightButton.visibility = View.VISIBLE
+        }
+        else{
+            rightButton.visibility = View.INVISIBLE
+        }
+
+        if(bottomRightCoord.y >= sHeight && annotationState.hasBottomNeighbour()){
+            bottomButton.visibility = View.VISIBLE
+        }
+        else{
+            bottomButton.visibility = View.INVISIBLE
+        }
     }
 
 }
