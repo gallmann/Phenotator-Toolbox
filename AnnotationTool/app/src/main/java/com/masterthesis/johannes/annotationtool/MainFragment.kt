@@ -525,8 +525,4 @@ class MainFragment : Fragment(), AdapterView.OnItemClickListener, View.OnTouchLi
     override fun onImageLoadError(e: Exception?) {}
 
     override fun onPreviewLoadError(e: Exception?) {}
-
-
-
-
 }
