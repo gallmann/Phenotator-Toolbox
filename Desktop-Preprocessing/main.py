@@ -32,6 +32,7 @@ def getOutputDirectory():
     
 def run():
     if run_button['text'] == "Run":
+        '''
         global prop
         prop = preprocess_tool.PreprocessTool()
         error = prop.preprocess(tif_path_input.get(),output_path_input.get(), process_callback)
@@ -41,7 +42,7 @@ def run():
             messagebox.showinfo('Error', error)
     elif run_button['text'] == "Cancel":
         prop.stop()
-        run_button['text'] = "Please Wait..."
+        run_button['text'] = "Please Wait..."'''
     
 def process_callback(progress):
     if progress == 999:

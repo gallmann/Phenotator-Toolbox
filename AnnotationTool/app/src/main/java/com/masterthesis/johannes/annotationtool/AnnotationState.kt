@@ -19,6 +19,11 @@ class AnnotationState(@Transient var imagePath: String,@Transient var flowerList
     var geoInfo: GeoInfo? = null
     @Transient var currentFlower: Flower? = null
     @Transient lateinit var annotationFilePath: String
+    @Transient var hasTopNeighbour: Boolean = false
+    @Transient var hasLeftNeighbour: Boolean = false
+    @Transient var hasRightNeighbour: Boolean = false
+    @Transient var hasBottomNeighbour: Boolean = false
+
 
     init{
         annotationFilePath = createAnnotationFilePath(imagePath)
@@ -58,6 +63,8 @@ class AnnotationState(@Transient var imagePath: String,@Transient var flowerList
                 flowerCount[s] = 0
             }
         }
+
+        checkForNeighbouringTiles()
     }
 
     fun updateFlowerList(new_list:MutableList<String>):MutableList<String>{
@@ -219,29 +226,21 @@ class AnnotationState(@Transient var imagePath: String,@Transient var flowerList
         return Pair(0.0,0.0)
     }
 
-    fun hasRightNeighbour(): Boolean{
+    private fun checkForNeighbouringTiles(){
         val column: Int = imagePath.substringAfter("col").substringBefore('.').toInt()
-        val regex: Regex = "col([0-9]|[0-9][0-9]|[0-9][0-9][0-9]).".toRegex()
-        val neighbourFile: File = File(regex.replace(imagePath,"col" +(column+1).toString() + "."))
-        return neighbourFile.exists()
-    }
-    fun hasLeftNeighbour(): Boolean{
-        val column: Int = imagePath.substringAfter("col").substringBefore('.').toInt()
-        val regex: Regex = "col([0-9]|[0-9][0-9]|[0-9][0-9][0-9]).".toRegex()
-        val neighbourFile: File = File(regex.replace(imagePath,"col" +(column-1).toString() + "."))
-        return neighbourFile.exists()
-    }
-    fun hasTopNeighbour(): Boolean{
-        val row: Int = imagePath.substringAfter("row").substringBefore('_').toInt()
-        val regex: Regex = "row([0-9]|[0-9][0-9]|[0-9][0-9][0-9])_".toRegex()
-        val neighbourFile: File = File(regex.replace(imagePath,"row" +(row-1).toString() + "_"))
-        return neighbourFile.exists()
-    }
-    fun hasBottomNeighbour(): Boolean{
-        val row: Int = imagePath.substringAfter("row").substringBefore('_').toInt()
-        val regex: Regex = "row([0-9]|[0-9][0-9]|[0-9][0-9][0-9])_".toRegex()
-        val neighbourFile: File = File(regex.replace(imagePath,"row" +(row+1).toString() + "_"))
-        return neighbourFile.exists()
-    }
+        var regex: Regex = "col([0-9]|[0-9][0-9]|[0-9][0-9][0-9]).".toRegex()
+        var neighbourFile: File = File(regex.replace(imagePath,"col" +(column+1).toString() + "."))
+        hasRightNeighbour = neighbourFile.exists()
 
+        neighbourFile = File(regex.replace(imagePath,"col" +(column-1).toString() + "."))
+        hasLeftNeighbour = neighbourFile.exists()
+
+        val row: Int = imagePath.substringAfter("row").substringBefore('_').toInt()
+        regex = "row([0-9]|[0-9][0-9]|[0-9][0-9][0-9])_".toRegex()
+        neighbourFile = File(regex.replace(imagePath,"row" +(row-1).toString() + "_"))
+        hasTopNeighbour = neighbourFile.exists()
+
+        neighbourFile = File(regex.replace(imagePath,"row" +(row+1).toString() + "_"))
+        hasBottomNeighbour = neighbourFile.exists()
+    }
 }

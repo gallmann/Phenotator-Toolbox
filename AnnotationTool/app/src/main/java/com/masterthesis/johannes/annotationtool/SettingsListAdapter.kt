@@ -9,7 +9,7 @@ import android.content.Context
 import android.view.View
 
 
-class SettingsListAdapter(private var items: MutableList<String>, val parentView: View, val context: Context) :
+class SettingsListAdapter(var items: MutableList<String>, val parentView: View, val context: Context) :
     RecyclerView.Adapter<SettingsListAdapter.MyViewHolder>() {
 
     class MyViewHolder(val textView: TextView) : RecyclerView.ViewHolder(textView)
@@ -32,8 +32,8 @@ class SettingsListAdapter(private var items: MutableList<String>, val parentView
     fun deleteItem(position: Int) {
         mRecentlyDeletedItem = Pair(items.get(position), position);
         items.removeAt(position);
-        notifyItemRemoved(position);
         putFlowerListToPreferences(items,context)
+        notifyItemRemoved(position);
         showUndoSnackbar();
     }
 
@@ -50,7 +50,16 @@ class SettingsListAdapter(private var items: MutableList<String>, val parentView
         putFlowerListToPreferences(items,context)
     }
 
-    public fun insertItem(item:String){
+    fun replaceItem(position: Int, new_item: String){
+        items[position] = new_item;
+        putFlowerListToPreferences(items,context)
+        items = getFlowerListFromPreferences(context)
+        notifyItemChanged(position);
+        notifyItemMoved(position, items.indexOf(new_item))
+    }
+
+
+    fun insertItem(item:String){
         items.add(item)
         putFlowerListToPreferences(items,context)
         items = getFlowerListFromPreferences(context)

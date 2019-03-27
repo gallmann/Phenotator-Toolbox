@@ -250,28 +250,28 @@ class MyImageView constructor(context: Context?, var annotationState: Annotation
     }
 
     fun activateButtons(topLeftCoord: PointF, bottomRightCoord: PointF){
-        if(topLeftCoord.x <= 0 && annotationState.hasLeftNeighbour()){
+        if(topLeftCoord.x <= 0 && annotationState.hasLeftNeighbour){
             leftButton!!.visibility = View.VISIBLE
         }
         else{
             leftButton!!.visibility = View.INVISIBLE
         }
 
-        if(topLeftCoord.y <= 0 && annotationState.hasTopNeighbour()){
+        if(topLeftCoord.y <= 0 && annotationState.hasTopNeighbour){
             topButton!!.visibility = View.VISIBLE
         }
         else{
             topButton!!.visibility = View.INVISIBLE
         }
 
-        if(bottomRightCoord.x >= sWidth && annotationState.hasRightNeighbour()){
+        if(bottomRightCoord.x >= sWidth && annotationState.hasRightNeighbour){
             rightButton.visibility = View.VISIBLE
         }
         else{
             rightButton.visibility = View.INVISIBLE
         }
 
-        if(bottomRightCoord.y >= sHeight && annotationState.hasBottomNeighbour()){
+        if(bottomRightCoord.y >= sHeight && annotationState.hasBottomNeighbour){
             bottomButton.visibility = View.VISIBLE
         }
         else{
