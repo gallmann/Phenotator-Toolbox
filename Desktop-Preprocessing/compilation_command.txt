@@ -1,0 +1,1 @@
+pyinstaller -y -F -w --add-data "flower.ico";"." -i flower.ico main.py

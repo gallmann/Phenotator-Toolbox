@@ -35,4 +35,7 @@
     <string name="next_tile">Next Tile</string>
     <string name="action_export_as_csv">Export as CSV</string>
 
+    <string name="added_flowers_to_list">Some already annotated flower species in the current image were not found in your flower list. They were added automatically.</string>
+
+
 </resources>

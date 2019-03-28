@@ -5,15 +5,33 @@ Created on Mon Mar 25 12:32:34 2019
 @author: johan
 """
 
-from tkinter import *
+from tkinter import Tk
+from tkinter import END
+from tkinter import Label
+from tkinter import LEFT
+from tkinter import W
+from tkinter import Button
+from tkinter import Entry
 from tkinter import filedialog
 from tkinter import messagebox
 from tkinter.ttk import Progressbar
 import preprocess_tool
-
+import sys
+import os
 
 
 prop = None
+
+def resource_path(relative_path):
+    """ Get absolute path to resource, works for dev and for PyInstaller """
+    try:
+        # PyInstaller creates a temp folder and stores path in _MEIPASS
+        base_path = sys._MEIPASS
+    except Exception:
+        base_path = os.path.abspath(".")
+
+    return os.path.join(base_path, relative_path)
+
 
 def getTifFilePath():
     
@@ -32,7 +50,7 @@ def getOutputDirectory():
     
 def run():
     if run_button['text'] == "Run":
-        '''
+        
         global prop
         prop = preprocess_tool.PreprocessTool()
         error = prop.preprocess(tif_path_input.get(),output_path_input.get(), process_callback)
@@ -42,7 +60,7 @@ def run():
             messagebox.showinfo('Error', error)
     elif run_button['text'] == "Cancel":
         prop.stop()
-        run_button['text'] = "Please Wait..."'''
+        run_button['text'] = "Please Wait..."
     
 def process_callback(progress):
     if progress == 999:
@@ -57,6 +75,7 @@ def process_callback(progress):
     
 window = Tk()
 window.geometry('550x170')
+window.iconbitmap(resource_path('flower.ico'))
 
 
 window.columnconfigure(1, weight=1)
@@ -91,12 +110,12 @@ progress_bar.grid(column=0, row=12, pady=5, padx = 5, sticky=W, columnspan=3)
 progress_bar['value'] = 0
 
 
-
+'''
 in_path = 'C:/Users/johan/Desktop/Resources/orthoJPEG.tif'
 tif_path_input.insert(0,in_path)
 out_path = 'C:/Users/johan/Desktop/Resources/Test/'
 output_path_input.insert(0,out_path)
-
+'''
 
 
 window.mainloop()

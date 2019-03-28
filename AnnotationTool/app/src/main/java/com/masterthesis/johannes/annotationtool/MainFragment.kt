@@ -123,22 +123,28 @@ class MainFragment : Fragment(), AdapterView.OnItemClickListener, View.OnTouchLi
     }
 
     override fun onSaveInstanceState(outState: Bundle) {
-        val state = imageView.state
-        if (state != null) {
-            outState.putSerializable(IMAGE_VIEW_STATE_KEY, imageView.state)
+        if(::imageView.isInitialized) {
+            val state = imageView.state
+            if (state != null) {
+                outState.putSerializable(IMAGE_VIEW_STATE_KEY, imageView.state)
+            }
+            imageView.recycle()
         }
-        imageView.recycle()
     }
 
     override fun onDestroyView() {
-        val imageViewContainer: RelativeLayout = view!!.findViewById<RelativeLayout>(R.id.imageViewContainer)
-        imageViewContainer.removeView(imageView)
+        if(::imageView.isInitialized) {
+            val imageViewContainer: RelativeLayout = view!!.findViewById<RelativeLayout>(R.id.imageViewContainer)
+            imageViewContainer.removeView(imageView)
+        }
         super.onDestroyView()
     }
 
     override fun onDestroy() {
         super.onDestroy()
-        imageView.recycle()
+        if(::imageView.isInitialized) {
+            imageView.recycle()
+        }
     }
 
 
@@ -304,7 +310,11 @@ class MainFragment : Fragment(), AdapterView.OnItemClickListener, View.OnTouchLi
         println(imagePath)
         view!!.findViewById<ProgressBar>(R.id.progress_circular).visibility = View.VISIBLE
         view!!.findViewById<ProgressBar>(R.id.progress_circular).bringToFront()
+        val flowerListSize = getFlowerListFromPreferences(context!!).size
         annotationState = AnnotationState(imagePath, getFlowerListFromPreferences(context!!))
+        if(flowerListSize< annotationState.flowerList.size){
+            Snackbar.make(view!!, R.string.added_flowers_to_list, Snackbar.LENGTH_LONG).show();
+        }
         putFlowerListToPreferences(annotationState.flowerList,context!!)
         val imageViewContainer: RelativeLayout = view!!.findViewById<RelativeLayout>(R.id.imageViewContainer)
 

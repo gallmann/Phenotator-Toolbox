@@ -7,11 +7,12 @@ Created on Mon Mar 18 11:20:35 2019
 
 import osr
 import gdal
-import pyproj # Import the pyproj module
 import json
 import subprocess
 import threading
 import os
+import pyproj
+
 
 class GeoInformation(object):
     def __init__(self):
@@ -27,13 +28,17 @@ class PreprocessTool(object):
     
     def stop(self):
         self.pleaseStop = True
+        
+    def my_translate(self,out_path_image,ds, translate_options):
+        gdal.Translate(out_path_image,ds, options=translate_options)
+
     
     def preprocess_internal(self, in_path, out_path, progress_callback):
         
         
         output_filename = 'tile_'
-        tile_size_x = 3000
-        tile_size_y = 3000
+        tile_size_x = 5500
+        tile_size_y = 5500
         
         
         
@@ -48,7 +53,7 @@ class PreprocessTool(object):
         
         swiss = pyproj.Proj(inSRS_forPyProj)
         wgs84=pyproj.Proj("+init=EPSG:4326") # LatLon with WGS84 datum used by GPS units and Google Earth
-        
+        #wgs84 = pyproj.Proj("+units=m +init=epsg:4326 +proj=longlat +datum=WGS84 +no_defs +ellps=WGS84 +towgs84=0,0,0")
         ulx, xres, xskew, uly, yskew, yres  = inDS.GetGeoTransform()
         lrx = ulx + (inDS.RasterXSize * xres)
         lry = uly + (inDS.RasterYSize * yres)
@@ -69,17 +74,32 @@ class PreprocessTool(object):
     
         for i in range(0, xsize, tile_size_x):
             processes = []
-            if self.pleaseStop:
-                progress_callback(999)
-                return
             for j in range(0, ysize, tile_size_y):
+                if self.pleaseStop:
+                    progress_callback(999)
+                    return
+
                 out_path_image = str(out_path) + str(output_filename) + "row" + str(int(j/tile_size_y)) + "_col" + str(int(i/tile_size_x)) + ".png"
                 out_path_json = str(out_path) + str(output_filename) + "row" + str(int(j/tile_size_y)) + "_col" + str(int(i/tile_size_x)) + "_geoinfo.json"
-        
-                com_string = "gdal_translate -b 1 -b 2 -b 3 -of png -srcwin " + str(i)+ ", " + str(j) + ", " + str(tile_size_x) + ", " + str(tile_size_y) + " " + str(in_path)  + " " + out_path_image 
-                process = subprocess.Popen(com_string, shell=True)
-                processes.append(process)
                 
+                #com_string = "gdal_translate -b 1 -b 2 -b 3 -of png -srcwin " + str(i)+ ", " + str(j) + ", " + str(tile_size_x) + ", " + str(tile_size_y) + " " + str(in_path)  + " " + out_path_image 
+                gdal.Translate(out_path_image,ds, options=gdal.TranslateOptions(srcWin=[i,j,tile_size_x,tile_size_y], bandList=[1,2,3], format='png'))
+                
+                y_progress = min((j+tile_size_y)/ysize,1.0)
+                progress = min((i+ y_progress*tile_size_x)/xsize,0.99)
+                progress_callback(progress)
+
+                
+                '''
+                translate_options = gdal.TranslateOptions(srcWin=[i,j,tile_size_x,tile_size_y], bandList=[1,2,3], format='png')
+                thr = threading.Thread(target=self.my_translate, args=[out_path_image,ds,translate_options], kwargs={})
+                thr.daemon = True
+                thr.start()
+                thr.join()
+                #processes.append(thr)
+
+                #process = subprocess.Popen(com_string, shell=True)
+                '''
                 
                 
                 #write geoinfo file
@@ -98,7 +118,7 @@ class PreprocessTool(object):
         
                 
             for process in processes:
-                process.wait()
+                process.join()
             
             progress = min((i+tile_size_x)/xsize,1.0)
             
