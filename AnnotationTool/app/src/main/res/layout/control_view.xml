@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
-              xmlns:tools="http://schemas.android.com/tools"
+              xmlns:tools="http://schemas.android.com/tools" xmlns:app="http://schemas.android.com/apk/res-auto"
               android:elevation="4dp"
               android:background="#fff"
               android:layout_gravity="right"
@@ -62,22 +62,53 @@
 
         </LinearLayout>
 
-        <LinearLayout
+
+        <androidx.constraintlayout.widget.ConstraintLayout
                 android:layout_weight="1"
                 android:layout_width="match_parent"
                 android:layout_height="match_parent"
-                android:orientation="vertical"
+                android:orientation="horizontal"
                 android:layout_margin="4dp"
                 android:elevation="6dp"
                 android:background="#fff">
 
-            <ListView
-                    android:id="@+id/flower_list_view"
-                    android:layout_width="match_parent"
-                    android:layout_height="match_parent">
 
-            </ListView>
-        </LinearLayout>
+            <androidx.recyclerview.widget.RecyclerView
+                    android:id="@+id/flower_list_view"
+                    android:layout_width="0dp"
+                    android:layout_height="0dp"
+                    android:clipToPadding="false"
+                    android:paddingBottom="8dp"
+                    android:paddingTop="8dp"
+                    app:layout_constraintBottom_toBottomOf="parent"
+                    app:layout_constraintEnd_toStartOf="@id/fastscroller"
+                    app:layout_constraintStart_toStartOf="parent"
+                    app:layout_constraintTop_toTopOf="parent"
+            />
+
+            <com.reddit.indicatorfastscroll.FastScrollerView
+                    android:id="@+id/fastscroller"
+                    android:layout_width="32dp"
+                    android:layout_height="0dp"
+                    android:textAppearance=""
+                    app:layout_constraintBottom_toBottomOf="parent"
+                    app:layout_constraintEnd_toEndOf="parent"
+                    app:layout_constraintTop_toTopOf="parent"
+            />
+
+            <com.reddit.indicatorfastscroll.FastScrollerThumbView
+                    android:id="@+id/fastscroller_thumb"
+                    android:layout_width="40dp"
+                    android:layout_height="0dp"
+                    android:layout_marginEnd="16dp"
+                    app:layout_constraintBottom_toBottomOf="@+id/fastscroller"
+                    app:layout_constraintEnd_toStartOf="@+id/fastscroller"
+                    app:layout_constraintTop_toTopOf="@+id/fastscroller"
+            />
+
+
+
+        </androidx.constraintlayout.widget.ConstraintLayout>
 
 
 

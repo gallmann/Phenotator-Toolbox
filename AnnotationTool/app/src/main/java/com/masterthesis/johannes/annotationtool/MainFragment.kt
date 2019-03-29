@@ -11,7 +11,6 @@ import android.content.pm.PackageManager
 import android.widget.LinearLayout
 import android.content.Context.MODE_PRIVATE
 import android.content.IntentSender
-import android.graphics.Point
 import com.google.android.material.snackbar.Snackbar
 import androidx.core.content.ContextCompat
 import com.google.android.gms.common.api.ResolvableApiException
@@ -20,13 +19,20 @@ import com.google.android.gms.tasks.Task
 import java.io.File
 import com.davemorrissey.labs.subscaleview.ImageViewState
 import android.graphics.PointF
+import androidx.recyclerview.widget.DividerItemDecoration
+import androidx.recyclerview.widget.LinearLayoutManager
+import androidx.recyclerview.widget.RecyclerView
 import com.davemorrissey.labs.subscaleview.SubsamplingScaleImageView
+import com.reddit.indicatorfastscroll.FastScrollItemIndicator
+import com.reddit.indicatorfastscroll.FastScrollerThumbView
+import com.reddit.indicatorfastscroll.FastScrollerView
 import ru.dimorinny.floatingtextbutton.FloatingTextButton
 import java.lang.Exception
+import java.lang.IllegalStateException
 
 
-class MainFragment : Fragment(), AdapterView.OnItemClickListener, View.OnTouchListener, View.OnClickListener, SubsamplingScaleImageView.OnImageEventListener, CompoundButton.OnCheckedChangeListener {
-    private lateinit var flowerListView: ListView
+class MainFragment : Fragment(), FlowerListAdapter.ItemClickListener, View.OnTouchListener, View.OnClickListener, SubsamplingScaleImageView.OnImageEventListener, CompoundButton.OnCheckedChangeListener {
+    private lateinit var flowerListView: RecyclerView
     private lateinit var polygonSwitch: Switch
     private lateinit var annotationState: AnnotationState
     private lateinit var imageView: MyImageView
@@ -67,8 +73,14 @@ class MainFragment : Fragment(), AdapterView.OnItemClickListener, View.OnTouchLi
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View? {
         // Inflate the layout for this fragment
         val fragmentView: View = inflater.inflate(R.layout.fragment_main, container, false)
-        flowerListView = fragmentView.findViewById<ListView>(R.id.flower_list_view)
-        flowerListView.onItemClickListener = this
+
+        flowerListView = fragmentView.findViewById(R.id.flower_list_view)
+        flowerListView.setLayoutManager(LinearLayoutManager(context!!))
+        var dividerItemDecoration = DividerItemDecoration(flowerListView.getContext(),DividerItemDecoration.VERTICAL);
+        flowerListView.addItemDecoration(dividerItemDecoration);
+
+
+
         fragmentView.findViewById<LinearLayout>(R.id.annotation_edit_container).visibility = View.INVISIBLE
 
         fragmentView.findViewById<Button>(R.id.done_button).setOnClickListener(this)
@@ -186,9 +198,11 @@ class MainFragment : Fragment(), AdapterView.OnItemClickListener, View.OnTouchLi
 
 
     /** CONTROL VIEW FUNCTIONS **/
-    override fun onItemClick(p0: AdapterView<*>?, view: View, index: Int, p3: Long) {
 
-        (flowerListView.adapter as FlowerListAdapter).selectedIndex(index)
+
+    override fun onItemClick(view: View, position: Int) {
+        //TODO
+        (flowerListView.adapter as FlowerListAdapter).selectedIndex(position)
         imageView.invalidate()
     }
 
@@ -235,9 +249,37 @@ class MainFragment : Fragment(), AdapterView.OnItemClickListener, View.OnTouchLi
         }
         else{
             view!!.findViewById<LinearLayout>(R.id.annotation_edit_container).visibility = View.VISIBLE
-            var adapter = FlowerListAdapter(activity as AppCompatActivity,annotationState)
-            flowerListView.adapter = adapter
-            polygonSwitch.isChecked = annotationState.currentFlower!!.isPolygon
+            var adapter = FlowerListAdapter(context!!,annotationState);
+            adapter.setClickListener(this);
+            flowerListView.setAdapter(adapter)
+            try {
+                var fastScrollerView: FastScrollerView = view!!.findViewById<FastScrollerView>(R.id.fastscroller)
+                fastScrollerView.setupWithRecyclerView(
+                    flowerListView,
+                    { position ->
+                        FastScrollItemIndicator.Text(
+                            adapter.getPreview(position) // Grab the first letter and capitalize it
+                        ) // Return a text indicator
+                    },
+                    showIndicator = { indicator, indicatorPosition, totalIndicators ->
+                        println("height" + fastScrollerView.height)
+                        if(fastScrollerView.height<41*totalIndicators){
+                            fastScrollerView.textPadding = 0.5F
+                            indicatorPosition % 1 == 0
+                        }
+                        else{
+                            indicatorPosition % 1 == 0
+                        }
+                        // Hide every other indicator
+                    }
+                )
+                var fastScrollerThumbView: FastScrollerThumbView =
+                    view!!.findViewById<FastScrollerThumbView>(R.id.fastscroller_thumb)
+                fastScrollerThumbView.setupWithFastScroller(fastScrollerView)
+            }
+            catch (e: IllegalStateException){
+
+            }
         }
     }
 

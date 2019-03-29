@@ -1,77 +1,151 @@
 package com.masterthesis.johannes.annotationtool
 
-import androidx.appcompat.app.AppCompatActivity
 import android.content.Context
+import android.widget.TextView
+import androidx.recyclerview.widget.RecyclerView
+import java.nio.file.Files.size
+import android.view.ViewGroup
 import android.view.LayoutInflater
 import android.view.View
-import android.view.ViewGroup
-import android.widget.BaseAdapter
 import android.widget.ImageView
-import android.widget.TextView
-
-class FlowerListAdapter(var activity: AppCompatActivity,
-                        val annotationState: AnnotationState): BaseAdapter() {
-
-    val inflater = activity?.getSystemService(Context.LAYOUT_INFLATER_SERVICE) as LayoutInflater
 
 
-    override fun getView(i: Int, view: View?, parent: ViewGroup?): View {
-        val numberOfFavourites: Int = annotationState.favs.size
-        if(i == 0 || i == numberOfFavourites+1){
-            val rowView = inflater.inflate(R.layout.section_separator_list_item, parent, false)
-            val nameView: TextView = rowView.findViewById(R.id.lv_list_hdr)
-            if(i == 0) nameView.text = "FAVOURITES"
-            else nameView.text = "ALL"
-            return rowView
-        }
+class FlowerListAdapter// data is passed into the constructor
+internal constructor(context: Context, val annotationState: AnnotationState) : RecyclerView.Adapter<RecyclerView.ViewHolder>() {
+    private val mInflater: LayoutInflater
+    private var mClickListener: ItemClickListener? = null
 
-        val rowView = inflater.inflate(R.layout.flower_list_item, parent, false)
-        val nameView: TextView = rowView.findViewById(R.id.flower_name)
-        val checkmarkView: ImageView = rowView.findViewById<ImageView>(R.id.checkmark_icon_imageview)
+    init {
+        this.mInflater = LayoutInflater.from(context)
+    }
 
-        if(i<=numberOfFavourites){
-            nameView.text = annotationState.favs[i-1]
-            if(annotationState.isSelected(annotationState.favs[i-1])){
-                checkmarkView.visibility = View.VISIBLE
-            }
-            else{
-                checkmarkView.visibility = View.INVISIBLE
-            }
+    // inflates the row layout from xml when needed
+    override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): RecyclerView.ViewHolder {
+        val view = mInflater.inflate(viewType, parent, false)
+        if(viewType == R.layout.section_separator_list_item){
+            return HeaderViewHolder(view)
         }
         else{
-            val index:Int = i-numberOfFavourites-2
-            nameView.text = annotationState.flowerList[index]
-            if(annotationState.isSelected(index)){
-                checkmarkView.visibility = View.VISIBLE
+            return FlowerViewHolder(view)
+        }
+    }
+
+    override fun getItemViewType(position: Int): Int {
+        val numberOfFavourites: Int = annotationState.favs.size
+        if(position == 0 || position == numberOfFavourites+1) {
+            return R.layout.section_separator_list_item
+        }
+        else{
+            return R.layout.flower_list_item
+        }
+    }
+
+    // binds the data to the TextView in each row
+    override fun onBindViewHolder(holder: RecyclerView.ViewHolder, position: Int) {
+
+        when(holder){
+            is HeaderViewHolder ->{
+                if(position == 0) holder.headerTextView.text = "FAVOURITES"
+                else holder.headerTextView.text = "ALL"
             }
-            else{
-                checkmarkView.visibility = View.INVISIBLE
+
+            is FlowerViewHolder -> {
+                val numberOfFavourites: Int = annotationState.favs.size
+
+                if(position<=numberOfFavourites){
+                    holder.flowerTextView.text = annotationState.favs[position-1]
+                    if(annotationState.isSelected(annotationState.favs[position-1])){
+                        holder.checkmarkView.visibility = View.VISIBLE
+                    }
+                    else{
+                        holder.checkmarkView.visibility = View.INVISIBLE
+                    }
+                }
+                else{
+                    val index:Int = position-numberOfFavourites-2
+                    holder.flowerTextView.text = annotationState.flowerList[index]
+                    if(annotationState.isSelected(index)){
+                        holder.checkmarkView.visibility = View.VISIBLE
+                    }
+                    else{
+                        holder.checkmarkView.visibility = View.INVISIBLE
+                    }
+                }
             }
         }
-        return rowView
     }
 
-
-    override fun getItem(position: Int): Any {
-        return annotationState.flowerList[position]
-    }
-
-    override fun getItemId(position: Int): Long {
-        return position.toLong()
-    }
-
-    override fun getCount(): Int {
+    // total number of rows
+    override fun getItemCount(): Int {
         return annotationState.flowerList.size + 2 + annotationState.favs.size
     }
+
+    // stores and recycles views as they are scrolled off screen
+    inner class FlowerViewHolder internal constructor(itemView: View) : RecyclerView.ViewHolder(itemView), View.OnClickListener {
+        internal var flowerTextView: TextView
+        internal var checkmarkView: ImageView
+
+        init {
+            checkmarkView = itemView.findViewById(R.id.checkmark_icon_imageview)
+            flowerTextView = itemView.findViewById(R.id.flower_name)
+            itemView.setOnClickListener(this)
+        }
+
+        override fun onClick(view: View) {
+            if (mClickListener != null) mClickListener!!.onItemClick(view, adapterPosition)
+        }
+    }
+
+    inner class HeaderViewHolder internal constructor(itemView: View) : RecyclerView.ViewHolder(itemView), View.OnClickListener {
+        internal var headerTextView: TextView
+
+        init {
+            headerTextView = itemView.findViewById(R.id.lv_list_hdr)
+            itemView.setOnClickListener(this)
+        }
+        override fun onClick(view: View) {}
+    }
+
+    // convenience method for getting data at click position
+    internal fun getPreview(position: Int): String {
+        val numberOfFavourites: Int = annotationState.favs.size
+        if (position <= annotationState.favs.size + 1) {
+            return "*"
+        } else {
+            return annotationState.flowerList[position-annotationState.favs.size-2].substring(0,1).toUpperCase()
+        }
+    }
+
+    // allows clicks events to be caught
+    internal fun setClickListener(itemClickListener: ItemClickListener) {
+        this.mClickListener = itemClickListener
+    }
+
+    // parent activity will implement this method to respond to click events
+    interface ItemClickListener {
+        fun onItemClick(view: View, position: Int)
+    }
+
 
     fun selectedIndex(i: Int) {
         val numberOfFavourites: Int = annotationState.favs.size
         if (i == 0 || i == numberOfFavourites + 1) return
+        val selectedPosFavBefore = annotationState.favs.indexOf(annotationState.currentFlower!!.name)+1
+        val selectedPosBefore = annotationState.flowerList.indexOf(annotationState.currentFlower!!.name) + 2 + annotationState.favs.size
         if (i <= numberOfFavourites) {
             annotationState.selectFlower(annotationState.favs[i-1])
+
         } else {
             annotationState.selectFlower(i-numberOfFavourites-2)
         }
-        notifyDataSetChanged()
+        val selectedPosFavAfter = annotationState.favs.indexOf(annotationState.currentFlower!!.name)+1
+        val selectedPosAfter = annotationState.flowerList.indexOf(annotationState.currentFlower!!.name) + 2 + annotationState.favs.size
+
+        notifyItemChanged(selectedPosAfter)
+        notifyItemChanged(selectedPosFavAfter)
+        notifyItemChanged(selectedPosBefore)
+        notifyItemChanged(selectedPosFavBefore)
+
+
     }
 }

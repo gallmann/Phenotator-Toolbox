@@ -10,6 +10,7 @@
 
     <dimen name="lvHdrItemHeight">35dp</dimen>
     <dimen name="lvItemHeight">65dp</dimen>
+    <dimen name="lvFlowerCellHeight">50dp</dimen>
 
     <dimen name="lvHeadingPaddingLeft">8dp</dimen>
     <dimen name="lvHeadingTextSize">14sp</dimen>
