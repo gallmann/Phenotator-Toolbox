@@ -23,16 +23,13 @@ import androidx.recyclerview.widget.DividerItemDecoration
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.davemorrissey.labs.subscaleview.SubsamplingScaleImageView
-import com.reddit.indicatorfastscroll.FastScrollItemIndicator
-import com.reddit.indicatorfastscroll.FastScrollerThumbView
-import com.reddit.indicatorfastscroll.FastScrollerView
+import com.simplecityapps.recyclerview_fastscroll.views.FastScrollRecyclerView
 import ru.dimorinny.floatingtextbutton.FloatingTextButton
 import java.lang.Exception
-import java.lang.IllegalStateException
 
 
 class MainFragment : Fragment(), FlowerListAdapter.ItemClickListener, View.OnTouchListener, View.OnClickListener, SubsamplingScaleImageView.OnImageEventListener, CompoundButton.OnCheckedChangeListener {
-    private lateinit var flowerListView: RecyclerView
+    private lateinit var flowerListView: FastScrollRecyclerView
     private lateinit var polygonSwitch: Switch
     private lateinit var annotationState: AnnotationState
     private lateinit var imageView: MyImageView
@@ -252,34 +249,6 @@ class MainFragment : Fragment(), FlowerListAdapter.ItemClickListener, View.OnTou
             var adapter = FlowerListAdapter(context!!,annotationState);
             adapter.setClickListener(this);
             flowerListView.setAdapter(adapter)
-            try {
-                var fastScrollerView: FastScrollerView = view!!.findViewById<FastScrollerView>(R.id.fastscroller)
-                fastScrollerView.setupWithRecyclerView(
-                    flowerListView,
-                    { position ->
-                        FastScrollItemIndicator.Text(
-                            adapter.getPreview(position) // Grab the first letter and capitalize it
-                        ) // Return a text indicator
-                    },
-                    showIndicator = { indicator, indicatorPosition, totalIndicators ->
-                        println("height" + fastScrollerView.height)
-                        if(fastScrollerView.height<41*totalIndicators){
-                            fastScrollerView.textPadding = 0.5F
-                            indicatorPosition % 1 == 0
-                        }
-                        else{
-                            indicatorPosition % 1 == 0
-                        }
-                        // Hide every other indicator
-                    }
-                )
-                var fastScrollerThumbView: FastScrollerThumbView =
-                    view!!.findViewById<FastScrollerThumbView>(R.id.fastscroller_thumb)
-                fastScrollerThumbView.setupWithFastScroller(fastScrollerView)
-            }
-            catch (e: IllegalStateException){
-
-            }
         }
     }
 

@@ -8,10 +8,13 @@ import android.view.ViewGroup
 import android.view.LayoutInflater
 import android.view.View
 import android.widget.ImageView
+import com.simplecityapps.recyclerview_fastscroll.views.FastScrollRecyclerView
 
 
 class FlowerListAdapter// data is passed into the constructor
-internal constructor(context: Context, val annotationState: AnnotationState) : RecyclerView.Adapter<RecyclerView.ViewHolder>() {
+internal constructor(context: Context, val annotationState: AnnotationState) :
+    RecyclerView.Adapter<RecyclerView.ViewHolder>(), FastScrollRecyclerView.SectionedAdapter,
+    FastScrollRecyclerView.MeasurableAdapter<RecyclerView.ViewHolder> {
     private val mInflater: LayoutInflater
     private var mClickListener: ItemClickListener? = null
 
@@ -80,6 +83,26 @@ internal constructor(context: Context, val annotationState: AnnotationState) : R
         return annotationState.flowerList.size + 2 + annotationState.favs.size
     }
 
+    override fun getViewTypeHeight(recyclerView: RecyclerView, viewHolder: RecyclerView.ViewHolder?, viewType: Int): Int {
+
+        if(viewType == R.layout.section_separator_list_item){
+            return recyclerView.getResources().getDimensionPixelSize(R.dimen.lvHdrItemHeight);
+        }
+        else {
+            return recyclerView.getResources().getDimensionPixelSize(R.dimen.lvFlowerCellHeight);
+        }
+    }
+
+    override fun getSectionName(position: Int): String {
+        val numberOfFavourites: Int = annotationState.favs.size
+        if(position <= numberOfFavourites+1) {
+            return "*"
+        }
+        else{
+            return annotationState.flowerList[position-annotationState.favs.size-2][0].toString().toUpperCase()
+        }
+    }
+
     // stores and recycles views as they are scrolled off screen
     inner class FlowerViewHolder internal constructor(itemView: View) : RecyclerView.ViewHolder(itemView), View.OnClickListener {
         internal var flowerTextView: TextView
@@ -107,13 +130,8 @@ internal constructor(context: Context, val annotationState: AnnotationState) : R
     }
 
     // convenience method for getting data at click position
-    internal fun getPreview(position: Int): String {
-        val numberOfFavourites: Int = annotationState.favs.size
-        if (position <= annotationState.favs.size + 1) {
-            return "*"
-        } else {
-            return annotationState.flowerList[position-annotationState.favs.size-2].substring(0,1).toUpperCase()
-        }
+    internal fun getItem(id: Int): String {
+        return ""
     }
 
     // allows clicks events to be caught
