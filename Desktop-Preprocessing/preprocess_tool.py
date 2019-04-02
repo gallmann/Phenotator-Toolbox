@@ -37,8 +37,8 @@ class PreprocessTool(object):
         
         
         output_filename = 'tile_'
-        tile_size_x = 5500
-        tile_size_y = 5500
+        tile_size_x = 5120
+        tile_size_y = 5120
         
         
         

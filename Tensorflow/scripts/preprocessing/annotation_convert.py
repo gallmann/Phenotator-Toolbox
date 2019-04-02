@@ -25,16 +25,10 @@ def convert_annotation_folder(folder_path, training_dir):
     labels = []
     for image_path in image_paths:
         annotation_path = image_path[:-4] + "_annotations.json"
-        xml_path = image_path[:-4] + ".xml"
-        
-        annotation_data = read_json_file(annotation_path)
-        if(not annotation_data):
-            continue
-        annotations = annotation_data["annotatedFlowers"]
-        annotations_xml = build_xml_tree(annotations, image_path, labels)  
-        annotations_xml.write(xml_path)
-        
         train_images_dir = os.path.join(os.path.join(training_dir, "images"),"train")
+
+        tile_image_and_annotations(image_path,annotation_path,train_images_dir, labels)
+        '''
         copy(xml_path,train_images_dir)
         copy(image_path,train_images_dir)
     
@@ -45,17 +39,13 @@ def convert_annotation_folder(folder_path, training_dir):
 
     xml_to_csv.xml_to_csv(train_images_dir,os.path.join(annotations_dir, "train_labels.csv"))
     xml_to_csv.xml_to_csv(test_images_dir,os.path.join(annotations_dir, "test_labels.csv"))
+    '''
     
     
     
+def tile_image_and_annotations(image_path, annotation_path, output_folder,labels):
     
-def tile_image_and_annotations(image_path, annotation_path, output_folder):
-    
-    annotation_data = read_json_file(annotation_path)
-    if(not annotation_data):
-        return
-    
-
+            
     image = Image.open(image_path)
     image_name = os.path.basename(image_path)[:-4]
     
@@ -64,15 +54,47 @@ def tile_image_and_annotations(image_path, annotation_path, output_folder):
         currenty = 0
         while currenty < image.size[1]:
             while currentx < image.size[0]:
+                filtered_annotations = get_flowers_within_bounds(annotation_path, currentx,currenty)
+                if len(filtered_annotations) == 0:
+                    #Ignore image tiles without any annotations
+                    currentx += tile_size
+                    continue
                 tile = image.crop((currentx,currenty,currentx + tile_size,currenty + tile_size))
+                output_image_path = os.path.join(output_folder, image_name + "_subtile_" + "x" + str(currentx) + "y" + str(currenty) + ".png")
+                tile.save(output_image_path,"PNG")
                 
-                tile.save(image_name + "_subtile_" + "x" + str(currentx) + "y" + str(currenty) + ".png","PNG")
+                xml_path = output_image_path[:-4] + ".xml"
+                annotations_xml = build_xml_tree(filtered_annotations,output_image_path,labels)
+                annotations_xml.write(xml_path)
+                
                 currentx += tile_size
             currenty += tile_size
             currentx = 0
     else:
         print ("sorry your image does not fit neatly into",tile_size,"*",tile_size,"tiles")
 
+
+
+def get_flowers_within_bounds(annotation_path, x_offset, y_offset):
+    filtered_annotations = []
+    annotation_data = read_json_file(annotation_path)
+    if(not annotation_data):
+        return filtered_annotations
+    annotations = annotation_data["annotatedFlowers"]
+
+    for flower in annotations:
+        if flower["isPolygon"]:
+            continue
+            #TODO!!   
+        else:
+            x = round(flower["polygon"][0]["x"])
+            y = round(flower["polygon"][0]["y"])
+            if x < x_offset + tile_size and x >=x_offset and y < y_offset + tile_size and y >= y_offset:
+                flower["polygon"][0]["x"] = x - x_offset
+                flower["polygon"][0]["y"] = y - y_offset
+                filtered_annotations.append(flower)
+    
+    return filtered_annotations
 
 
     

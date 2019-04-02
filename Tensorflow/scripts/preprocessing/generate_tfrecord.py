@@ -24,6 +24,9 @@ import io
 import pandas as pd
 import tensorflow as tf
 import sys
+
+
+
 sys.path.append("../../models/research")
 
 from PIL import Image
@@ -47,12 +50,12 @@ FLAGS = flags.FLAGS
 def class_text_to_int(row_label):
     
     # if row_label == FLAGS.label:  # 'ship':
-    #    return 1
+    #     return 1
     # comment upper if statement and uncomment these statements for multiple labelling
-    # if row_label == FLAGS.label0:
-    #   return 1
-    # elif row_label == FLAGS.label1:
-    #   return 0
+    if row_label == FLAGS.label0:
+      return 1
+    elif row_label == FLAGS.label1:
+      return 0
     else:
         None
 

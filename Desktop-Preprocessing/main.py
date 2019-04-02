@@ -75,7 +75,7 @@ def process_callback(progress):
     
 window = Tk()
 window.geometry('550x170')
- window.iconbitmap(resource_path('flower.ico'))
+window.iconbitmap(resource_path('flower.ico'))
 
 
 window.columnconfigure(1, weight=1)
