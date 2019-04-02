@@ -4,6 +4,7 @@ import android.graphics.Paint
 import android.graphics.PorterDuff
 import android.graphics.PorterDuffColorFilter
 import android.content.Context
+import android.net.Uri
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
 import com.google.gson.stream.JsonReader
@@ -11,14 +12,14 @@ import java.io.*
 import kotlin.concurrent.thread
 
 
-class AnnotationState(@Transient var imagePath: String,@Transient var flowerList: MutableList<String>) {
+class AnnotationState(@Transient var imageUri: Uri, @Transient var projectDirectory: Uri, @Transient var flowerList: MutableList<String>, @Transient var context:Context) {
 
     var annotatedFlowers: ArrayList<Flower> = ArrayList<Flower>()
     var flowerCount: MutableMap<String,Int> = HashMap<String,Int>()
     var favs: ArrayList<String> = ArrayList<String>()
     var geoInfo: GeoInfo? = null
     @Transient var currentFlower: Flower? = null
-    @Transient lateinit var annotationFilePath: String
+    @Transient lateinit var annotationFileUri: Uri
     @Transient var hasTopNeighbour: Boolean = false
     @Transient var hasLeftNeighbour: Boolean = false
     @Transient var hasRightNeighbour: Boolean = false
@@ -26,28 +27,29 @@ class AnnotationState(@Transient var imagePath: String,@Transient var flowerList
 
 
     init{
-        annotationFilePath = createAnnotationFilePath(imagePath)
-        var annotationFile: File = File(annotationFilePath)
-        var geoInfoFile: File = File(createGeoInfoFilePath(imagePath))
+        annotationFileUri = getAnnotationFileUri(projectDirectory,imageUri,context)
+
+        var geoInfoUri = getGeoInfoUri(projectDirectory,imageUri,context)
         if(!isExternalStorageWritable()){
             throw Exception("External Storage is not Writable")
             //TODO!!!!! handle gracefully
         }
 
-        if(geoInfoFile.exists()){
+        if(geoInfoUri != null){
             val gson = Gson()
-            val reader = JsonReader(FileReader(geoInfoFile))
+            val reader = JsonReader(InputStreamReader(context.contentResolver.openInputStream(geoInfoUri)))
             val myType = object : TypeToken<GeoInfo>() {}.type
             geoInfo = gson.fromJson<GeoInfo>(reader, myType)
         }
 
 
+        //if
+        val gson = Gson()
+        val reader = JsonReader(InputStreamReader(context.contentResolver.openInputStream(annotationFileUri)))
 
-        if(annotationFile.exists()){
-            val gson = Gson()
-            val reader = JsonReader(FileReader(annotationFile))
-            val myType = object : TypeToken<AnnotationState>() {}.type
-            val loadedState = gson.fromJson<AnnotationState>(reader, myType)
+        val myType = object : TypeToken<AnnotationState>() {}.type
+        val loadedState = gson.fromJson<AnnotationState>(reader, myType)
+        if(loadedState != null){
             annotatedFlowers = loadedState.annotatedFlowers
             favs = loadedState.favs
             flowerCount = loadedState.flowerCount
@@ -58,6 +60,9 @@ class AnnotationState(@Transient var imagePath: String,@Transient var flowerList
             }
             flowerList = sortList(flowerList)
         }
+
+        //endif
+
         for(s: String in flowerList){
             if(!flowerCount.containsKey(s)){
                 flowerCount[s] = 0
@@ -92,7 +97,7 @@ class AnnotationState(@Transient var imagePath: String,@Transient var flowerList
         thread{
             val gson = Gson()
             val jsonString = gson.toJson(this);
-            val fOut = FileOutputStream(File(annotationFilePath))
+            val fOut = context.contentResolver.openOutputStream(annotationFileUri)
             val myOutWriter = OutputStreamWriter(fOut)
             myOutWriter.append(jsonString)
             myOutWriter.close()
@@ -227,20 +232,20 @@ class AnnotationState(@Transient var imagePath: String,@Transient var flowerList
     }
 
     private fun checkForNeighbouringTiles(){
-        val column: Int = imagePath.substringAfter("col").substringBefore('.').toInt()
+        val column: Int = getFileName(imageUri,context).substringAfter("col").substringBefore('.').toInt()
         var regex: Regex = "col([0-9]|[0-9][0-9]|[0-9][0-9][0-9]).".toRegex()
-        var neighbourFile: File = File(regex.replace(imagePath,"col" +(column+1).toString() + "."))
-        hasRightNeighbour = neighbourFile.exists()
+        var neighbourFileName = regex.replace(getFileName(imageUri,context),"col" +(column+1).toString() + ".")
+        hasRightNeighbour = doesFileExist(projectDirectory,neighbourFileName,context)
 
-        neighbourFile = File(regex.replace(imagePath,"col" +(column-1).toString() + "."))
-        hasLeftNeighbour = neighbourFile.exists()
+        neighbourFileName = regex.replace(getFileName(imageUri,context),"col" +(column-1).toString() + ".")
+        hasLeftNeighbour = doesFileExist(projectDirectory,neighbourFileName,context)
 
-        val row: Int = imagePath.substringAfter("row").substringBefore('_').toInt()
+        val row: Int = getFileName(imageUri,context).substringAfter("row").substringBefore('_').toInt()
         regex = "row([0-9]|[0-9][0-9]|[0-9][0-9][0-9])_".toRegex()
-        neighbourFile = File(regex.replace(imagePath,"row" +(row-1).toString() + "_"))
-        hasTopNeighbour = neighbourFile.exists()
+        neighbourFileName = regex.replace(getFileName(imageUri,context),"row" +(row-1).toString() + "_")
+        hasTopNeighbour = doesFileExist(projectDirectory,neighbourFileName,context)
 
-        neighbourFile = File(regex.replace(imagePath,"row" +(row+1).toString() + "_"))
-        hasBottomNeighbour = neighbourFile.exists()
+        neighbourFileName = regex.replace(getFileName(imageUri,context),"row" +(row+1).toString() + "_")
+        hasBottomNeighbour = doesFileExist(projectDirectory,neighbourFileName,context)
     }
 }

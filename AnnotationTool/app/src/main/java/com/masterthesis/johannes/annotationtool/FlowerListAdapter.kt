@@ -11,8 +11,7 @@ import android.widget.ImageView
 import com.simplecityapps.recyclerview_fastscroll.views.FastScrollRecyclerView
 
 
-class FlowerListAdapter// data is passed into the constructor
-internal constructor(context: Context, val annotationState: AnnotationState) :
+class FlowerListAdapter(context: Context, val annotationState: AnnotationState) :
     RecyclerView.Adapter<RecyclerView.ViewHolder>(), FastScrollRecyclerView.SectionedAdapter,
     FastScrollRecyclerView.MeasurableAdapter<RecyclerView.ViewHolder> {
     private val mInflater: LayoutInflater

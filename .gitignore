@@ -69,3 +69,4 @@ fastlane/readme.md
 Desktop-Preprocessing/dist/
 Desktop-Preprocessing/__pycache__/
 Tensorflow/workspace/training1/
+AnnotationTool/.idea/

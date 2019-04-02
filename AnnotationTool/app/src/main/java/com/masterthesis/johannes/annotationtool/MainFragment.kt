@@ -19,6 +19,7 @@ import com.google.android.gms.tasks.Task
 import java.io.File
 import com.davemorrissey.labs.subscaleview.ImageViewState
 import android.graphics.PointF
+import android.net.Uri
 import androidx.recyclerview.widget.DividerItemDecoration
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
@@ -49,9 +50,11 @@ class MainFragment : Fragment(), FlowerListAdapter.ItemClickListener, View.OnTou
     private lateinit var fusedLocationClient: FusedLocationProviderClient
     private lateinit var locationCallback: LocationCallback
 
-    private lateinit var imagePath: String
+    private lateinit var projectDirectory: Uri
+    private lateinit var currImageUri: Uri
 
-   /** FRAGMENT LIFECYCLE FUNCTIONS **/
+
+    /** FRAGMENT LIFECYCLE FUNCTIONS **/
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setHasOptionsMenu(true)
@@ -109,9 +112,12 @@ class MainFragment : Fragment(), FlowerListAdapter.ItemClickListener, View.OnTou
         }
 
         val prefs = context!!.getSharedPreferences(SHARED_PREFERENCES_KEY, MODE_PRIVATE)
-        val restoredText = prefs.getString(LAST_OPENED_IMAGE_URI, null)
-        if (restoredText != null) {
-            imagePath = restoredText
+        val restoredImageUri = prefs.getString(LAST_OPENED_IMAGE_URI, null)
+        val restoredProjectUri = prefs.getString(LAST_OPENED_PROJECT_DIR, null)
+
+        if (restoredImageUri != null && restoredProjectUri != null) {
+            currImageUri = Uri.parse(restoredImageUri)
+            projectDirectory = Uri.parse(restoredProjectUri)
             requestPermissions(arrayOf(Manifest.permission.READ_EXTERNAL_STORAGE, Manifest.permission.WRITE_EXTERNAL_STORAGE), READ_PHONE_STORAGE_RETURN_CODE_STARTUP)
         }
     }
@@ -246,7 +252,7 @@ class MainFragment : Fragment(), FlowerListAdapter.ItemClickListener, View.OnTou
         }
         else{
             view!!.findViewById<LinearLayout>(R.id.annotation_edit_container).visibility = View.VISIBLE
-            var adapter = FlowerListAdapter(context!!,annotationState);
+            var adapter = com.masterthesis.johannes.annotationtool.FlowerListAdapter(context!!, annotationState);
             adapter.setClickListener(this);
             flowerListView.setAdapter(adapter)
         }
@@ -255,27 +261,36 @@ class MainFragment : Fragment(), FlowerListAdapter.ItemClickListener, View.OnTou
 
     /** IMAGE VIEW FUNCTIONS **/
     fun loadNextTile(id:Int){
+
         when(id){
             R.id.floating_button_right -> {
-                val column: Int = imagePath.substringAfter("col").substringBefore('.').toInt()
+                val column: Int = getFileName(currImageUri,context!!).substringAfter("col").substringBefore('.').toInt()
                 val regex: Regex = "col([0-9]|[0-9][0-9]|[0-9][0-9][0-9]).".toRegex()
-                imagePath = regex.replace(imagePath,"col" +(column+1).toString() + ".")
+                val newImageName = regex.replace(getFileName(currImageUri,context!!),"col" +(column+1).toString() + ".")
+                currImageUri = getUri(projectDirectory,newImageName, context!!)!!
             }
             R.id.floating_button_left -> {
-                val column: Int = imagePath.substringAfter("col").substringBefore('.').toInt()
+                val column: Int = getFileName(currImageUri,context!!).substringAfter("col").substringBefore('.').toInt()
                 val regex: Regex = "col([0-9]|[0-9][0-9]|[0-9][0-9][0-9]).".toRegex()
-                imagePath = regex.replace(imagePath,"col" +(column-1).toString() + ".")
+                val newImageName = regex.replace(getFileName(currImageUri,context!!),"col" +(column-1).toString() + ".")
+                currImageUri = getUri(projectDirectory,newImageName, context!!)!!
+
             }
             R.id.floating_button_top -> {
-                val row: Int = imagePath.substringAfter("row").substringBefore('_').toInt()
+                val row: Int = getFileName(currImageUri,context!!).substringAfter("row").substringBefore('_').toInt()
                 val regex: Regex = "row([0-9]|[0-9][0-9]|[0-9][0-9][0-9])_".toRegex()
-                imagePath = regex.replace(imagePath,"row" +(row-1).toString() + "_")
+                val newImageName = regex.replace(getFileName(currImageUri,context!!),"row" +(row-1).toString() + "_")
+                currImageUri = getUri(projectDirectory,newImageName, context!!)!!
+
             }
             R.id.floating_button_bottom -> {
-                val row: Int = imagePath.substringAfter("row").substringBefore('_').toInt()
+                val row: Int = getFileName(currImageUri,context!!).substringAfter("row").substringBefore('_').toInt()
                 val regex: Regex = "row([0-9]|[0-9][0-9]|[0-9][0-9][0-9])_".toRegex()
-                imagePath = regex.replace(imagePath,"row" +(row+1).toString() + "_")
+                val newImageName = regex.replace(getFileName(currImageUri,context!!),"row" +(row+1).toString() + "_")
+                currImageUri = getUri(projectDirectory,newImageName, context!!)!!
+
             }
+
         }
 
         val currScale = imageView.scale
@@ -311,18 +326,18 @@ class MainFragment : Fragment(), FlowerListAdapter.ItemClickListener, View.OnTou
     fun initImageView(){
 
 
-        if(!isExternalStorageWritable() || !File(imagePath).exists()){
+        if(!isExternalStorageWritable()){
             Snackbar.make(view!!, R.string.could_not_load_image, Snackbar.LENGTH_LONG).show();
             val editor = context!!.getSharedPreferences(SHARED_PREFERENCES_KEY, MODE_PRIVATE).edit()
             editor.putString(LAST_OPENED_IMAGE_URI,null)
             editor.apply()
             return
         }
-        println(imagePath)
+
         view!!.findViewById<ProgressBar>(R.id.progress_circular).visibility = View.VISIBLE
         view!!.findViewById<ProgressBar>(R.id.progress_circular).bringToFront()
         val flowerListSize = getFlowerListFromPreferences(context!!).size
-        annotationState = AnnotationState(imagePath, getFlowerListFromPreferences(context!!))
+        annotationState = AnnotationState(currImageUri, projectDirectory, getFlowerListFromPreferences(context!!),context!!)
         if(flowerListSize< annotationState.flowerList.size){
             Snackbar.make(view!!, R.string.added_flowers_to_list, Snackbar.LENGTH_LONG).show();
         }
@@ -342,7 +357,8 @@ class MainFragment : Fragment(), FlowerListAdapter.ItemClickListener, View.OnTou
         imageViewContainer.addView(imageView)
 
         val editor = context!!.getSharedPreferences(SHARED_PREFERENCES_KEY, MODE_PRIVATE).edit()
-        editor.putString(LAST_OPENED_IMAGE_URI,imagePath)
+        editor.putString(LAST_OPENED_IMAGE_URI,currImageUri.toString())
+        editor.putString(LAST_OPENED_PROJECT_DIR,projectDirectory.toString())
         editor.apply()
         if(annotationState.hasLocationInformation()){
             startLocationUpdates()
@@ -411,10 +427,10 @@ class MainFragment : Fragment(), FlowerListAdapter.ItemClickListener, View.OnTou
 
     override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<out kotlin.String>, grantResults: IntArray): Unit {
         if(requestCode == READ_PHONE_STORAGE_RETURN_CODE){
-            if (permissions[0].equals(Manifest.permission.READ_EXTERNAL_STORAGE) && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-                val intent = Intent(Intent.ACTION_OPEN_DOCUMENT).apply {
-                    addCategory(Intent.CATEGORY_OPENABLE)
-                    type = "image/*"
+            if (grantResults.isNotEmpty() && permissions[0].equals(Manifest.permission.READ_EXTERNAL_STORAGE) && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                val intent = Intent(Intent.ACTION_OPEN_DOCUMENT_TREE).apply {
+                    //addCategory(Intent.CATEGORY_OPENABLE)
+                    //type = "image/*"
                 }
                 startActivityForResult(intent, OPEN_IMAGE_REQUEST_CODE)
             }
@@ -427,7 +443,7 @@ class MainFragment : Fragment(), FlowerListAdapter.ItemClickListener, View.OnTou
         }
         else if(requestCode == LOCATION_PERMISSION_REQUEST) {
             //TODO: arrayoutofbounds exception
-            if (grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+            if (grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
                 startLocationUpdates()
             }
         }
@@ -441,7 +457,8 @@ class MainFragment : Fragment(), FlowerListAdapter.ItemClickListener, View.OnTou
 
         if (requestCode == OPEN_IMAGE_REQUEST_CODE && resultCode == AppCompatActivity.RESULT_OK) {
             resultData?.data?.also { uri ->
-                imagePath = uriToPath(uri)
+                projectDirectory = uri
+                currImageUri = getFirstImageTile(uri,context!!)
                 restoredImageViewState = null
                 initImageView()
             }
