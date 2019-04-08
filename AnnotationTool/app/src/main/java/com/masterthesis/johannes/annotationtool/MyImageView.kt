@@ -71,13 +71,6 @@ class MyImageView constructor(context: Context?, var annotationState: Annotation
         ZOOM_THRESH = getValueFromPreferences(DEFAULT_ANNOTATION_SHOW_VALUE,context)
     }
 
-    fun reload(annotationState: AnnotationState, mainFragment: MainFragment){
-        this.annotationState = annotationState
-        setImage(ImageSource.uri(annotationState.imageUri))
-        maxScale = getValueFromPreferences(DEFAULT_MAX_ZOOM_VALUE,context)
-        ZOOM_THRESH = getValueFromPreferences(DEFAULT_ANNOTATION_SHOW_VALUE,context)
-    }
-
     fun clickedOnExistingMark(x: Float, y: Float):Pair<Flower,Int>?{
         val w: Float = pin!!.width / 2F
 

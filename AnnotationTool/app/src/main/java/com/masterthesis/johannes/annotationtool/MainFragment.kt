@@ -20,6 +20,7 @@ import java.io.File
 import com.davemorrissey.labs.subscaleview.ImageViewState
 import android.graphics.PointF
 import android.net.Uri
+import androidx.annotation.NonNull
 import androidx.recyclerview.widget.DividerItemDecoration
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
@@ -111,16 +112,8 @@ class MainFragment : Fragment(), FlowerListAdapter.ItemClickListener, View.OnTou
             restoredImageViewState = savedInstanceState.getSerializable(IMAGE_VIEW_STATE_KEY) as ImageViewState
         }
 
-        val prefs = context!!.getSharedPreferences(SHARED_PREFERENCES_KEY, MODE_PRIVATE)
-        val restoredImageUri = prefs.getString(LAST_OPENED_IMAGE_URI, null)
-        val restoredProjectUri = prefs.getString(LAST_OPENED_PROJECT_DIR, null)
-
-        if (restoredImageUri != null && restoredProjectUri != null) {
-            currImageUri = Uri.parse(restoredImageUri)
-            projectDirectory = Uri.parse(restoredProjectUri)
-            requestPermissions(arrayOf(Manifest.permission.READ_EXTERNAL_STORAGE, Manifest.permission.WRITE_EXTERNAL_STORAGE), READ_PHONE_STORAGE_RETURN_CODE_STARTUP)
-        }
     }
+
 
     override fun onResume() {
         super.onResume()
@@ -129,6 +122,16 @@ class MainFragment : Fragment(), FlowerListAdapter.ItemClickListener, View.OnTou
                 stopLocationUpdates()
                 startLocationUpdates()
             }
+        }
+        val prefs = context!!.getSharedPreferences(SHARED_PREFERENCES_KEY, MODE_PRIVATE)
+        val restoredImageUri = prefs.getString(LAST_OPENED_IMAGE_URI, null)
+        val restoredProjectUri = prefs.getString(LAST_OPENED_PROJECT_DIR, null)
+
+        if (restoredImageUri != null && restoredProjectUri != null) {
+            currImageUri = Uri.parse(restoredImageUri)
+            projectDirectory = Uri.parse(restoredProjectUri)
+
+            myRequestPermissions(arrayOf(Manifest.permission.READ_EXTERNAL_STORAGE, Manifest.permission.WRITE_EXTERNAL_STORAGE), READ_PHONE_STORAGE_RETURN_CODE_STARTUP)
         }
     }
 
@@ -255,6 +258,12 @@ class MainFragment : Fragment(), FlowerListAdapter.ItemClickListener, View.OnTou
             var adapter = com.masterthesis.johannes.annotationtool.FlowerListAdapter(context!!, annotationState);
             adapter.setClickListener(this);
             flowerListView.setAdapter(adapter)
+            if(annotationState.currentFlower!!.isPolygon){
+                polygonSwitch.isChecked = true
+            }
+            else{
+                polygonSwitch.isChecked = false
+            }
         }
     }
 
@@ -303,22 +312,24 @@ class MainFragment : Fragment(), FlowerListAdapter.ItemClickListener, View.OnTou
         leftButton.visibility = View.INVISIBLE
         rightButton.visibility = View.INVISIBLE
         initImageView()
-        when(id){
-            R.id.floating_button_right -> {
-                val new_center: PointF = PointF(0F,old_center!!.y)
-                imageView.setScaleAndCenter(currScale,new_center)
-            }
-            R.id.floating_button_left -> {
-                val new_center: PointF = PointF(100000F,old_center!!.y)
-                imageView.setScaleAndCenter(currScale,new_center)
-            }
-            R.id.floating_button_top -> {
-                val new_center: PointF = PointF(old_center!!.x,100000F)
-                imageView.setScaleAndCenter(currScale,new_center)
-            }
-            R.id.floating_button_bottom -> {
-                val new_center: PointF = PointF(old_center!!.x,0F)
-                imageView.setScaleAndCenter(currScale,new_center)
+        if(old_center != null){
+            when(id){
+                R.id.floating_button_right -> {
+                    val new_center: PointF = PointF(0F,old_center!!.y)
+                    imageView.setScaleAndCenter(currScale,new_center)
+                }
+                R.id.floating_button_left -> {
+                    val new_center: PointF = PointF(100000F,old_center!!.y)
+                    imageView.setScaleAndCenter(currScale,new_center)
+                }
+                R.id.floating_button_top -> {
+                    val new_center: PointF = PointF(old_center!!.x,100000F)
+                    imageView.setScaleAndCenter(currScale,new_center)
+                }
+                R.id.floating_button_bottom -> {
+                    val new_center: PointF = PointF(old_center!!.x,0F)
+                    imageView.setScaleAndCenter(currScale,new_center)
+                }
             }
         }
     }
@@ -349,6 +360,7 @@ class MainFragment : Fragment(), FlowerListAdapter.ItemClickListener, View.OnTou
         if(::imageView.isInitialized){
             imageView.recycle()
             imageViewContainer.removeView(imageView)
+            updateControlView()
         }
 
         imageView = MyImageView(context!!,annotationState,rightButton,leftButton,topButton,bottomButton, stateToRestore = restoredImageViewState)
@@ -371,7 +383,7 @@ class MainFragment : Fragment(), FlowerListAdapter.ItemClickListener, View.OnTou
 
     private fun startLocationUpdates(){
         if (ContextCompat.checkSelfPermission(activity!!, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
-            requestPermissions(arrayOf(Manifest.permission.ACCESS_FINE_LOCATION), LOCATION_PERMISSION_REQUEST)
+            myRequestPermissions(arrayOf(Manifest.permission.ACCESS_FINE_LOCATION), LOCATION_PERMISSION_REQUEST)
         }
         else{
             val locationRequest = LocationRequest.create()?.apply {
@@ -421,8 +433,21 @@ class MainFragment : Fragment(), FlowerListAdapter.ItemClickListener, View.OnTou
         imageView.invalidate()
     }
 
+
+    fun myRequestPermissions(permissions: Array<String>, requestCode:Int){
+        for(permission in permissions){
+            val res = context!!.checkCallingOrSelfPermission(permission)
+            if(res != PackageManager.PERMISSION_GRANTED){
+                requestPermissions(permissions,requestCode)
+                return
+            }
+        }
+
+        onRequestPermissionsResult(requestCode,permissions,grantResults = IntArray(permissions.size,{_ -> PackageManager.PERMISSION_GRANTED}))
+    }
+
     private fun openImage(){
-        requestPermissions(arrayOf(Manifest.permission.READ_EXTERNAL_STORAGE, Manifest.permission.WRITE_EXTERNAL_STORAGE), READ_PHONE_STORAGE_RETURN_CODE)
+        myRequestPermissions(arrayOf(Manifest.permission.READ_EXTERNAL_STORAGE, Manifest.permission.WRITE_EXTERNAL_STORAGE), READ_PHONE_STORAGE_RETURN_CODE)
     }
 
     override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<out kotlin.String>, grantResults: IntArray): Unit {
