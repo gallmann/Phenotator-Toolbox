@@ -9,38 +9,48 @@ import os
 import json
 import xml.etree.cElementTree as ET
 from PIL import Image
-from shutil import copy
+from shutil import move
 import xml_to_csv
+import random
+import generate_tfrecord
 
-
-bounding_box_size = 20 
+bounding_box_size = 6 
 
 tile_size = 512
-
+test_set_size = 0.2
 
 
 def convert_annotation_folder(folder_path, training_dir):
     
     image_paths = get_all_images_in_folder(folder_path)
     labels = []
+    train_images_dir = os.path.join(os.path.join(training_dir, "images"),"train")
+    test_images_dir = os.path.join(os.path.join(training_dir, "images"),"test")
+    delete_folder_contents(train_images_dir)
+    delete_folder_contents(test_images_dir)
+
     for image_path in image_paths:
         annotation_path = image_path[:-4] + "_annotations.json"
-        train_images_dir = os.path.join(os.path.join(training_dir, "images"),"train")
 
         tile_image_and_annotations(image_path,annotation_path,train_images_dir, labels)
-        '''
-        copy(xml_path,train_images_dir)
-        copy(image_path,train_images_dir)
+        
+    
     
     annotations_dir = os.path.join(training_dir, "annotations")
     write_labels_to_labelmapfile(labels,annotations_dir)
-    test_images_dir = os.path.join(os.path.join(training_dir, "images"),"test")
-    split_train_dir(train_images_dir, test_images_dir)
-
-    xml_to_csv.xml_to_csv(train_images_dir,os.path.join(annotations_dir, "train_labels.csv"))
-    xml_to_csv.xml_to_csv(test_images_dir,os.path.join(annotations_dir, "test_labels.csv"))
-    '''
     
+    split_train_dir(train_images_dir,test_images_dir)
+    train_csv = os.path.join(annotations_dir, "train_labels.csv")
+    test_csv = os.path.join(annotations_dir, "test_labels.csv")
+    xml_to_csv.xml_to_csv(train_images_dir,train_csv)
+    xml_to_csv.xml_to_csv(test_images_dir,test_csv)
+    
+    train_tf_record = os.path.join(annotations_dir, "train.record")
+    generate_tfrecord.make_tfrecords(train_csv,train_tf_record,train_images_dir, labels)
+    test_tf_record = os.path.join(annotations_dir, "test.record")
+    generate_tfrecord.make_tfrecords(test_csv,test_tf_record,test_images_dir, labels)
+
+        
     
     
 def tile_image_and_annotations(image_path, annotation_path, output_folder,labels):
@@ -100,7 +110,14 @@ def get_flowers_within_bounds(annotation_path, x_offset, y_offset):
     
     
 def split_train_dir(train_dir,test_dir):
-    print("TODO")
+    images = get_all_images_in_folder(train_dir)
+    random.shuffle(images)
+    for i in range(0,int(len(images)*test_set_size)):
+        image_name = os.path.basename(images[i])
+        xml_name = os.path.basename(images[i])[:-4] + ".xml"
+        move(images[i],os.path.join(test_dir,image_name))
+        move(images[i][:-4] + ".xml",os.path.join(test_dir,xml_name))
+            
 
 
     
@@ -121,12 +138,12 @@ def write_labels_to_labelmapfile(labels, output_path):
     with open(output_name, 'w') as f:
         f.write(out)
             
-    
+def clean_string(s):
+    return s.encode(encoding='iso-8859-1').decode(encoding='utf-8').replace('ö','oe').replace('ä','ae').replace('ü','ue')
     
 def build_xml_tree(flowers, image_path, labels):
     root = ET.Element("annotation")
     
-
     image = Image.open(image_path)
     ET.SubElement(root, "filename").text = os.path.basename(image_path)
     
@@ -136,8 +153,9 @@ def build_xml_tree(flowers, image_path, labels):
     ET.SubElement(size, "height").text = str(height)
     
     for flower in flowers:
-        if flower["name"] not in labels:
-            labels.append(flower["name"])
+        flower_name = clean_string(flower["name"])
+        if flower_name not in labels:
+            labels.append(flower_name)
         
         if flower["isPolygon"]:
             continue
@@ -145,7 +163,7 @@ def build_xml_tree(flowers, image_path, labels):
             
         else:
             annotation_object = ET.SubElement(root, "object")
-            ET.SubElement(annotation_object, "name").text = flower["name"]
+            ET.SubElement(annotation_object, "name").text = flower_name
             ET.SubElement(annotation_object, "pose").text = "Unspecified"
             ET.SubElement(annotation_object, "truncated").text = str(0)
             ET.SubElement(annotation_object, "difficult").text = str(0)            
@@ -172,11 +190,21 @@ def get_all_images_in_folder(folder_path):
     
 def read_json_file(file_path):
     if file_path and os.path.isfile(file_path):
-        with open(file_path, 'r', encoding='iso-8859-1') as f:
+        with open(file_path, 'r') as f:
             jsondata = json.load(f)
         return jsondata
     else:
         return None
+
+def delete_folder_contents(folder_path):
+    for the_file in os.listdir(folder_path):
+        file_path = os.path.join(folder_path, the_file)
+        try:
+            if os.path.isfile(file_path):
+                os.unlink(file_path)
+            #elif os.path.isdir(file_path): shutil.rmtree(file_path)
+        except Exception as e:
+            print(e)
 
 
 convert_annotation_folder("C:/Users/johan/Downloads/eschlikon", "C:/Users/johan/Desktop/MasterThesis/Tensorflow/workspace/training1")

@@ -5,16 +5,6 @@ Created on Mon Apr  1 16:13:06 2019
 @author: johan
 """
 
-"""
-Usage:
-
-# Create train data:
-python generate_tfrecord.py --label=<LABEL> --csv_input=<PATH_TO_ANNOTATIONS_FOLDER>/train_labels.csv  --output_path=<PATH_TO_ANNOTATIONS_FOLDER>/train.record
-
-# Create test data:
-python generate_tfrecord.py --label=<LABEL> --csv_input=<PATH_TO_ANNOTATIONS_FOLDER>/test_labels.csv  --output_path=<PATH_TO_ANNOTATIONS_FOLDER>/test.record
-"""
-
 from __future__ import division
 from __future__ import print_function
 from __future__ import absolute_import
@@ -24,41 +14,20 @@ import io
 import pandas as pd
 import tensorflow as tf
 import sys
-
-
-
 sys.path.append("../../models/research")
 
 from PIL import Image
 from object_detection.utils import dataset_util
-from collections import namedtuple, OrderedDict
-
-flags = tf.app.flags
-flags.DEFINE_string('csv_input', '', 'Path to the CSV input')
-flags.DEFINE_string('output_path', '', 'Path to output TFRecord')
-flags.DEFINE_string('label', '', 'Name of class label')
-# if your image has more labels input them as
-# flags.DEFINE_string('label0', '', 'Name of class[0] label')
-# flags.DEFINE_string('label1', '', 'Name of class[1] label')
-# and so on.
-flags.DEFINE_string('img_path', '', 'Path to images')
-FLAGS = flags.FLAGS
+from collections import namedtuple
 
 
 # TO-DO replace this with label map
 # for multiple labels add more else if statements
-def class_text_to_int(row_label):
+def class_text_to_int(row_label, labels):
+    index = labels.index(row_label) + 1
+    return index
     
-    # if row_label == FLAGS.label:  # 'ship':
-    #     return 1
-    # comment upper if statement and uncomment these statements for multiple labelling
-    if row_label == FLAGS.label0:
-      return 1
-    elif row_label == FLAGS.label1:
-      return 0
-    else:
-        None
-
+    
 
 def split(df, group):
     data = namedtuple('data', ['filename', 'object'])
@@ -66,7 +35,7 @@ def split(df, group):
     return [data(filename, gb.get_group(x)) for filename, x in zip(gb.groups.keys(), gb.groups)]
 
 
-def create_tf_example(group, path):
+def create_tf_example(group, path, labels):
     with tf.gfile.GFile(os.path.join(path, '{}'.format(group.filename)), 'rb') as fid:
         encoded_jpg = fid.read()
     encoded_jpg_io = io.BytesIO(encoded_jpg)
@@ -74,7 +43,7 @@ def create_tf_example(group, path):
     width, height = image.size
 
     filename = group.filename.encode('utf8')
-    image_format = b'jpg'
+    image_format = b'png'
     # check if the image format is matching with your images.
     xmins = []
     xmaxs = []
@@ -89,7 +58,7 @@ def create_tf_example(group, path):
         ymins.append(row['ymin'] / height)
         ymaxs.append(row['ymax'] / height)
         classes_text.append(row['class'].encode('utf8'))
-        classes.append(class_text_to_int(row['class']))
+        classes.append(class_text_to_int(row['class'],labels))
 
     tf_example = tf.train.Example(features=tf.train.Features(feature={
         'image/height': dataset_util.int64_feature(height),
@@ -108,19 +77,14 @@ def create_tf_example(group, path):
     return tf_example
 
 
-def main(_):
-    writer = tf.python_io.TFRecordWriter(FLAGS.output_path)
-    path = os.path.join(os.getcwd(), FLAGS.img_path)
-    examples = pd.read_csv(FLAGS.csv_input)
+def make_tfrecords(input_csv, output_tf_record, images_folder, labels):
+    writer = tf.python_io.TFRecordWriter(output_tf_record)
+    examples = pd.read_csv(input_csv)
     grouped = split(examples, 'filename')
     for group in grouped:
-        tf_example = create_tf_example(group, path)
+        tf_example = create_tf_example(group, images_folder, labels)
         writer.write(tf_example.SerializeToString())
-
     writer.close()
-    output_path = os.path.join(os.getcwd(), FLAGS.output_path)
-    print('Successfully created the TFRecords: {}'.format(output_path))
 
 
-if __name__ == '__main__':
-    tf.app.run()
+    
