@@ -70,3 +70,9 @@ Desktop-Preprocessing/dist/
 Desktop-Preprocessing/__pycache__/
 Tensorflow/workspace/training1/
 AnnotationTool/.idea/
+Tensorflow/scripts/preprocessing/__pycache__/
+Tensorflow/images/
+Tensorflow/utils/__pycache__/
+Tensorflow/workspace/faster_rcnn_resnet101_coco/images/
+Tensorflow/workspace/faster_rcnn_resnet101_coco/pre-trained-model/checkpoint
+Tensorflow/workspace/
