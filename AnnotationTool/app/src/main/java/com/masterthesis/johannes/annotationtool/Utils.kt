@@ -142,6 +142,18 @@ fun getFirstImageTile(projectDirectory: Uri, context:Context): Uri{
     throw Exception("Did not find an Image inside the selected Project Directory.")
 }
 
+fun getAllAnnotationFileUris(projectDirectory: Uri, context:Context): ArrayList<Uri>{
+    val documentFile = DocumentFile.fromTreeUri(context, projectDirectory)
+    var allFiles = arrayListOf<Uri>()
+    for (file in documentFile!!.listFiles()) {
+        if(file.name!!.endsWith("_annotations.json")){
+            allFiles.add(file.uri)
+        }
+    }
+    return allFiles
+}
+
+
 fun getAnnotationFileUri(projectDirectory: Uri, imageUri:Uri, context:Context): Uri{
     val documentFile = DocumentFile.fromTreeUri(context, projectDirectory)
     val imageFileName = getFileName(imageUri,context)

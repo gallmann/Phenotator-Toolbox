@@ -55,7 +55,7 @@ class FlowerListAdapter(context: Context, val annotationState: AnnotationState) 
                 val numberOfFavourites: Int = annotationState.favs.size
 
                 if(position<=numberOfFavourites){
-                    holder.flowerTextView.text = annotationState.favs[position-1]
+                    holder.flowerTextView.text = annotationState.favs[position-1] + " (" + annotationState.getFlowerCount(annotationState.favs[position-1]) + ")"
                     if(annotationState.isSelected(annotationState.favs[position-1])){
                         holder.checkmarkView.visibility = View.VISIBLE
                     }
@@ -65,7 +65,7 @@ class FlowerListAdapter(context: Context, val annotationState: AnnotationState) 
                 }
                 else{
                     val index:Int = position-numberOfFavourites-2
-                    holder.flowerTextView.text = annotationState.flowerList[index]
+                    holder.flowerTextView.text = annotationState.flowerList[index] + " (" + annotationState.getFlowerCount(annotationState.flowerList[index]) + ")"
                     if(annotationState.isSelected(index)){
                         holder.checkmarkView.visibility = View.VISIBLE
                     }

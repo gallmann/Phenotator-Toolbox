@@ -18,6 +18,7 @@ class AnnotationState(@Transient var imageUri: Uri, @Transient var projectDirect
     var flowerCount: MutableMap<String,Int> = HashMap<String,Int>()
     var favs: ArrayList<String> = ArrayList<String>()
     var geoInfo: GeoInfo? = null
+    @Transient var allCounts = HashMap<String,Int>()
     @Transient var currentFlower: Flower? = null
     @Transient lateinit var annotationFileUri: Uri
     @Transient var hasTopNeighbour: Boolean = false
@@ -42,34 +43,53 @@ class AnnotationState(@Transient var imageUri: Uri, @Transient var projectDirect
             geoInfo = gson.fromJson<GeoInfo>(reader, myType)
         }
 
+        var allAnnotationFileUris = getAllAnnotationFileUris(projectDirectory,context)
 
-        //if
-        val gson = Gson()
-        val reader = JsonReader(InputStreamReader(context.contentResolver.openInputStream(annotationFileUri)))
-
-        val myType = object : TypeToken<AnnotationState>() {}.type
-        val loadedState = gson.fromJson<AnnotationState>(reader, myType)
-        if(loadedState != null){
-            annotatedFlowers = loadedState.annotatedFlowers
-            favs = loadedState.favs
-            flowerCount = loadedState.flowerCount
-            for(flower in annotatedFlowers){
-                if(!flowerList.contains(flower.name)){
-                    flowerList.add(flower.name)
+        for(annFileUri in allAnnotationFileUris){
+            //Read from the json annotationfiles
+            val gson = Gson()
+            val reader = JsonReader(InputStreamReader(context.contentResolver.openInputStream(annFileUri)))
+            val myType = object : TypeToken<AnnotationState>() {}.type
+            val loadedState = gson.fromJson<AnnotationState>(reader, myType)
+            if(loadedState != null){
+                //if we are reading the current tile, read the annotatedFlowers state, favs and flowerCount fields
+                if(annFileUri.equals(annotationFileUri)){
+                    annotatedFlowers = loadedState.annotatedFlowers
+                    favs = loadedState.favs
+                    flowerCount = loadedState.flowerCount
+                    //if flowerList does not contain some already annotated flowers, add them!
+                    for(flower in annotatedFlowers){
+                        if(!flowerList.contains(flower.name)){
+                            flowerList.add(flower.name)
+                        }
+                    }
+                    flowerList = sortList(flowerList)
+                }
+                //if we are reading another tile's annotation file, just read the flowercounts and add them to allCounts
+                else{
+                    for ((flower, count) in loadedState.flowerCount) {
+                        if(allCounts.containsKey(flower)){
+                            allCounts[flower] = allCounts[flower]!! + count
+                        }
+                        else{
+                            allCounts[flower] = count
+                        }
+                    }
                 }
             }
-            flowerList = sortList(flowerList)
-        }
 
-        //endif
-
-        for(s: String in flowerList){
-            if(!flowerCount.containsKey(s)){
-                flowerCount[s] = 0
+            //add flowers to flowercount that are in user defined flowerList but not yet in flowerCount
+            for(s: String in flowerList){
+                if(!flowerCount.containsKey(s)){
+                    flowerCount[s] = 0
+                }
             }
         }
 
         checkForNeighbouringTiles()
+
+
+
     }
 
     fun updateFlowerList(new_list:MutableList<String>):MutableList<String>{
@@ -119,21 +139,21 @@ class AnnotationState(@Transient var imageUri: Uri, @Transient var projectDirect
         favs = favourites
     }
 
-    public fun isSelected(flowerName: String): Boolean{
+    fun isSelected(flowerName: String): Boolean{
         if(flowerName.equals(currentFlower!!.name)){
             return true
         }
         return false
     }
 
-    public fun isSelected(index: Int): Boolean{
+    fun isSelected(index: Int): Boolean{
         if(flowerList[index].equals(currentFlower!!.name)){
             return true
         }
         return false
     }
 
-    public fun selectFlower(index: Int){
+    fun selectFlower(index: Int){
         if(!currentFlower!!.name.equals(flowerList[index])){
             flowerCount[currentFlower!!.name] = flowerCount[currentFlower!!.name]!! - 1
             flowerCount[flowerList[index]] = flowerCount[flowerList[index]]!! + 1
@@ -142,7 +162,7 @@ class AnnotationState(@Transient var imageUri: Uri, @Transient var projectDirect
         currentFlower!!.name = flowerList[index]
     }
 
-    public fun selectFlower(name: String){
+    fun selectFlower(name: String){
         if(!currentFlower!!.name.equals(name)){
             flowerCount[currentFlower!!.name] = flowerCount[currentFlower!!.name]!! - 1
             flowerCount[name] = flowerCount[name]!! + 1
@@ -151,7 +171,7 @@ class AnnotationState(@Transient var imageUri: Uri, @Transient var projectDirect
         currentFlower!!.name = name
     }
 
-    public fun addNewFlowerMarker(x: Float, y: Float){
+    fun addNewFlowerMarker(x: Float, y: Float){
         if(currentFlower != null){
             permanentlyAddCurrentFlower()
         }
@@ -165,7 +185,7 @@ class AnnotationState(@Transient var imageUri: Uri, @Transient var projectDirect
 
     }
 
-    public fun permanentlyAddCurrentFlower(){
+    fun permanentlyAddCurrentFlower(){
         if(!currentFlower!!.isPolygon){
             currentFlower!!.deletePolygon()
         }
@@ -182,7 +202,7 @@ class AnnotationState(@Transient var imageUri: Uri, @Transient var projectDirect
         }
     }
 
-    public fun getFlowerColor(name: String, context: Context): Paint{
+    fun getFlowerColor(name: String, context: Context): Paint{
         val index = flowerList.indexOf(name)
         val ta = context.resources.obtainTypedArray(R.array.colors)
         val paint = Paint()
@@ -192,7 +212,7 @@ class AnnotationState(@Transient var imageUri: Uri, @Transient var projectDirect
         return paint
     }
 
-    public fun startEditingFlower(flower: Flower){
+    fun startEditingFlower(flower: Flower){
         if(currentFlower != null){
             if(currentFlower!!.equals(flower)){
                 return
@@ -247,5 +267,14 @@ class AnnotationState(@Transient var imageUri: Uri, @Transient var projectDirect
 
         neighbourFileName = regex.replace(getFileName(imageUri,context),"row" +(row+1).toString() + "_")
         hasBottomNeighbour = doesFileExist(projectDirectory,neighbourFileName,context)
+    }
+
+    fun getFlowerCount(flower:String):Int{
+        if(flowerCount.containsKey(flower) && allCounts.containsKey(flower)){
+            return flowerCount[flower]!! + allCounts[flower]!!
+        }
+        else{
+            return flowerCount[flower]!!
+        }
     }
 }
