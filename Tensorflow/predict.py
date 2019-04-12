@@ -5,6 +5,25 @@ Created on Fri Apr  5 15:50:29 2019
 @author: johan
 """
 
+
+
+
+train_dir = "C:/Users/johan/Desktop/MasterThesis/Tensorflow/workspace/faster_rcnn_resnet101_coco"
+
+#train_dir = "C:/Users/johan/Desktop/MasterThesis/Tensorflow/workspace/test"
+
+
+
+
+
+PATH_TO_TEST_IMAGES_DIR = train_dir + "/images/test"
+MODEL_NAME = train_dir + "/trained_inference_graphs/output_inference_graph_v1.pb"
+# Path to frozen detection graph. This is the actual model that is used for the object detection.
+PATH_TO_FROZEN_GRAPH = MODEL_NAME + '/frozen_inference_graph.pb'
+PATH_TO_LABELS = train_dir + "/model_inputs/label_map.pbtxt"
+
+
+
 import numpy as np
 import os
 import six.moves.urllib as urllib
@@ -21,6 +40,8 @@ from io import StringIO
 from matplotlib import pyplot as plt
 from PIL import Image
 
+
+
 # This is needed since the notebook is stored in the object_detection folder.
 sys.path.append("..")
 from object_detection.utils import ops as utils_ops
@@ -34,15 +55,6 @@ from object_detection.utils import visualization_utils as vis_util
 
 
 
-PATH_TO_TEST_IMAGES_DIR = 'C:/Users/johan/Desktop/MasterThesis/Tensorflow/workspace/training1/images/test'
-MODEL_NAME = 'C:/Users/johan/Desktop/MasterThesis/Tensorflow/workspace/training1/trained_inference_graphs/output_inference_graph_v1.pb'
-
-# Path to frozen detection graph. This is the actual model that is used for the object detection.
-PATH_TO_FROZEN_GRAPH = MODEL_NAME + '/frozen_inference_graph.pb'
-#PATH_TO_FROZEN_GRAPH = "../trained_models/exported_wheat_resnet_tuned_dimensions" + '/frozen_inference_graph.pb'
-
-# List of the strings that is used to add correct label for each box.
-PATH_TO_LABELS = 'C:/Users/johan/Desktop/MasterThesis/Tensorflow/workspace/training1/annotations/label_map.pbtxt'
 
 detection_graph = tf.Graph()
 with detection_graph.as_default():
@@ -129,7 +141,7 @@ for image_path in TEST_IMAGE_PATHS:
   f = open("val_estimate.csv","a")
   f_count = open("box_count.csv","a")
   for i,m in enumerate(output_dict['detection_scores']):
-        if m > 0.1:
+        if m > 0.5:
             count += 1
             line = image_path + "," + str(image_np.shape[0]) + "," + str(image_np.shape[1]) + ","
             line = line + str(m) + "," 

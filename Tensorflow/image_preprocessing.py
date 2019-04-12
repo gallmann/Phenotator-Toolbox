@@ -25,10 +25,12 @@ and placed into the model_inputs folder.
 
 
 
-input_folder = "C:/Users/johan/Desktop/Test"
-output_folder = "C:/Users/johan/Desktop/MasterThesis/Tensorflow/workspace/faster_rcnn_resnet101_coco/"
+input_folder = "C:/Users/johan/Desktop/Resources/Test"
+#output_folder = "C:/Users/johan/Desktop/MasterThesis/Tensorflow/workspace/faster_rcnn_resnet101_coco/"
+output_folder = "C:/Users/johan/Desktop/MasterThesis/Tensorflow/workspace/test/"
 
-#TODO: bounding_box_size map input
+use_single_shot_ortho_photos = False #set this to True or False
+single_shot_ortho_photos_path = ""
 
 tile_size = 320
 test_set_size = 0.2
@@ -45,6 +47,8 @@ import utils.xml_to_csv as xml_to_csv
 import random
 import utils.generate_tfrecord as generate_tfrecord
 from utils import flower_info
+from utils import apply_annotations
+#from object_detection.utils import visualization_utils
 
 
 
@@ -53,6 +57,10 @@ from utils import flower_info
 
 def convert_annotation_folder(folder_path, training_dir):
     
+    if(use_single_shot_ortho_photos):
+        apply_annotations.apply_annotations_to_images(folder_path, single_shot_ortho_photos_path)
+        folder_path = single_shot_ortho_photos_path
+        
     image_paths = get_all_images_in_folder(folder_path)
     labels = []
     train_images_dir = os.path.join(os.path.join(training_dir, "images"),"train")
@@ -101,6 +109,7 @@ def tile_image_and_annotations(image_path, annotation_path, output_folder,labels
                     continue
                 tile = image.crop((currentx,currenty,currentx + tile_size,currenty + tile_size))
                 output_image_path = os.path.join(output_folder, image_name + "_subtile_" + "x" + str(currentx) + "y" + str(currenty) + ".png")
+                #visualization_utils.draw_bounding_box_on_image(image,c[0],c[1],c[2],c[3],display_str_list=(),thickness=1, use_normalized_coordinates=True)
                 tile.save(output_image_path,"PNG")
                 
                 xml_path = output_image_path[:-4] + ".xml"
@@ -114,7 +123,7 @@ def tile_image_and_annotations(image_path, annotation_path, output_folder,labels
         print ("sorry your image does not fit neatly into",tile_size,"*",tile_size,"tiles")
 
 
-
+#TODO: return also flowers on the border
 def get_flowers_within_bounds(annotation_path, x_offset, y_offset):
     filtered_annotations = []
     annotation_data = read_json_file(annotation_path)
