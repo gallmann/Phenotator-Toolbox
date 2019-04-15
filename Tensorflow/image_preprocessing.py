@@ -48,7 +48,7 @@ import random
 import utils.generate_tfrecord as generate_tfrecord
 from utils import flower_info
 from utils import apply_annotations
-#from object_detection.utils import visualization_utils
+from object_detection.utils import visualization_utils
 
 
 
@@ -97,30 +97,27 @@ def tile_image_and_annotations(image_path, annotation_path, output_folder,labels
     image = Image.open(image_path)
     image_name = os.path.basename(image_path)[:-4]
     
-    if image.size[0] % tile_size == 0 and image.size[1] % tile_size ==0 :
-        currentx = 0
-        currenty = 0
-        while currenty < image.size[1]:
-            while currentx < image.size[0]:
-                filtered_annotations = get_flowers_within_bounds(annotation_path, currentx,currenty)
-                if len(filtered_annotations) == 0:
-                    #Ignore image tiles without any annotations
-                    currentx += tile_size
-                    continue
-                tile = image.crop((currentx,currenty,currentx + tile_size,currenty + tile_size))
-                output_image_path = os.path.join(output_folder, image_name + "_subtile_" + "x" + str(currentx) + "y" + str(currenty) + ".png")
-                #visualization_utils.draw_bounding_box_on_image(image,c[0],c[1],c[2],c[3],display_str_list=(),thickness=1, use_normalized_coordinates=True)
-                tile.save(output_image_path,"PNG")
-                
-                xml_path = output_image_path[:-4] + ".xml"
-                annotations_xml = build_xml_tree(filtered_annotations,output_image_path,labels)
-                annotations_xml.write(xml_path)
-                
+    currentx = 0
+    currenty = 0
+    while currenty < image.size[1]:
+        while currentx < image.size[0]:
+            filtered_annotations = get_flowers_within_bounds(annotation_path, currentx,currenty)
+            if len(filtered_annotations) == 0:
+                #Ignore image tiles without any annotations
                 currentx += tile_size
-            currenty += tile_size
-            currentx = 0
-    else:
-        print ("sorry your image does not fit neatly into",tile_size,"*",tile_size,"tiles")
+                continue
+            tile = image.crop((currentx,currenty,currentx + tile_size,currenty + tile_size))
+            output_image_path = os.path.join(output_folder, image_name + "_subtile_" + "x" + str(currentx) + "y" + str(currenty) + ".png")
+            tile.save(output_image_path,"PNG")
+            
+            xml_path = output_image_path[:-4] + ".xml"
+            annotations_xml = build_xml_tree(filtered_annotations,output_image_path,labels)
+            annotations_xml.write(xml_path)
+            
+            currentx += tile_size
+        currenty += tile_size
+        currentx = 0
+
 
 
 #TODO: return also flowers on the border
@@ -216,7 +213,10 @@ def build_xml_tree(flowers, image_path, labels):
             ET.SubElement(bndbox, "ymin").text = str(y - bounding_box_size)
             ET.SubElement(bndbox, "xmax").text = str(x + bounding_box_size)
             ET.SubElement(bndbox, "ymax").text = str(y + bounding_box_size)
+                        
+            visualization_utils.draw_bounding_box_on_image(image,y - bounding_box_size,x - bounding_box_size,y + bounding_box_size,x + bounding_box_size,display_str_list=(),thickness=1, use_normalized_coordinates=False)
 
+    image.save(image_path)
     tree = ET.ElementTree(root)
     return tree
 

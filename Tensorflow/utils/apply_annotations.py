@@ -32,7 +32,7 @@ def apply_annotations_to_images(annotated_folder, images_folder, output_folder):
     all_annotated_images = get_all_images_in_folder(annotated_folder)
     for ortho_tif in all_ortho_tifs:
         
-        #convert all images in image folder to png and compy them to output folder. Also create empty annotation.json files
+        #convert all images in image folder to png and copy them to output folder. Also create empty annotation.json files
         im = Image.open(ortho_tif)
         im.thumbnail(im.size)
         ortho_png = os.path.join(output_folder, os.path.basename(ortho_tif)[:-4] + ".png")
@@ -49,9 +49,7 @@ def apply_annotations_to_images(annotated_folder, images_folder, output_folder):
             annotation_path = annotated_image[:-4] + "_annotations.json"
             intersection = get_intersection(c,d)
             if intersection:
-                copy_annotations(annotated_image,annotation_path, ortho_png, c, d)
-                
-            
+                copy_annotations(annotated_image,annotation_path, ortho_png, c, d)            
     
 def copy_annotations(annotated_image_path, annotation_path, ortho_png, ortho_tif_coordinates, annotated_image_coordinates, ):
     annotation_data = read_json_file(annotation_path)
@@ -60,10 +58,12 @@ def copy_annotations(annotated_image_path, annotation_path, ortho_png, ortho_tif
     image = Image.open(annotated_image_path)
     width = image.size[0]
     height = image.size[1]
+    
 
     orthoTif = Image.open(ortho_png)
     ortho_width = orthoTif.size[0]
     ortho_height = orthoTif.size[1]
+    print(ortho_png + " "+ str(ortho_width) + " " + str(ortho_height))
     
     output_annotations_path = ortho_png[:-4] + "_annotations.json"
     output_annotations = read_json_file(output_annotations_path)
@@ -80,21 +80,41 @@ def copy_annotations(annotated_image_path, annotation_path, ortho_png, ortho_tif
     
     with open(output_annotations_path, 'w') as outfile:
         json.dump(output_annotations, outfile)
-
+'''
     print("hello")
     print(output_annotations_path)
     print(output_annotations)
+'''
     
     
 def translate_pixel_coordinates(x,y,height,width,source_geo_coords,target_geo_coords,height_target,width_target):
     rel_x = x/width
     rel_y = y/height
     geo_x = (source_geo_coords.lr_lon-source_geo_coords.ul_lon) * rel_x + source_geo_coords.ul_lon
-    geo_y = (source_geo_coords.ul_lat-source_geo_coords.lr_lat) * rel_y + source_geo_coords.lr_lat
+    geo_y = (source_geo_coords.ul_lat-source_geo_coords.lr_lat) * (1-rel_y) + source_geo_coords.lr_lat
+    
     rel_x_target = (geo_x-target_geo_coords.ul_lon)/(target_geo_coords.lr_lon-target_geo_coords.ul_lon)
-    rel_y_target = (geo_y-target_geo_coords.lr_lat)/(target_geo_coords.ul_lat-target_geo_coords.lr_lat)
+    rel_y_target = 1-(geo_y-target_geo_coords.lr_lat)/(target_geo_coords.ul_lat-target_geo_coords.lr_lat)
     x_target = rel_x_target* width_target
     y_target = rel_y_target* height_target
+    print("")
+    print(str(x_target) + "/" + str(y_target) + " (target_coords)")
+    #print(str(source_geo_coords.ul_lon) + " " + str(source_geo_coords.lr_lon))
+    #print(str(target_geo_coords.ul_lon) + " " + str(target_geo_coords.lr_lon))
+    #print(str(geo_x) + " " + str(geo_y))
+    #print(str(rel_x) + " " + str(rel_y))
+    #print(str(rel_x_target) + " " + str(rel_y_target))
+    print("")
+    
+    rel_x = 4039.0/5006.0
+    print((target_geo_coords.lr_lon - target_geo_coords.ul_lon)*rel_x + target_geo_coords.ul_lon)
+    rel_x = 4122.0/5033.0
+    #print((target_geo_coords.lr_lon - target_geo_coords.ul_lon)*rel_x + target_geo_coords.ul_lon)
+
+    #print(geo_x)
+    print("")
+
+    
     return (x_target,y_target)
     
     
@@ -122,7 +142,17 @@ def get_geo_coordinates(input_image):
         geo_info_path = input_image[:-4] +  "_geoinfo.json"
         with open(geo_info_path, 'r') as f:
             datastore = json.load(f)
-            return GeoInformation(datastore)
+            geo_info = GeoInformation(datastore)
+            swiss = pyproj.Proj("+init=EPSG:2056")
+            wgs84=pyproj.Proj("+init=EPSG:4326") # LatLon with WGS84 datum used by GPS units and Google Earth
+            geo_info.lr_lon,geo_info.lr_lat  = pyproj.transform(wgs84, swiss, geo_info.lr_lon, geo_info.lr_lat)
+            geo_info.ul_lon,geo_info.ul_lat = pyproj.transform(wgs84, swiss, geo_info.ul_lon, geo_info.ul_lat)
+            
+
+            
+            
+            
+            return geo_info
     else:
     
         inDS = gdal.Open(input_image)
@@ -133,19 +163,24 @@ def get_geo_coordinates(input_image):
         inSRS_forPyProj = inSRS_converter.ExportToProj4()  # Exports an SRS ref as a Proj4 string usable by PyProj
         
         
-        swiss = pyproj.Proj(inSRS_forPyProj)
+        swiss = pyproj.Proj("+init=EPSG:2056")
         wgs84=pyproj.Proj("+init=EPSG:4326") # LatLon with WGS84 datum used by GPS units and Google Earth
         #wgs84 = pyproj.Proj("+units=m +init=epsg:4326 +proj=longlat +datum=WGS84 +no_defs +ellps=WGS84 +towgs84=0,0,0")
         ulx, xres, xskew, uly, yskew, yres  = inDS.GetGeoTransform()
         lrx = ulx + (inDS.RasterXSize * xres)
         lry = uly + (inDS.RasterYSize * yres)
-        
         geo_info = GeoInformation()
-        
+        geo_info.lr_lon = lrx
+        geo_info.lr_lat = lry
+        geo_info.ul_lon = ulx
+        geo_info.ul_lat = uly
+        '''
+        print(str(lrx) + " " + str(lry) + " swiss coordinate system (lower right)")
+
         geo_info.lr_lon,geo_info.lr_lat  = pyproj.transform(swiss, wgs84, lrx, lry)
         geo_info.ul_lon,geo_info.ul_lat = pyproj.transform(swiss, wgs84, ulx, uly)
-        
-        
+        print(str(geo_info.lr_lon) + " " + str(geo_info.lr_lat) + " wgs84 (lower right)")
+        '''
         return geo_info
 
 
@@ -186,4 +221,4 @@ def get_intersection(geo1,geo2):
 
 
 
-#apply_annotations_to_images("C:/Users/johan/Desktop/Test", "C:/Users/johan/Desktop/Resources/orthophotos", "C:/Users/johan/Desktop/Resources/Test")
+apply_annotations_to_images("C:/Users/johan/Desktop/Test", "C:/Users/johan/Desktop/Resources/orthophotos1", "C:/Users/johan/Desktop/Resources/Test")
