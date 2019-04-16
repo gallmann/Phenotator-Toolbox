@@ -2,8 +2,12 @@
 """
 Created on Mon Mar 25 12:32:34 2019
 
+This class uses tkinter to build and handle the UI for the Proprocessing Tool
+
 @author: johan
 """
+
+
 
 from tkinter import Tk
 from tkinter import END

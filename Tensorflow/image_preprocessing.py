@@ -24,22 +24,30 @@ and placed into the model_inputs folder.
 """
 
 
+#Annotation Folder with Annotations made with the Android App
+input_folder = "C:/Users/johan/Desktop/eschikon"
 
-input_folder = "C:/Users/johan/Desktop/Resources/Test"
+#All outputs will be printed into this folder
+output_folder = "C:/Users/johan/Desktop/output/"
 #output_folder = "C:/Users/johan/Desktop/MasterThesis/Tensorflow/workspace/faster_rcnn_resnet101_coco/"
-output_folder = "C:/Users/johan/Desktop/MasterThesis/Tensorflow/workspace/test/"
 
-use_single_shot_ortho_photos = False #set this to True or False
-single_shot_ortho_photos_path = ""
+#if for the training not the images in the input_folder should be used but the single shot orthophotos,
+#set this variable to the path to the directory with the single shot orthophotos
+#If you do not wish to use the orthophotos, put the empty string ("")
+single_shot_ortho_photos_path = "C:/Users/johan/Desktop/Resources/orthophotos"
 
+#set the tile size of the images to do the tensorflow training on. This value should be chosen to suit your 
+#GPU capabilities
 tile_size = 320
+
+#what portion of the images should be used for testing and not for training
 test_set_size = 0.2
 
 
 
 
+
 import os
-import json
 import xml.etree.cElementTree as ET
 from PIL import Image
 from shutil import move
@@ -48,6 +56,7 @@ import random
 import utils.generate_tfrecord as generate_tfrecord
 from utils import flower_info
 from utils import apply_annotations
+from utils import file_utils
 from object_detection.utils import visualization_utils
 
 
@@ -55,18 +64,19 @@ from object_detection.utils import visualization_utils
 
 
 
-def convert_annotation_folder(folder_path, training_dir):
+def convert_annotation_folder(input_folder, output_dir):
     
-    if(use_single_shot_ortho_photos):
-        apply_annotations.apply_annotations_to_images(folder_path, single_shot_ortho_photos_path)
-        folder_path = single_shot_ortho_photos_path
-        
-    image_paths = get_all_images_in_folder(folder_path)
+    make_training_dir_folder_structure(output_dir)
+    
+    if(single_shot_ortho_photos_path != ""):
+        annotated_ortho_photos_path = os.path.join(os.path.join(output_dir,"images"),"annotated_ortho_photos")
+        apply_annotations.apply_annotations_to_images(input_folder, single_shot_ortho_photos_path,annotated_ortho_photos_path)
+        input_folder = annotated_ortho_photos_path
+    
+    image_paths = file_utils.get_all_images_in_folder(input_folder)
     labels = []
-    train_images_dir = os.path.join(os.path.join(training_dir, "images"),"train")
-    test_images_dir = os.path.join(os.path.join(training_dir, "images"),"test")
-    delete_folder_contents(train_images_dir)
-    delete_folder_contents(test_images_dir)
+    train_images_dir = os.path.join(os.path.join(output_dir, "images"),"train")
+    test_images_dir = os.path.join(os.path.join(output_dir, "images"),"test")
 
     for image_path in image_paths:
         annotation_path = image_path[:-4] + "_annotations.json"
@@ -75,7 +85,7 @@ def convert_annotation_folder(folder_path, training_dir):
         
     
     
-    annotations_dir = os.path.join(training_dir, "model_inputs")
+    annotations_dir = os.path.join(output_dir, "model_inputs")
     write_labels_to_labelmapfile(labels,annotations_dir)
     
     split_train_dir(train_images_dir,test_images_dir)
@@ -123,7 +133,7 @@ def tile_image_and_annotations(image_path, annotation_path, output_folder,labels
 #TODO: return also flowers on the border
 def get_flowers_within_bounds(annotation_path, x_offset, y_offset):
     filtered_annotations = []
-    annotation_data = read_json_file(annotation_path)
+    annotation_data = file_utils.read_json_file(annotation_path)
     if(not annotation_data):
         return filtered_annotations
     annotations = annotation_data["annotatedFlowers"]
@@ -146,7 +156,7 @@ def get_flowers_within_bounds(annotation_path, x_offset, y_offset):
     
     
 def split_train_dir(train_dir,test_dir):
-    images = get_all_images_in_folder(train_dir)
+    images = file_utils.get_all_images_in_folder(train_dir)
     random.shuffle(images)
     for i in range(0,int(len(images)*test_set_size)):
         image_name = os.path.basename(images[i])
@@ -174,10 +184,7 @@ def write_labels_to_labelmapfile(labels, output_path):
     with open(output_name, 'w') as f:
         f.write(out)
             
-        
-def clean_string(s):
-    return s.encode(encoding='iso-8859-1').decode(encoding='utf-8').replace('ö','oe').replace('ä','ae').replace('ü','ue')
-    
+            
 
 def build_xml_tree(flowers, image_path, labels):
     root = ET.Element("annotation")
@@ -191,7 +198,7 @@ def build_xml_tree(flowers, image_path, labels):
     ET.SubElement(size, "height").text = str(height)
     
     for flower in flowers:
-        flower_name = clean_string(flower["name"])
+        flower_name = file_utils.clean_string(flower["name"])
         if flower_name not in labels:
             labels.append(flower_name)
         
@@ -220,36 +227,21 @@ def build_xml_tree(flowers, image_path, labels):
     tree = ET.ElementTree(root)
     return tree
 
+def make_training_dir_folder_structure(root_folder):
+    images_folder = os.path.join(root_folder, "images")
+    os.makedirs(images_folder,exist_ok=True)
+    file_utils.delete_folder_contents(images_folder)
+    os.makedirs(os.path.join(images_folder,"test"),exist_ok=True)
+    os.makedirs(os.path.join(images_folder,"train"),exist_ok=True)
+    os.makedirs(os.path.join(images_folder,"annotated_ortho_photos"),exist_ok=True)
+    os.makedirs(os.path.join(root_folder,"model_inputs"),exist_ok=True)
+    os.makedirs(os.path.join(root_folder,"pre-trained-model"),exist_ok=True)
+    os.makedirs(os.path.join(root_folder,"trained_inference_graphs"),exist_ok=True)
+    os.makedirs(os.path.join(root_folder,"training"),exist_ok=True)
 
-def get_all_images_in_folder(folder_path):
-    images = []
-    for file in os.listdir(folder_path):
-        if file.endswith(".png"):
-            images.append(os.path.join(folder_path, file))
-    return images
 
     
     
-def read_json_file(file_path):
-    if file_path and os.path.isfile(file_path):
-        with open(file_path, 'r') as f:
-            try:
-                jsondata = json.load(f)
-                return jsondata
-            except:
-                return None
-    else:
-        return None
-
-def delete_folder_contents(folder_path):
-    for the_file in os.listdir(folder_path):
-        file_path = os.path.join(folder_path, the_file)
-        try:
-            if os.path.isfile(file_path):
-                os.unlink(file_path)
-            #elif os.path.isdir(file_path): shutil.rmtree(file_path)
-        except Exception as e:
-            print(e)
 
 convert_annotation_folder(input_folder, output_folder)
 
