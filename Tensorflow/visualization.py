@@ -18,12 +18,15 @@ from PIL import Image
 from utils import file_utils
 from utils import flower_info
 import os
+import progressbar
 
 
 
 def draw_bounding_boxes(input_folder, output_folder):
     images = file_utils.get_all_images_in_folder(input_folder)
-    for image_path in images:
+    print("Drawing bounding boxes on images:")
+    for i in progressbar.progressbar(range(len(images))):
+        image_path = images[i]
         image = Image.open(image_path)
         
         annotation_path = image_path[:-4] + "_annotations.json"

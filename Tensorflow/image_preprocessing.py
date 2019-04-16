@@ -58,6 +58,7 @@ from utils import flower_info
 from utils import apply_annotations
 from utils import file_utils
 from object_detection.utils import visualization_utils
+import progressbar
 
 
 
@@ -66,6 +67,7 @@ from object_detection.utils import visualization_utils
 
 def convert_annotation_folder(input_folder, output_dir):
     
+    print("Preparing output folder structure...")
     make_training_dir_folder_structure(output_dir)
     
     if(single_shot_ortho_photos_path != ""):
@@ -78,17 +80,22 @@ def convert_annotation_folder(input_folder, output_dir):
     train_images_dir = os.path.join(os.path.join(output_dir, "images"),"train")
     test_images_dir = os.path.join(os.path.join(output_dir, "images"),"test")
 
-    for image_path in image_paths:
+    print("Tiling images into chunks suitable for Tensorflow training:")
+    for i in progressbar.progressbar(range(len(image_paths))):
+        image_path = image_paths[i]
         annotation_path = image_path[:-4] + "_annotations.json"
 
         tile_image_and_annotations(image_path,annotation_path,train_images_dir, labels)
         
     
-    
+    print("Creating Labelmap file...")
     annotations_dir = os.path.join(output_dir, "model_inputs")
     write_labels_to_labelmapfile(labels,annotations_dir)
     
+    print("Splitting train and test dir...")
     split_train_dir(train_images_dir,test_images_dir)
+    
+    print("Converting Annotation data into tfrecord files...")
     train_csv = os.path.join(annotations_dir, "train_labels.csv")
     test_csv = os.path.join(annotations_dir, "test_labels.csv")
     xml_to_csv.xml_to_csv(train_images_dir,train_csv)
@@ -98,6 +105,7 @@ def convert_annotation_folder(input_folder, output_dir):
     generate_tfrecord.make_tfrecords(train_csv,train_tf_record,train_images_dir, labels)
     test_tf_record = os.path.join(annotations_dir, "test.record")
     generate_tfrecord.make_tfrecords(test_csv,test_tf_record,test_images_dir, labels)
+    print("Done!")
 
         
     

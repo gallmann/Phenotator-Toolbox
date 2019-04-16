@@ -11,6 +11,7 @@ import pyproj
 import json
 from PIL import Image
 from utils import file_utils
+import progressbar
 
 
 
@@ -36,9 +37,13 @@ def apply_annotations_to_images(annotated_folder, images_folder, output_folder):
     all_ortho_tifs = file_utils.get_all_tifs_in_folder(images_folder)
     all_annotated_images = file_utils.get_all_images_in_folder(annotated_folder)
     
+    print("Adding Annotations to all ortho images:")
+
     # loop through all images in the images_folder
-    for ortho_tif in all_ortho_tifs:
+    for i in progressbar.progressbar(range(len(all_ortho_tifs))):
         
+        ortho_tif = all_ortho_tifs[i]
+
         #convert all images in images_folder to png and copy them to output folder. Also create empty annotation.json files
         im = Image.open(ortho_tif)
         im.thumbnail(im.size)
@@ -93,17 +98,16 @@ def copy_annotations(annotated_image_path, annotation_path, ortho_png, ortho_tif
         (x_target,y_target) = translate_pixel_coordinates(x,y,height,width,annotated_image_coordinates, ortho_tif_coordinates,ortho_height,ortho_width)
         
         #check if the translation of the annotation has pixel coordinates within the bounds of the image to be annotated
-        if(x_target < width and y_target < height and x_target > 0 and y_target > 0):
+        if(x_target < ortho_width and y_target < ortho_height and x_target > 0 and y_target > 0):
             
-            #TODO check if the output pixel is completely white.
+            #check if the output pixel is completely white. If so, the flower is most probably not within the
+            #bounds of the image but outside where the image is white (because of orthorectification)
             pix = orthoTif.load()
-            print(pix[x_target,y_target])  # Get the RGBA Value of the a pixel of an image
-            
-
-            #if the annotation is within the image, add the annotation to the output_annotations
-            annotation_data["annotatedFlowers"][i]["polygon"][0]["x"] = x_target
-            annotation_data["annotatedFlowers"][i]["polygon"][0]["y"] = y_target
-            output_annotations["annotatedFlowers"].append(annotation_data["annotatedFlowers"][i])
+            if(pix[x_target,y_target] != (255,255,255)):
+                #if the annotation is within the image and the pixel is not white, add the annotation to the output_annotations
+                annotation_data["annotatedFlowers"][i]["polygon"][0]["x"] = x_target
+                annotation_data["annotatedFlowers"][i]["polygon"][0]["y"] = y_target
+                output_annotations["annotatedFlowers"].append(annotation_data["annotatedFlowers"][i])
    
     #save annotation file
     with open(output_annotations_path, 'w') as outfile:
