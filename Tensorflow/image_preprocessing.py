@@ -76,7 +76,7 @@ def convert_annotation_folder(input_folder, output_dir):
         input_folder = annotated_ortho_photos_path
     
     image_paths = file_utils.get_all_images_in_folder(input_folder)
-    labels = []
+    labels = {}
     train_images_dir = os.path.join(os.path.join(output_dir, "images"),"train")
     test_images_dir = os.path.join(os.path.join(output_dir, "images"),"test")
 
@@ -87,13 +87,14 @@ def convert_annotation_folder(input_folder, output_dir):
 
         tile_image_and_annotations(image_path,annotation_path,train_images_dir, labels)
         
-    
+        
     print("Creating Labelmap file...")
     annotations_dir = os.path.join(output_dir, "model_inputs")
     write_labels_to_labelmapfile(labels,annotations_dir)
     
     print("Splitting train and test dir...")
-    split_train_dir(train_images_dir,test_images_dir)
+    labels_test = {}
+    split_train_dir(train_images_dir,test_images_dir,labels, labels_test)
     
     print("Converting Annotation data into tfrecord files...")
     train_csv = os.path.join(annotations_dir, "train_labels.csv")
@@ -105,6 +106,11 @@ def convert_annotation_folder(input_folder, output_dir):
     generate_tfrecord.make_tfrecords(train_csv,train_tf_record,train_images_dir, labels)
     test_tf_record = os.path.join(annotations_dir, "test.record")
     generate_tfrecord.make_tfrecords(test_csv,test_tf_record,test_images_dir, labels)
+    
+    print("tfrecord training files generated from the follwing amount of flowers:")
+    print(labels)
+    print("the test data contains the following amount of flowers:")
+    print(labels_test)
     print("Done!")
 
         
@@ -163,12 +169,24 @@ def get_flowers_within_bounds(annotation_path, x_offset, y_offset):
 
     
     
-def split_train_dir(train_dir,test_dir):
+def split_train_dir(train_dir,test_dir, labels, labels_test):
+    
+    #shuffle the images randomly
     images = file_utils.get_all_images_in_folder(train_dir)
     random.shuffle(images)
+    
+    #and move the first few images to the test folder
     for i in range(0,int(len(images)*test_set_size)):
         image_name = os.path.basename(images[i])
         xml_name = os.path.basename(images[i])[:-4] + ".xml"
+
+        #update the labels count to represent the counts of the training data
+        xmlTree = ET.parse(images[i][:-4] + ".xml")
+        for elem in xmlTree.iter():
+            if(elem.tag == "name"):
+                flower_name = elem.text
+                labels[flower_name] = labels[flower_name]-1
+                add_label_to_labelcount(flower_name,labels_test)
         move(images[i],os.path.join(test_dir,image_name))
         move(images[i][:-4] + ".xml",os.path.join(test_dir,xml_name))
             
@@ -207,8 +225,7 @@ def build_xml_tree(flowers, image_path, labels):
     
     for flower in flowers:
         flower_name = file_utils.clean_string(flower["name"])
-        if flower_name not in labels:
-            labels.append(flower_name)
+        add_label_to_labelcount(flower_name, labels)
         
         if flower["isPolygon"]:
             continue
@@ -228,12 +245,19 @@ def build_xml_tree(flowers, image_path, labels):
             ET.SubElement(bndbox, "ymin").text = str(y - bounding_box_size)
             ET.SubElement(bndbox, "xmax").text = str(x + bounding_box_size)
             ET.SubElement(bndbox, "ymax").text = str(y + bounding_box_size)
-                        
-            visualization_utils.draw_bounding_box_on_image(image,y - bounding_box_size,x - bounding_box_size,y + bounding_box_size,x + bounding_box_size,display_str_list=(),thickness=1, use_normalized_coordinates=False)
+            
+            #visualization_utils.draw_bounding_box_on_image(image,y - bounding_box_size,x - bounding_box_size,y + bounding_box_size,x + bounding_box_size,display_str_list=(),thickness=1, use_normalized_coordinates=False)
 
-    image.save(image_path)
+    #image.save(image_path)
     tree = ET.ElementTree(root)
     return tree
+
+def add_label_to_labelcount(flower_name, label_count):
+    if(label_count.get(flower_name) == None):
+        label_count[flower_name] = 1
+    else:
+        label_count[flower_name] = label_count[flower_name] + 1
+
 
 def make_training_dir_folder_structure(root_folder):
     images_folder = os.path.join(root_folder, "images")

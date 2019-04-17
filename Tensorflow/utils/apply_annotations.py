@@ -38,9 +38,9 @@ def apply_annotations_to_images(annotated_folder, images_folder, output_folder):
     all_annotated_images = file_utils.get_all_images_in_folder(annotated_folder)
     
     print("Adding Annotations to all ortho images:")
-
+    
     # loop through all images in the images_folder
-    for i in progressbar.progressbar(range(len(all_ortho_tifs))):
+    for i in progressbar.progressbar(range(len(all_ortho_tifs)-113)):
         
         ortho_tif = all_ortho_tifs[i]
 
@@ -61,11 +61,11 @@ def apply_annotations_to_images(annotated_folder, images_folder, output_folder):
             annotation_path = annotated_image[:-4] + "_annotations.json"
             intersection = get_intersection(c,d)
             if intersection:
-                copy_annotations(annotated_image,annotation_path, ortho_png, c, d)            
-    
+                copy_annotations(annotated_image,annotation_path, ortho_png, c, d)  
+                
     
 # copies all annotations from the annotated_image to the ortho_png image.
-def copy_annotations(annotated_image_path, annotation_path, ortho_png, ortho_tif_coordinates, annotated_image_coordinates, ):
+def copy_annotations(annotated_image_path, annotation_path, ortho_png, ortho_tif_coordinates, annotated_image_coordinates):
     
     # read the annotation_data
     annotation_data = file_utils.read_json_file(annotation_path)
@@ -93,7 +93,7 @@ def copy_annotations(annotated_image_path, annotation_path, ortho_png, ortho_tif
         # get pixel coordinates of annotation
         x = annotation_data["annotatedFlowers"][i]["polygon"][0]["x"]
         y = annotation_data["annotatedFlowers"][i]["polygon"][0]["y"]
-        
+
         # translate the annotation pixels to the ortho_png image
         (x_target,y_target) = translate_pixel_coordinates(x,y,height,width,annotated_image_coordinates, ortho_tif_coordinates,ortho_height,ortho_width)
         
@@ -108,6 +108,7 @@ def copy_annotations(annotated_image_path, annotation_path, ortho_png, ortho_tif
                 annotation_data["annotatedFlowers"][i]["polygon"][0]["x"] = x_target
                 annotation_data["annotatedFlowers"][i]["polygon"][0]["y"] = y_target
                 output_annotations["annotatedFlowers"].append(annotation_data["annotatedFlowers"][i])
+                
    
     #save annotation file
     with open(output_annotations_path, 'w') as outfile:
@@ -161,7 +162,7 @@ def get_geo_coordinates(input_image):
         return geo_info
 
 
-
+        
 
 #returns the intersection rectangle of two GeoInformation objects (defined at top of this file)
 def get_intersection(geo1,geo2):

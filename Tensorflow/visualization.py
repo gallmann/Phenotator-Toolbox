@@ -25,6 +25,7 @@ import progressbar
 def draw_bounding_boxes(input_folder, output_folder):
     images = file_utils.get_all_images_in_folder(input_folder)
     print("Drawing bounding boxes on images:")
+    file_utils.delete_folder_contents(output_folder)
     for i in progressbar.progressbar(range(len(images))):
         image_path = images[i]
         image = Image.open(image_path)
@@ -50,6 +51,7 @@ def draw_bounding_boxes(input_folder, output_folder):
               
         image_name = os.path.basename(image_path)
         image.save(os.path.join(output_folder,image_name))
+    print("Done!")
     
 
 draw_bounding_boxes(input_folder,output_folder)

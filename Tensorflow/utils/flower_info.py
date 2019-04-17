@@ -8,7 +8,7 @@ Created on Tue Apr  9 13:57:31 2019
 flower_bounding_box_size = {
         
 'Loewenzahn' : 6,
-'Margarite'   : 3
+'Margarite'   : 4
 }
 
 def get_bbox_size(flower):
