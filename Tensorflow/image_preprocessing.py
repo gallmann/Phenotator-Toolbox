@@ -26,15 +26,19 @@ and placed into the model_inputs folder.
 
 #Annotation Folder with Annotations made with the Android App
 input_folder = "C:/Users/johan/Desktop/eschikon"
+input_folder = "C:/Users/gallmanj.KP31-21-161/Desktop/eschikon"
+
 
 #All outputs will be printed into this folder
 output_folder = "C:/Users/johan/Desktop/output/"
 #output_folder = "C:/Users/johan/Desktop/MasterThesis/Tensorflow/workspace/faster_rcnn_resnet101_coco/"
+output_folder = "C:/Users/gallmanj.KP31-21-161/Desktop/output/"
 
 #if for the training not the images in the input_folder should be used but the single shot orthophotos,
 #set this variable to the path to the directory with the single shot orthophotos
 #If you do not wish to use the orthophotos, put the empty string ("")
 single_shot_ortho_photos_path = "C:/Users/johan/Desktop/Resources/orthophotos"
+single_shot_ortho_photos_path = "C:/Users/gallmanj.KP31-21-161/Desktop/orthophotos"
 
 #set the tile size of the images to do the tensorflow training on. This value should be chosen to suit your 
 #GPU capabilities

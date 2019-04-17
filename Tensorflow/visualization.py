@@ -9,8 +9,9 @@ them to the output_folder
 
 
 input_folder = "C:/Users/johan/Desktop/output/images/annotated_ortho_photos"
+input_folder = "C:/Users/gallmanj.KP31-21-161/Desktop/output/images/annotated_ortho_photos"
 output_folder = "C:/Users/johan/Desktop/vis_im"
-
+output_folder = "C:/Users/gallmanj.KP31-21-161/Desktop/vis_im"
 
 
 from object_detection.utils import visualization_utils

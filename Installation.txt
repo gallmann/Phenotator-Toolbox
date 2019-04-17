@@ -1,0 +1,7 @@
+1. Download and Install Anaconda with Python 3.7
+2. Open Anaconda Navigator and under the Environments Tab import the environment.yml file which is located in the repository. This will take a while to import and install everything.
+3. Clone the Tensorflow/models repository from the following URL: https://github.com/tensorflow/models.git
+
+4. Install Tensorflow and all necessities for GPU training..
+Follow this tutorial: https://tensorflow-object-detection-api-tutorial.readthedocs.io/en/latest/install.html#set-env
+On Windows, inside the models/research/slim folder run "python setup.py build" "python setup.py install"
