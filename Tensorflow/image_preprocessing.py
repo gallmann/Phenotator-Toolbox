@@ -39,6 +39,7 @@ output_folder = "C:/Users/gallmanj.KP31-21-161/Desktop/output/"
 #If you do not wish to use the orthophotos, put the empty string ("")
 single_shot_ortho_photos_path = "C:/Users/johan/Desktop/Resources/orthophotos"
 single_shot_ortho_photos_path = "C:/Users/gallmanj.KP31-21-161/Desktop/orthophotos"
+single_shot_ortho_photos_path = ""
 
 #set the tile size of the images to do the tensorflow training on. This value should be chosen to suit your 
 #GPU capabilities

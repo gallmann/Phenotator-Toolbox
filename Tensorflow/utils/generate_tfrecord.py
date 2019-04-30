@@ -29,11 +29,9 @@ def class_text_to_weight(row_label, labels):
     total_flower_count = 0
     for key, value in labels.items():
         total_flower_count += value
-    index = list(labels.keys()).index(row_label) + 1
-    return index
+    weight = 1 - labels[row_label]/total_flower_count
+    return weight
 
-    
-    
 
 def split(df, group):
     data = namedtuple('data', ['filename', 'object'])
@@ -57,6 +55,7 @@ def create_tf_example(group, path, labels):
     ymaxs = []
     classes_text = []
     classes = []
+    weights = []
 
 
     for index, row in group.object.iterrows():
@@ -66,6 +65,7 @@ def create_tf_example(group, path, labels):
         ymaxs.append(row['ymax'] / height)
         classes_text.append(row['class'].encode('utf8'))
         classes.append(class_text_to_int(row['class'],labels))
+        weights.append(class_text_to_weight(row['class'],labels))
 
 
     tf_example = tf.train.Example(features=tf.train.Features(feature={
@@ -81,6 +81,8 @@ def create_tf_example(group, path, labels):
         'image/object/bbox/ymax': dataset_util.float_list_feature(ymaxs),
         'image/object/class/text': dataset_util.bytes_list_feature(classes_text),
         'image/object/class/label': dataset_util.int64_list_feature(classes),
+        'image/object/weight': dataset_util.float_list_feature(weights),
+
     }))
     return tf_example
 

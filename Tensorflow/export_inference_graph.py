@@ -14,9 +14,9 @@
 # ==============================================================================
 
 import os
+from utils import file_utils
 
-train_dir = "C:/Users/johan/Desktop/MasterThesis/Tensorflow/workspace/faster_rcnn_resnet101_coco"
-
+train_dir = "C:/Users/gallmanj.KP31-21-161/Desktop/output"
 
 
 
@@ -25,8 +25,8 @@ train_dir = "C:/Users/johan/Desktop/MasterThesis/Tensorflow/workspace/faster_rcn
 
 
 output_directory =  train_dir + "/trained_inference_graphs/output_inference_graph_v1.pb"
-pipeline_config_path = train_dir + "/pre-trained-model/pipeline.config"
 
+pipeline_config_path = train_dir + "/pre-trained-model/pipeline.config"
 
 def find_latest_model(directory):
     largest_number = -1
@@ -42,6 +42,7 @@ def find_latest_model(directory):
     
 
 trained_checkpoint_prefix = train_dir + "/training/model.ckpt-" + str(find_latest_model(train_dir + "/training/"))
+file_utils.delete_folder_contents(output_directory)
 
 r"""Tool to export an object detection model for inference.
 

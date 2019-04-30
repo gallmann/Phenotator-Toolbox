@@ -8,7 +8,7 @@ Created on Fri Apr  5 15:50:29 2019
 
 
 
-train_dir = "C:/Users/johan/Desktop/MasterThesis/Tensorflow/workspace/faster_rcnn_resnet101_coco"
+train_dir = "C:/Users/gallmanj.KP31-21-161/Desktop/output"
 
 #train_dir = "C:/Users/johan/Desktop/MasterThesis/Tensorflow/workspace/test"
 
