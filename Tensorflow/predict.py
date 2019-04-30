@@ -10,6 +10,8 @@ Created on Fri Apr  5 15:50:29 2019
 
 train_dir = "C:/Users/gallmanj.KP31-21-161/Desktop/output"
 
+output_folder = "C:/Users/gallmanj.KP31-21-161/Desktop/vis_im"
+
 #train_dir = "C:/Users/johan/Desktop/MasterThesis/Tensorflow/workspace/test"
 
 
@@ -39,8 +41,11 @@ from collections import defaultdict
 from io import StringIO
 from matplotlib import pyplot as plt
 from PIL import Image
+import matplotlib
 
-
+def get_color_for_index(index):
+    label = list(matplotlib.colors.cnames.keys())[index]
+    return label
 
 # This is needed since the notebook is stored in the object_detection folder.
 sys.path.append("..")
@@ -138,26 +143,20 @@ for image_path in TEST_IMAGE_PATHS:
   
   image_count+=1
   count = 0
-  f = open("val_estimate.csv","a")
-  f_count = open("box_count.csv","a")
   for i,m in enumerate(output_dict['detection_scores']):
         if m > 0.5:
             count += 1
             line = image_path + "," + str(image_np.shape[0]) + "," + str(image_np.shape[1]) + ","
             line = line + str(m) + "," 
             c = output_dict['detection_boxes'][i]
-            visualization_utils.draw_bounding_box_on_image(image,c[0],c[1],c[2],c[3],display_str_list=(),thickness=1, use_normalized_coordinates=True)
-
-            for x in output_dict['detection_boxes'][i]:
-                line = line + str(x) + ","
-            line = line + "\n"
-            f.write(line)
+            col = get_color_for_index(output_dict['detection_classes'][i])
+            visualization_utils.draw_bounding_box_on_image(image,c[0],c[1],c[2],c[3],display_str_list=(),thickness=1, color=col, use_normalized_coordinates=True)
+            
+            
   print(image_count, count)
-  image.save("foo" + str(image_count)+ ".png")
+  image.save(os.path.join(output_folder, "foo" + str(image_count)+ ".png"))
 
-  f.close()
-    
-  f_count.write(image_path + "," + str(count) + "\n")
-  f_count.close()
-   
+
+
+
     

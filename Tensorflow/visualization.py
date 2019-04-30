@@ -9,7 +9,7 @@ them to the output_folder
 
 
 input_folder = "C:/Users/johan/Desktop/output/images/annotated_ortho_photos"
-input_folder = "C:/Users/gallmanj.KP31-21-161/Desktop/output/images/annotated_ortho_photos"
+input_folder = "C:/Users/gallmanj.KP31-21-161/Desktop/eschikon"
 output_folder = "C:/Users/johan/Desktop/vis_im"
 output_folder = "C:/Users/gallmanj.KP31-21-161/Desktop/vis_im"
 
@@ -20,10 +20,15 @@ from utils import file_utils
 from utils import flower_info
 import os
 import progressbar
+import matplotlib
 
+def get_color_for_index(index):
+    label = list(matplotlib.colors.cnames.keys())[index]
+    return label
 
 
 def draw_bounding_boxes(input_folder, output_folder):
+    flowers = []
     images = file_utils.get_all_images_in_folder(input_folder)
     print("Drawing bounding boxes on images:")
     file_utils.delete_folder_contents(output_folder)
@@ -48,7 +53,10 @@ def draw_bounding_boxes(input_folder, output_folder):
                 ymin = y - bounding_box_size
                 xmax = x + bounding_box_size
                 ymax = y + bounding_box_size
-                visualization_utils.draw_bounding_box_on_image(image,ymin,xmin,ymax,xmax,display_str_list=(), use_normalized_coordinates=False, thickness=1)
+                if not flower_name in flowers:
+                    flowers.append(flower_name)
+                col = get_color_for_index(flowers.index(flower_name))
+                visualization_utils.draw_bounding_box_on_image(image,ymin,xmin,ymax,xmax,display_str_list=(), color=col, use_normalized_coordinates=False, thickness=1)
               
         image_name = os.path.basename(image_path)
         image.save(os.path.join(output_folder,image_name))
