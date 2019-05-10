@@ -76,3 +76,5 @@ Tensorflow/utils/__pycache__/
 Tensorflow/workspace/faster_rcnn_resnet101_coco/images/
 Tensorflow/workspace/faster_rcnn_resnet101_coco/pre-trained-model/checkpoint
 Tensorflow/workspace/
+AnnotationTool/build.gradle
+AnnotationTool/gradle/wrapper/gradle-wrapper.properties
