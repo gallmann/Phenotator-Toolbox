@@ -17,6 +17,7 @@ import os
 from utils import file_utils
 
 train_dir = "G:/Johannes/output"
+train_dir = "C:/Users/johan/Desktop/output"
 
 
 
