@@ -8,7 +8,7 @@ Created on Fri Apr  5 15:50:29 2019
 
 
 
-train_dir = "C:/Users/gallmanj.KP31-21-161/Desktop/output"
+train_dir = "G:/Johannes/output"
 
 output_folder = "C:/Users/gallmanj.KP31-21-161/Desktop/vis_im"
 
@@ -139,10 +139,13 @@ for image_path in TEST_IMAGE_PATHS:
   # Expand dimensions since the model expects images to have shape: [1, None, None, 3]
   image_np_expanded = np.expand_dims(image_np, axis=0)
   # Actual detection.
+  print("run inference for single image...")
   output_dict = run_inference_for_single_image(image_np, detection_graph)
-  
+  print("done")
+
   image_count+=1
   count = 0
+  print("drawing...")
   for i,m in enumerate(output_dict['detection_scores']):
         if m > 0.5:
             count += 1
@@ -151,7 +154,8 @@ for image_path in TEST_IMAGE_PATHS:
             c = output_dict['detection_boxes'][i]
             col = get_color_for_index(output_dict['detection_classes'][i])
             visualization_utils.draw_bounding_box_on_image(image,c[0],c[1],c[2],c[3],display_str_list=(),thickness=1, color=col, use_normalized_coordinates=True)
-            
+  print("done")
+      
             
   print(image_count, count)
   image.save(os.path.join(output_folder, "foo" + str(image_count)+ ".png"))

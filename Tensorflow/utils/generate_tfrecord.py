@@ -30,6 +30,8 @@ def class_text_to_weight(row_label, labels):
     for key, value in labels.items():
         total_flower_count += value
     weight = 1 - labels[row_label]/total_flower_count
+    
+    #weight = 1
     return weight
 
 
