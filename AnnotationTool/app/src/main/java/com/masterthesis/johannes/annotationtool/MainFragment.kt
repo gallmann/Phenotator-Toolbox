@@ -457,7 +457,11 @@ class MainFragment : Fragment(), FlowerListAdapter.ItemClickListener, View.OnTou
                     //addCategory(Intent.CATEGORY_OPENABLE)
                     //type = "image/*"
                 }
+                intent.addFlags(Intent.FLAG_GRANT_PERSISTABLE_URI_PERMISSION)
+                intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                intent.addFlags(Intent.FLAG_GRANT_WRITE_URI_PERMISSION)
                 startActivityForResult(intent, OPEN_IMAGE_REQUEST_CODE)
+
             }
         }
         else if(requestCode == READ_PHONE_STORAGE_RETURN_CODE_STARTUP){
@@ -481,7 +485,11 @@ class MainFragment : Fragment(), FlowerListAdapter.ItemClickListener, View.OnTou
     override fun onActivityResult(requestCode: Int, resultCode: Int, resultData: Intent?) {
 
         if (requestCode == OPEN_IMAGE_REQUEST_CODE && resultCode == AppCompatActivity.RESULT_OK) {
+
             resultData?.data?.also { uri ->
+                val takeFlags: Int = resultData!!.flags and
+                        (Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION)
+                context!!.contentResolver.takePersistableUriPermission(uri, takeFlags)
                 projectDirectory = uri
                 currImageUri = getFirstImageTile(uri,context!!)
                 restoredImageViewState = null

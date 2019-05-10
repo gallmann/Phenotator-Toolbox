@@ -38,6 +38,11 @@ import android.provider.Settings.System.canWrite
 import java.nio.file.Files.isDirectory
 import androidx.documentfile.provider.DocumentFile
 import android.provider.DocumentsContract.Document.MIME_TYPE_DIR
+import android.content.Intent
+
+
+
+
 
 
 
@@ -113,6 +118,7 @@ fun isExternalStorageWritable(): Boolean {
 fun getFileName(uri: Uri, context:Context): String {
     var result: String? = null
     if (uri.scheme == "content") {
+
         val cursor = context.contentResolver.query(uri, null, null, null, null)
         try {
             if (cursor != null && cursor!!.moveToFirst()) {
