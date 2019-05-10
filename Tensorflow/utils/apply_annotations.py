@@ -40,7 +40,7 @@ def apply_annotations_to_images(annotated_folder, images_folder, output_folder):
     print("Adding Annotations to all ortho images:")
     
     # loop through all images in the images_folder
-    for i in progressbar.progressbar(range(len(all_ortho_tifs)-113)):
+    for i in progressbar.progressbar(range(len(all_ortho_tifs))):
         
         ortho_tif = all_ortho_tifs[i]
 
