@@ -10,7 +10,9 @@ import json
 import shapefile
 import pyproj
 import gdal
-from PIL import Image
+#from PIL import Image
+import numpy as np
+import cv2
 
 
 
@@ -57,9 +59,8 @@ class PostprocessTool(object):
             swiss_coords = self.get_geo_coordinates(image_path)
             
             #get size information of the annotated_image
-            image = Image.open(image_path)
-            width = image.size[0]
-            height = image.size[1]
+            img = cv2.imread(image_path,0)
+            height, width = img.shape[:2]
     
             
             for flower in annotations:
