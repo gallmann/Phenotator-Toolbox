@@ -151,7 +151,6 @@ def tile_image_and_annotations(image_path, annotation_path, output_folder,labels
 
 
 
-#TODO: return also flowers on the border
 def get_flowers_within_bounds(annotation_path, x_offset, y_offset):
     filtered_annotations = []
     annotation_data = file_utils.read_json_file(annotation_path)
@@ -161,21 +160,14 @@ def get_flowers_within_bounds(annotation_path, x_offset, y_offset):
 
     for flower in annotations:
         #if not flower["name"] == "Margarite":
-        if flower["isPolygon"]:
-            [left,right,top,bottom] = polygon_to_bounding_box(flower)
-            [left,right,top,bottom] = [left-x_offset, right -x_offset, top-y_offset, bottom - y_offset]
-            if is_bounding_box_within_image(tile_size, left, right, top, bottom):
-                flower["bounding_box"] = [left,right,top,bottom]   
-                filtered_annotations.append(flower)
-        else:
-            x = round(flower["polygon"][0]["x"])
-            y = round(flower["polygon"][0]["y"])
-            if x < x_offset + tile_size and x >=x_offset and y < y_offset + tile_size and y >= y_offset:
-                flower["polygon"][0]["x"] = x - x_offset
-                flower["polygon"][0]["y"] = y - y_offset
-                filtered_annotations.append(flower)
-    
+        
+        [left,right,top,bottom] = flower_info.get_bbox(flower)
+        [left,right,top,bottom] = [left-x_offset, right -x_offset, top-y_offset, bottom - y_offset]
+        if is_bounding_box_within_image(tile_size, left, right, top, bottom):
+            flower["bounding_box"] = [left,right,top,bottom]   
+            filtered_annotations.append(flower)
     return filtered_annotations
+
 
 def is_bounding_box_within_image(tile_size, left, right, top, bottom):
     if left < 0 and right < 0:
@@ -187,27 +179,6 @@ def is_bounding_box_within_image(tile_size, left, right, top, bottom):
     if bottom >= tile_size and top >= tile_size:
         return False
     return True
-
-def polygon_to_bounding_box(flower):
-    if not flower["isPolygon"]:
-        raise ValueError('flower passed to polygon_to_bounding_box must be a polygon')
-    left = flower["polygon"][0]["x"]
-    right = flower["polygon"][0]["x"]
-    top = flower["polygon"][0]["y"]
-    bottom = flower["polygon"][0]["y"]
-    
-    for vertex in flower["polygon"]:
-        if vertex["x"] < left:
-            left = vertex["x"]
-        if vertex["x"] > right:
-            right = vertex["x"]
-        if vertex["y"] < top:
-            top = vertex["y"]
-        if vertex["y"] > bottom:
-            bottom = vertex["y"]
-            
-    return [round(left),round(right),round(top),round(bottom)]
-
 
 
     
@@ -269,37 +240,21 @@ def build_xml_tree(flowers, image_path, labels):
         flower_name = file_utils.clean_string(flower["name"])
         add_label_to_labelcount(flower_name, labels)
         
-        if flower["isPolygon"]:
-            annotation_object = ET.SubElement(root, "object")
-            ET.SubElement(annotation_object, "name").text = flower_name
-            ET.SubElement(annotation_object, "pose").text = "Unspecified"
-            ET.SubElement(annotation_object, "truncated").text = str(0)
-            ET.SubElement(annotation_object, "difficult").text = str(0)            
-            bndbox = ET.SubElement(annotation_object, "bndbox")
-            x = round(flower["polygon"][0]["x"])
-            y = round(flower["polygon"][0]["y"])
-            [left,right,top,bottom] = flower["bounding_box"]
-            ET.SubElement(bndbox, "xmin").text = str(left)
-            ET.SubElement(bndbox, "ymin").text = str(top)
-            ET.SubElement(bndbox, "xmax").text = str(right)
-            ET.SubElement(bndbox, "ymax").text = str(bottom)
+        annotation_object = ET.SubElement(root, "object")
+        ET.SubElement(annotation_object, "name").text = flower_name
+        ET.SubElement(annotation_object, "pose").text = "Unspecified"
+        ET.SubElement(annotation_object, "truncated").text = str(0)
+        ET.SubElement(annotation_object, "difficult").text = str(0)            
+        bndbox = ET.SubElement(annotation_object, "bndbox")
+
+        [left,right,top,bottom] = flower["bounding_box"]
+        ET.SubElement(bndbox, "xmin").text = str(left)
+        ET.SubElement(bndbox, "ymin").text = str(top)
+        ET.SubElement(bndbox, "xmax").text = str(right)
+        ET.SubElement(bndbox, "ymax").text = str(bottom)
             
-        else:
-            annotation_object = ET.SubElement(root, "object")
-            ET.SubElement(annotation_object, "name").text = flower_name
-            ET.SubElement(annotation_object, "pose").text = "Unspecified"
-            ET.SubElement(annotation_object, "truncated").text = str(0)
-            ET.SubElement(annotation_object, "difficult").text = str(0)            
-            bndbox = ET.SubElement(annotation_object, "bndbox")
-            x = round(flower["polygon"][0]["x"])
-            y = round(flower["polygon"][0]["y"])
-            bounding_box_size = flower_info.get_bbox_size(flower_name)
-            ET.SubElement(bndbox, "xmin").text = str(x - bounding_box_size)
-            ET.SubElement(bndbox, "ymin").text = str(y - bounding_box_size)
-            ET.SubElement(bndbox, "xmax").text = str(x + bounding_box_size)
-            ET.SubElement(bndbox, "ymax").text = str(y + bounding_box_size)
             
-            #visualization_utils.draw_bounding_box_on_image(image,y - bounding_box_size,x - bounding_box_size,y + bounding_box_size,x + bounding_box_size,display_str_list=(),thickness=1, use_normalized_coordinates=False)
+        #visualization_utils.draw_bounding_box_on_image(image,y - bounding_box_size,x - bounding_box_size,y + bounding_box_size,x + bounding_box_size,display_str_list=(),thickness=1, use_normalized_coordinates=False)
 
     #image.save(image_path)
     tree = ET.ElementTree(root)

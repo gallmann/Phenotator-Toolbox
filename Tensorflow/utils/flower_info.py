@@ -12,9 +12,6 @@ flower_bounding_box_size = {
 }
 
 
-
-import file_utils
-
 def get_bbox_size(flower_name):
     return flower_bounding_box_size[flower_name]
 
@@ -27,7 +24,7 @@ def get_bbox(flower):
         return [left,right,top,bottom]
     
 def coords_to_bounding_box(flower):
-    flower_name = file_utils.clean_string(flower["name"])
+    flower_name = clean_string(flower["name"])
     x = round(flower["polygon"][0]["x"])
     y = round(flower["polygon"][0]["y"])
     bounding_box_size = get_bbox_size(flower_name)
@@ -57,3 +54,6 @@ def polygon_to_bounding_box(flower):
             bottom = vertex["y"]
             
     return [round(left),round(right),round(top),round(bottom)]
+
+def clean_string(s):
+    return s.encode(encoding='iso-8859-1').decode(encoding='utf-8').replace('ö','oe').replace('ä','ae').replace('ü','ue')
