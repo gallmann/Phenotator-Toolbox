@@ -20,7 +20,8 @@ def read_json_file(file_path):
             try:
                 jsondata = json.load(f)
                 return jsondata
-            except:
+            except Exception as e:
+                print(e)
                 return None
     else:
         return None

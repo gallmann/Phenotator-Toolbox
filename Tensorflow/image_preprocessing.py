@@ -25,15 +25,15 @@ and placed into the model_inputs folder.
 
 
 #Annotation Folder with Annotations made with the Android App
-input_folder = "C:/Users/johan/Desktop/eschikon"
-input_folder = "C:/Users/gallmanj.KP31-21-161/Desktop/eschikon"
-input_folder = "G:/Johannes/eschikon/"
+input_folder = "C:/Users/johan/Desktop/PreProcessToolOutput"
+#input_folder = "C:/Users/gallmanj.KP31-21-161/Desktop/eschikon"
+#input_folder = "G:/Johannes/eschikon/"
 
 #All outputs will be printed into this folder
 output_folder = "C:/Users/johan/Desktop/output/"
 #output_folder = "C:/Users/johan/Desktop/MasterThesis/Tensorflow/workspace/faster_rcnn_resnet101_coco/"
-output_folder = "C:/Users/gallmanj.KP31-21-161/Desktop/output/"
-output_folder = "G:/Johannes/output/"
+#output_folder = "C:/Users/gallmanj.KP31-21-161/Desktop/output/"
+#output_folder = "G:/Johannes/output/"
 
 #if for the training not the images in the input_folder should be used but the single shot orthophotos,
 #set this variable to the path to the directory with the single shot orthophotos
@@ -41,7 +41,6 @@ output_folder = "G:/Johannes/output/"
 single_shot_ortho_photos_path = "C:/Users/johan/Desktop/Resources/orthophotos"
 single_shot_ortho_photos_path = "C:/Users/gallmanj.KP31-21-161/Desktop/orthophotos"
 single_shot_ortho_photos_path = "G:/Johannes/orthophotos/"
-
 single_shot_ortho_photos_path = ""
 
 #set the tile size of the images to do the tensorflow training on. This value should be chosen to suit your 
@@ -163,8 +162,11 @@ def get_flowers_within_bounds(annotation_path, x_offset, y_offset):
     for flower in annotations:
         #if not flower["name"] == "Margarite":
         if flower["isPolygon"]:
-            continue
-            #TODO!!   
+            [left,right,top,bottom] = polygon_to_bounding_box(flower)
+            [left,right,top,bottom] = [left-x_offset, right -x_offset, top-y_offset, bottom - y_offset]
+            if is_bounding_box_within_image(tile_size, left, right, top, bottom):
+                flower["bounding_box"] = [left,right,top,bottom]   
+                filtered_annotations.append(flower)
         else:
             x = round(flower["polygon"][0]["x"])
             y = round(flower["polygon"][0]["y"])
@@ -175,8 +177,39 @@ def get_flowers_within_bounds(annotation_path, x_offset, y_offset):
     
     return filtered_annotations
 
+def is_bounding_box_within_image(tile_size, left, right, top, bottom):
+    if left < 0 and right < 0:
+        return False
+    if left >= tile_size and right >= tile_size:
+        return False
+    if bottom < 0 and top < 0:
+        return False
+    if bottom >= tile_size and top >= tile_size:
+        return False
+    return True
 
+def polygon_to_bounding_box(flower):
+    if not flower["isPolygon"]:
+        raise ValueError('flower passed to polygon_to_bounding_box must be a polygon')
+    left = flower["polygon"][0]["x"]
+    right = flower["polygon"][0]["x"]
+    top = flower["polygon"][0]["y"]
+    bottom = flower["polygon"][0]["y"]
     
+    for vertex in flower["polygon"]:
+        if vertex["x"] < left:
+            left = vertex["x"]
+        if vertex["x"] > right:
+            right = vertex["x"]
+        if vertex["y"] < top:
+            top = vertex["y"]
+        if vertex["y"] > bottom:
+            bottom = vertex["y"]
+            
+    return [round(left),round(right),round(top),round(bottom)]
+
+
+
     
 def split_train_dir(train_dir,test_dir, labels, labels_test):
     
@@ -237,8 +270,19 @@ def build_xml_tree(flowers, image_path, labels):
         add_label_to_labelcount(flower_name, labels)
         
         if flower["isPolygon"]:
-            continue
-            #TODO!!
+            annotation_object = ET.SubElement(root, "object")
+            ET.SubElement(annotation_object, "name").text = flower_name
+            ET.SubElement(annotation_object, "pose").text = "Unspecified"
+            ET.SubElement(annotation_object, "truncated").text = str(0)
+            ET.SubElement(annotation_object, "difficult").text = str(0)            
+            bndbox = ET.SubElement(annotation_object, "bndbox")
+            x = round(flower["polygon"][0]["x"])
+            y = round(flower["polygon"][0]["y"])
+            [left,right,top,bottom] = flower["bounding_box"]
+            ET.SubElement(bndbox, "xmin").text = str(left)
+            ET.SubElement(bndbox, "ymin").text = str(top)
+            ET.SubElement(bndbox, "xmax").text = str(right)
+            ET.SubElement(bndbox, "ymax").text = str(bottom)
             
         else:
             annotation_object = ET.SubElement(root, "object")

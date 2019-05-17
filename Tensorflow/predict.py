@@ -43,6 +43,7 @@ import numpy as np
 import sys
 import tensorflow as tf
 from object_detection.utils import visualization_utils
+import progressbar
 
 
 from distutils.version import StrictVersion
@@ -60,13 +61,15 @@ from object_detection.utils import visualization_utils as vis_util
 def predict():
   detection_graph = get_detection_graph()
   category_index = label_map_util.create_category_index_from_labelmap(PATH_TO_LABELS, use_display_name=True)
+  print(category_index)
   with detection_graph.as_default():
    with tf.Session() as sess:
        
        
     tensor_dict = get_tensor_dict(tile_size)
     image_tensor = tf.get_default_graph().get_tensor_by_name('image_tensor:0') 
-    all_images = file_utils.get_all_images_in_folder(prediction_images)
+    all_images = file_utils.get_all_tifs_in_folder(prediction_images)
+    all_images.extend(file_utils.get_all_images_in_folder(prediction_images))
     
     for image_path in all_images:
         image = Image.open(image_path)
@@ -77,12 +80,13 @@ def predict():
         #os.makedirs(temp_folder,exist_ok=True)
         #file_utils.delete_folder_contents(temp_folder)
         
-        print("preparing image " + os.path.basename(image_path) + " for prediction")
+        print("Making Predictions for " + os.path.basename(image_path))
         
         detections = []
         
         #create appropriate tiles from image
-        for x_start in range(-padding, width-1,tile_size-2*padding):
+        for x_start in progressbar.progressbar(range(-padding, width-1,tile_size-2*padding)):
+        #for x_start in range(-padding, width-1,tile_size-2*padding):
             for y_start in range(-padding,height-1,tile_size-2*padding):
                 crop_rectangle = (x_start, y_start, x_start+tile_size, y_start + tile_size)
                 cropped_im = image.crop(crop_rectangle)
@@ -113,7 +117,7 @@ def predict():
                         #col = get_color_for_index(output_dict['detection_classes'][i])
                         #visualization_utils.draw_bounding_box_on_image(image,c[0],c[1],c[2],c[3],display_str_list=(),thickness=1, color=col, use_normalized_coordinates=True)          
                 
-                print(str(count) + " detections")
+                #print(str(count) + " detections")
                 #image.save(os.path.join(output_folder, "foo" + str(image_count)+ ".png"))
         for detection in detections:
             
