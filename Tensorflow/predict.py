@@ -105,7 +105,7 @@ def predict():
                         bottom = round(output_dict['detection_boxes'][i][2] * tile_size + y_start)
                         right = round(output_dict['detection_boxes'][i][3] * tile_size + x_start)
                         detection_class = output_dict['detection_classes'][i]
-                        detections.append({"bounding_box": [left,right,top,bottom], "score": float(score), "name": category_index[detection_class]["name"]})
+                        detections.append({"bounding_box": [top,left,bottom,right], "score": float(score), "name": category_index[detection_class]["name"]})
 
         
 
@@ -116,7 +116,7 @@ def predict():
         if ground_truth:
             #draw ground truth
             for detection in ground_truth:
-                [left,right,top,bottom] = detection["bounding_box"]
+                [top,left,bottom,right] = detection["bounding_box"]
                 col = "black"
                 visualization_utils.draw_bounding_box_on_image(image,top,left,bottom,right,display_str_list=(),thickness=1, color=col, use_normalized_coordinates=False)          
             ground_truth_out_path = os.path.join(output_folder, os.path.basename(image_path)[:-4] + "_ground_truth.json")
@@ -125,7 +125,7 @@ def predict():
         
         for detection in detections:
             col = get_color_for_name(detection["name"], category_index)
-            [left,right,top,bottom] = detection["bounding_box"]
+            [top,left,bottom,right] = detection["bounding_box"]
             visualization_utils.draw_bounding_box_on_image(image,top,left,bottom,right,display_str_list=(),thickness=1, color=col, use_normalized_coordinates=False)          
         predictions_out_path = os.path.join(output_folder, os.path.basename(image_path)[:-4] + "_predictions.json")
         file_utils.save_json_file(detections,predictions_out_path)

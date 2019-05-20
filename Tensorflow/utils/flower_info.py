@@ -24,11 +24,11 @@ def get_bbox_size(flower_name):
 
 def get_bbox(flower):
     if(flower["isPolygon"]):
-        [left,right,top,bottom] = polygon_to_bounding_box(flower)
-        return [left,right,top,bottom]
+        [top,left,bottom,right] = polygon_to_bounding_box(flower)
+        return [top,left,bottom,right]
     else:
-        [left,right,top,bottom] = coords_to_bounding_box(flower)
-        return [left,right,top,bottom]
+        [top,left,bottom,right] = coords_to_bounding_box(flower)
+        return [top,left,bottom,right]
     
 def coords_to_bounding_box(flower):
     flower_name = clean_string(flower["name"])
@@ -39,7 +39,7 @@ def coords_to_bounding_box(flower):
     top = y - bounding_box_size
     right = x + bounding_box_size
     bottom = y + bounding_box_size
-    return [left,right,top,bottom]
+    return [top,left,bottom,right]
 
     
 def polygon_to_bounding_box(flower):
@@ -60,7 +60,7 @@ def polygon_to_bounding_box(flower):
         if vertex["y"] > bottom:
             bottom = vertex["y"]
             
-    return [round(left),round(right),round(top),round(bottom)]
+    return [round(top),round(left),round(bottom),round(right)]
 
 def clean_string(s):
     return s.encode(encoding='iso-8859-1').decode(encoding='utf-8').replace('ö','oe').replace('ä','ae').replace('ü','ue')

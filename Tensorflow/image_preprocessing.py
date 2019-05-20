@@ -153,16 +153,16 @@ def get_flowers_within_bounds(annotation_path, x_offset, y_offset):
     for flower in annotations:
         #if not flower["name"] == "Margarite":
         
-        [left,right,top,bottom] = flower_info.get_bbox(flower)
-        [left,right,top,bottom] = [left-x_offset, right -x_offset, top-y_offset, bottom - y_offset]
-        if is_bounding_box_within_image(tile_size, left, right, top, bottom):
-            flower["bounding_box"] = [left,right,top,bottom]   
+        [top,left,bottom,right] = flower_info.get_bbox(flower)
+        [top,left,bottom,right] = [top-y_offset, left -x_offset, bottom-y_offset, right - y_offset]
+        if is_bounding_box_within_image(tile_size, top,left,bottom,right):
+            flower["bounding_box"] = [top,left,bottom,right]  
             filtered_annotations.append(flower)
     return filtered_annotations
 
 
 #This function checks if a specified bounding box intersects with the image tile
-def is_bounding_box_within_image(tile_size, left, right, top, bottom):
+def is_bounding_box_within_image(tile_size, top, left, bottom, right):
     if left < 0 and right < 0:
         return False
     if left >= tile_size and right >= tile_size:
@@ -241,7 +241,7 @@ def build_xml_tree(flowers, image_path, labels):
         ET.SubElement(annotation_object, "difficult").text = str(0)            
         bndbox = ET.SubElement(annotation_object, "bndbox")
 
-        [left,right,top,bottom] = flower["bounding_box"]
+        [top,left,bottom,right] = flower["bounding_box"]
         ET.SubElement(bndbox, "xmin").text = str(left)
         ET.SubElement(bndbox, "ymin").text = str(top)
         ET.SubElement(bndbox, "xmax").text = str(right)

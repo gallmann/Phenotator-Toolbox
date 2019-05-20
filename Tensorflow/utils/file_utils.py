@@ -89,7 +89,7 @@ def get_annotations_from_xml(xml_path):
                             right = int(bound.text)
                         if(bound.tag == "ymax"):
                             bottom = int(bound.text)
-                    flower["bounding_box"] = [left,right,top,bottom]
+                    flower["bounding_box"] = [top,left,bottom,right]
                             
             annotations.append(flower)
     return annotations
