@@ -17,9 +17,10 @@ Created on Fri Apr  5 15:50:29 2019
 
 train_dir = "C:/Users/johan/Desktop/output"
 
+prediction_images = "C:/Users/johan/Desktop/images_to_predict"
+
 output_folder = "C:/Users/johan/Desktop/predictions"
 
-prediction_images = "C:/Users/johan/Desktop/images_to_predict"
 
 
 
@@ -39,6 +40,7 @@ PATH_TO_LABELS = train_dir + "/model_inputs/label_map.pbtxt"
 import os
 #os.environ["CUDA_VISIBLE_DEVICES"] = '-1'
 from utils import file_utils
+from utils import flower_info
 import numpy as np
 import sys
 import tensorflow as tf
@@ -62,6 +64,7 @@ def predict():
   detection_graph = get_detection_graph()
   category_index = label_map_util.create_category_index_from_labelmap(PATH_TO_LABELS, use_display_name=True)
   print(category_index)
+
   with detection_graph.as_default():
    with tf.Session() as sess:
        
@@ -74,26 +77,16 @@ def predict():
     for image_path in all_images:
         image = Image.open(image_path)
         width, height = image.size
-        
-        #make a temporary directory to store the image tiles in it
-        #temp_folder = os.path.join(output_folder, "temp")
-        #os.makedirs(temp_folder,exist_ok=True)
-        #file_utils.delete_folder_contents(temp_folder)
-        
+                
         print("Making Predictions for " + os.path.basename(image_path))
         
         detections = []
         
         #create appropriate tiles from image
         for x_start in progressbar.progressbar(range(-padding, width-1,tile_size-2*padding)):
-        #for x_start in range(-padding, width-1,tile_size-2*padding):
             for y_start in range(-padding,height-1,tile_size-2*padding):
                 crop_rectangle = (x_start, y_start, x_start+tile_size, y_start + tile_size)
                 cropped_im = image.crop(crop_rectangle)
-                #tile_name = os.path.join(temp_folder,"tile_" + str(x_start) + "_" + str(y_start) + ".png")
-                #cropped_im.save(tile_name)
-                #image_tiles.append(tile_name)
-                
                 
                 image_np = load_image_into_numpy_array(cropped_im)
                 output_dict = sess.run(tensor_dict,feed_dict={image_tensor: np.expand_dims(image_np, 0)})
@@ -107,24 +100,57 @@ def predict():
                     center_y = (output_dict['detection_boxes'][i][2]+output_dict['detection_boxes'][i][0])/2*tile_size
                     if score > 0.5 and center_x >= padding and center_y >= padding and center_x < tile_size-padding and center_y < tile_size-padding:
                         count += 1
-                        ymin = output_dict['detection_boxes'][i][0] * tile_size + y_start
-                        xmin = output_dict['detection_boxes'][i][1] * tile_size + x_start
-                        ymax = output_dict['detection_boxes'][i][2] * tile_size + y_start
-                        xmax = output_dict['detection_boxes'][i][3] * tile_size + x_start
+                        top = round(output_dict['detection_boxes'][i][0] * tile_size + y_start)
+                        left = round(output_dict['detection_boxes'][i][1] * tile_size + x_start)
+                        bottom = round(output_dict['detection_boxes'][i][2] * tile_size + y_start)
+                        right = round(output_dict['detection_boxes'][i][3] * tile_size + x_start)
                         detection_class = output_dict['detection_classes'][i]
-                        detections.append({"bbox": [ymin,xmin,ymax,xmax], "score": score, "class": detection_class})
-                        #c = output_dict['detection_boxes'][i]
-                        #col = get_color_for_index(output_dict['detection_classes'][i])
-                        #visualization_utils.draw_bounding_box_on_image(image,c[0],c[1],c[2],c[3],display_str_list=(),thickness=1, color=col, use_normalized_coordinates=True)          
-                
-                #print(str(count) + " detections")
-                #image.save(os.path.join(output_folder, "foo" + str(image_count)+ ".png"))
+                        detections.append({"bounding_box": [left,right,top,bottom], "score": float(score), "name": category_index[detection_class]["name"]})
+
+        
+
+        print(str(len(detections)) + " flowers detected")
+        
+        #copy the ground truth annotations to the output folder if there is any ground truth
+        ground_truth = get_ground_truth_annotations(image_path)
+        if ground_truth:
+            #draw ground truth
+            for detection in ground_truth:
+                [left,right,top,bottom] = detection["bounding_box"]
+                col = "black"
+                visualization_utils.draw_bounding_box_on_image(image,top,left,bottom,right,display_str_list=(),thickness=1, color=col, use_normalized_coordinates=False)          
+            ground_truth_out_path = os.path.join(output_folder, os.path.basename(image_path)[:-4] + "_ground_truth.json")
+            file_utils.save_json_file(ground_truth,ground_truth_out_path)
+        
+        
         for detection in detections:
-            
-            bbox = detection["bbox"]
-            col = get_color_for_index(detection["class"])
-            visualization_utils.draw_bounding_box_on_image(image,bbox[0],bbox[1],bbox[2],bbox[3],display_str_list=(),thickness=1, color=col, use_normalized_coordinates=False)          
-        image.save(os.path.join(output_folder, os.path.basename(image_path)))
+            col = get_color_for_name(detection["name"], category_index)
+            [left,right,top,bottom] = detection["bounding_box"]
+            visualization_utils.draw_bounding_box_on_image(image,top,left,bottom,right,display_str_list=(),thickness=1, color=col, use_normalized_coordinates=False)          
+        predictions_out_path = os.path.join(output_folder, os.path.basename(image_path)[:-4] + "_predictions.json")
+        file_utils.save_json_file(detections,predictions_out_path)
+        
+        
+        image_output_path = os.path.join(output_folder, os.path.basename(image_path))
+        image.save(image_output_path)
+        
+        
+def get_ground_truth_annotations(image_path):
+    ground_truth_in_path_xml = image_path[:-4] + ".xml"
+    if ground_truth_in_path_xml and os.path.isfile(ground_truth_in_path_xml):
+        ground_truth = file_utils.get_annotations_from_xml(ground_truth_in_path_xml)
+    ground_truth_in_path_json = image_path[:-4] + "_annotations.json"
+    if ground_truth_in_path_json and os.path.isfile(ground_truth_in_path_json):
+        annotated_flowers = file_utils.read_json_file(ground_truth_in_path_json)["annotatedFlowers"]
+        ground_truth = []
+        for fl in annotated_flowers:
+            flower = {}
+            flower["name"] = file_utils.clean_string(fl["name"])
+            flower["bounding_box"] = flower_info.get_bbox(fl)
+            ground_truth.append(flower)
+                        
+    return ground_truth
+        
 
 def get_detection_graph():
     detection_graph = tf.Graph()
@@ -136,7 +162,12 @@ def get_detection_graph():
         tf.import_graph_def(od_graph_def, name='')
     return detection_graph
 
-
+def get_color_for_name(name,category_index):
+    for i in category_index:
+        if category_index[i]["name"] == name:
+            label = list(matplotlib.colors.cnames.keys())[category_index[i]["id"]]
+            return label
+    
 def get_color_for_index(index):
     label = list(matplotlib.colors.cnames.keys())[index]
     return label

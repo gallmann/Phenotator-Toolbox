@@ -3,15 +3,16 @@
 Created on Wed Apr  3 23:39:23 2019
 
 This script takes all images in the input_folder, draws the bounding boxes onto the images and saves 
-them to the output_folder
+them to the output_folder. Alongside each image either a json file or an xml file with the annotation
+data has to be provided. 
 @author: johan
 """
 
 
 input_folder = "C:/Users/johan/Desktop/output/images/train"
-#input_folder = "C:/Users/gallmanj.KP31-21-161/Desktop/eschikon"
+
 output_folder = "C:/Users/johan/Desktop/vis_im"
-#output_folder = "C:/Users/gallmanj.KP31-21-161/Desktop/vis_im"
+
 
 
 from object_detection.utils import visualization_utils
@@ -21,7 +22,6 @@ from utils import flower_info
 import os
 import progressbar
 import matplotlib
-import xml.etree.cElementTree as ET
 
 
 def get_color_for_index(index):
@@ -53,7 +53,7 @@ def draw_bounding_boxes(input_folder, output_folder):
                 
         
         elif annotation_path_xml and os.path.isfile(annotation_path_xml):
-            annotations = get_annotations_from_xml(annotation_path_xml)
+            annotations = file_utils.get_annotations_from_xml(annotation_path_xml)
             for flower in annotations:
                 flower_name = file_utils.clean_string(flower["name"])
                 [left,right,top,bottom] = flower["bounding_box"]
@@ -67,32 +67,6 @@ def draw_bounding_boxes(input_folder, output_folder):
         image.save(os.path.join(output_folder,image_name))
     print("Done!")
     
-
-def get_annotations_from_xml(xml_path):
-    annotations = []
-    tree = ET.parse(xml_path)
-    root = tree.getroot()
-    for child in root:
-        if(child.tag == "object"):
-            flower = {}
-            for att in child:
-                if(att.tag == "name"):
-                    flower["name"] = att.text
-                if(att.tag == "bndbox"):
-                    left=right=top=bottom = 0
-                    for bound in att:
-                        if(bound.tag == "xmin"):
-                            left = int(bound.text)
-                        if(bound.tag == "ymin"):
-                            top = int(bound.text)
-                        if(bound.tag == "xmax"):
-                            right = int(bound.text)
-                        if(bound.tag == "ymax"):
-                            bottom = int(bound.text)
-                    flower["bounding_box"] = [left,right,top,bottom]
-                            
-            annotations.append(flower)
-    return annotations
 
 
 draw_bounding_boxes(input_folder,output_folder)

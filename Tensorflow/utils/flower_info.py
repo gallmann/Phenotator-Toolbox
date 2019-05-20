@@ -3,8 +3,15 @@
 Created on Tue Apr  9 13:57:31 2019
 
 @author: johan
+
+
+This file contains some helper functions to get the bounding box from an annotation.
+Please specify the radios (in px) of each flower species in the flower_bounding_box_size
+dictionary!
 """
 
+
+#Set the radius (not diameter) of each flower species
 flower_bounding_box_size = {
         
 'Loewenzahn' : 6,
