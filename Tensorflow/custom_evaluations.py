@@ -10,7 +10,7 @@ import numpy as np
 
 input_folder = "C:/Users/johan/Desktop/predictions"
 
-iou_threshold = 0.6
+iou_threshold = 0.5
 
 
 def evaluate():
@@ -100,10 +100,6 @@ def iou(box1, box2):
     :param box2: box2 with shape (N,4) or (N,2,2) or (2,2) or (4,). first shape is preferred
     :return: IoU ratio if intersect, else 0
     """
-    [left,right,top,bottom] = box1
-    box1 = [top,left,bottom,right]
-    [left,right,top,bottom] = box2
-    box2 = [top,left,bottom,right]
     box1 = np.array(box1)
     box2 = np.array(box2)
 
