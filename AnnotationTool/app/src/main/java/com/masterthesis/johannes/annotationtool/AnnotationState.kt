@@ -199,6 +199,8 @@ class AnnotationState(@Transient var imageUri: Uri, @Transient var projectDirect
         if(currentFlower != null){
             flowerCount[currentFlower!!.name] = flowerCount[currentFlower!!.name]!! - 1
             currentFlower = null
+            updateFavourites()
+            saveToFile()
         }
     }
 
