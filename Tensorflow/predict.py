@@ -88,6 +88,11 @@ def predict():
                 crop_rectangle = (x_start, y_start, x_start+tile_size, y_start + tile_size)
                 cropped_im = image.crop(crop_rectangle)
                 
+                #check if image consists of only one color.
+                extrema = cropped_im.convert("L").getextrema()
+                if extrema[0] == extrema[1]:
+                    continue
+                
                 image_np = load_image_into_numpy_array(cropped_im)
                 output_dict = sess.run(tensor_dict,feed_dict={image_tensor: np.expand_dims(image_np, 0)})
                 output_dict = clean_output_dict(output_dict)
@@ -136,6 +141,7 @@ def predict():
         
         
 def get_ground_truth_annotations(image_path):
+    ground_truth = None
     ground_truth_in_path_xml = image_path[:-4] + ".xml"
     if ground_truth_in_path_xml and os.path.isfile(ground_truth_in_path_xml):
         ground_truth = file_utils.get_annotations_from_xml(ground_truth_in_path_xml)
