@@ -15,7 +15,7 @@ from utils import file_utils
 import progressbar
 
 
-input_folder = "C:/Users/johan/Desktop/MasterThesis/Data/May_23/MaskedAnnotationData"
+input_folder = "G:/Johannes/Data/May_23/test"
 
 
 
@@ -44,8 +44,6 @@ def strip_image(input_image_path, roi_file, output_image_path):
         for point in polygon_json["points"]:
             polygon.append((point[0],point[1]))
             polygons.append(polygon)
-    
-    
     
     
     maskIm = Image.new('L', (imArray.shape[1], imArray.shape[0]), 0)

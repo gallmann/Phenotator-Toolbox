@@ -25,9 +25,13 @@ From this input it generates multiple outputs:
 
 #Annotation Folder with Annotations made with the Android App
 input_folder = "C:/Users/johan/Desktop/PreProcessToolOutput"
+input_folder = "G:/Johannes/Data/May_23/MaskedAnnotationData"
+
 
 #All outputs will be printed into this folder
 output_folder = "C:/Users/johan/Desktop/output/"
+output_folder = "G:/Johannes/output"
+
 
 #if for the training not the images in the input_folder should be used but the single shot orthophotos,
 #set this variable to the path to the directory with the single shot orthophotos
@@ -43,7 +47,7 @@ tile_size = 300
 #what portion of the images should be used for testing and not for training
 test_set_size = 0.2
 
-
+min_flowers = 20
 
 
 
@@ -85,7 +89,10 @@ def convert_annotation_folder(input_folder, output_dir):
 
         tile_image_and_annotations(image_path,annotation_path,train_images_dir, labels)
         
-        
+    
+    flowers_to_use = filter_labels(labels,min_flowers)
+    
+    
     print("Creating Labelmap file...")
     annotations_dir = os.path.join(output_dir, "model_inputs")
     write_labels_to_labelmapfile(labels,annotations_dir)
@@ -111,8 +118,7 @@ def convert_annotation_folder(input_folder, output_dir):
     print(labels_test)
     print("Done!")
 
-        
-    
+
     
 def tile_image_and_annotations(image_path, annotation_path, output_folder,labels):
     
@@ -154,9 +160,9 @@ def get_flowers_within_bounds(annotation_path, x_offset, y_offset):
         #if not flower["name"] == "Margarite":
         
         [top,left,bottom,right] = flower_info.get_bbox(flower)
-        [top,left,bottom,right] = [top-y_offset, left -x_offset, bottom-y_offset, right - y_offset]
+        [top,left,bottom,right] = [top-y_offset, left -x_offset, bottom-y_offset, right - x_offset]
         if is_bounding_box_within_image(tile_size, top,left,bottom,right):
-            flower["bounding_box"] = [top,left,bottom,right]  
+            flower["bounding_box"] = [max(0,top),max(0,left),min(tile_size,bottom),min(tile_size,right)]  
             filtered_annotations.append(flower)
     return filtered_annotations
 
@@ -278,7 +284,13 @@ def make_training_dir_folder_structure(root_folder):
     os.makedirs(os.path.join(root_folder,"eval"),exist_ok=True)
 
 
-    
+    #This function takes the labels map and returns an array with the flower names that have more than min_instances instances
+def filter_labels(labels, min_instances=50):
+    flowers_to_use = []
+    for key, value in labels.items():
+        if value >= min_instances:
+            flowers_to_use.append(key)
+
     
 
 convert_annotation_folder(input_folder, output_folder)
