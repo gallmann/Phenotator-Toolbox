@@ -15,7 +15,30 @@ dictionary!
 flower_bounding_box_size = {
         
 'Loewenzahn' : 6,
-'Margarite'   : 4
+'Margarite'   : 4,
+'anthyllis vulneraria'   : 16,
+'carum carvi'   : 22,
+'cerastium caespitosum'   : 7,
+'crepis biennis'   : 17,
+'galium mollugo'   : 4,
+'knautia arvensis'   : 17,
+'medicago lupulina'   : 4,
+'leucanthemum vulgare'   : 20,
+'lotus corniculatus'   : 8,
+'lychnis flos cuculi'   : 15,
+'myosotis arvensis'   : 6,
+'onobrychis viciifolia'   : 10,
+'plantago lanceolata'   : 8,
+'plantago major'   : 11,
+'ranunculus acris'   : 11,
+'ranunculus bulbosus'   : 11,
+'ranunculus friesianus'   : 11,
+'salvia pratensis'   : 15,
+'tragopogon pratensis'   : 4,
+'trifolium pratense'   : 10,
+'veronica chamaedris'   : 4,
+'vicia sativa'   : 6,
+'vicia sepium'   : 4
 }
 
 
@@ -63,4 +86,4 @@ def polygon_to_bounding_box(flower):
     return [round(top),round(left),round(bottom),round(right)]
 
 def clean_string(s):
-    return s.encode(encoding='iso-8859-1').decode(encoding='utf-8').replace('ö','oe').replace('ä','ae').replace('ü','ue')
+    return s.encode(encoding='iso-8859-1').decode(encoding='utf-8').replace('ö','oe').replace('ä','ae').replace('ü','ue').lower().rstrip()
