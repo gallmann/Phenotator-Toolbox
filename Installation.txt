@@ -7,4 +7,5 @@ Follow this tutorial: https://tensorflow-object-detection-api-tutorial.readthedo
 On Windows, inside the models/research/slim folder run "python setup.py build" "python setup.py install"
 
 5. Install Microsoft Build Tools 2015
-6. Run: "pip install git+https://github.com/philferriere/cocoapi.git#egg=pycocotools^&subdirectory=PythonAPI" (needed vor eval.py script)
+6. Run: "pip install git+https://github.com/philferriere/cocoapi.git#egg=pycocotools^&subdirectory=PythonAPI" (needed for eval.py script)
+7. Run "pip install labelme"
