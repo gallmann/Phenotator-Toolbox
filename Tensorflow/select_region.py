@@ -30,11 +30,6 @@ def select_roi_in_images(folder):
     
 
 def strip_image(input_image_path, roi_file, output_image_path):
-    # read image as RGB and add alpha (transparency)
-    im = Image.open(input_image_path).convert("RGBA")
-    # convert to numpy (for convenience)
-    imArray = numpy.asarray(im)
-    # create mask
     
     polygons_json = file_utils.read_json_file(roi_file)["shapes"]
     polygons = []
@@ -44,27 +39,37 @@ def strip_image(input_image_path, roi_file, output_image_path):
         for point in polygon_json["points"]:
             polygon.append((point[0],point[1]))
             polygons.append(polygon)
+
+    # read image as RGB (without alpha)
+    img = Image.open(input_image_path).convert("RGB")
     
+    # convert to numpy (for convenience)
+    img_array = numpy.asarray(img)
     
-    maskIm = Image.new('L', (imArray.shape[1], imArray.shape[0]), 0)
+    # create new image ("1-bit pixels, black and white", (width, height), "default color")
+    mask_img = Image.new('1', (img_array.shape[1], img_array.shape[0]), 0)
+    
     for polygon in polygons:
-        ImageDraw.Draw(maskIm).polygon(polygon, outline=1, fill=1)
-    mask = numpy.array(maskIm)
+        ImageDraw.Draw(mask_img).polygon(polygon, outline=1, fill=1)
+
+    mask = numpy.array(mask_img)
+    
     # assemble new image (uint8: 0-255)
-    newImArray = numpy.empty(imArray.shape,dtype='uint8')
+    new_img_array = numpy.empty(img_array.shape, dtype='uint8')
     
-    # colors (three first columns, RGB)
-    newImArray[:,:,:3] = imArray[:,:,:3]
+    # copy color values (RGB)
+    new_img_array[:,:,:3] = img_array[:,:,:3]
     
-    # transparency (4th column)
-    newImArray[:,:,3] = mask*255
+    # filtering image by mask
+    new_img_array[:,:,0] = new_img_array[:,:,0] * mask
+    new_img_array[:,:,1] = new_img_array[:,:,1] * mask
+    new_img_array[:,:,2] = new_img_array[:,:,2] * mask
     
     # back to Image from numpy
-    newIm = Image.fromarray(newImArray, "RGBA")
+    newIm = Image.fromarray(new_img_array, "RGB")
     newIm.save(output_image_path, format="png")
 
-
-
+    
 
 
 select_roi_in_images(input_folder)
