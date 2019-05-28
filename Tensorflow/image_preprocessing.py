@@ -24,13 +24,13 @@ From this input it generates multiple outputs:
 
 
 #Annotation Folder with Annotations made with the Android App
-input_folder = "C:/Users/johan/Desktop/PreProcessToolOutput"
-input_folder = "G:/Johannes/Data/May_23/MaskedAnnotationData"
+input_folder = "C:/Users/johan/Desktop/MasterThesis/Data/May_23/MaskedAnnotationData"
+#input_folder = "G:/Johannes/Data/May_23/MaskedAnnotationData"
 
 
 #All outputs will be printed into this folder
 output_folder = "C:/Users/johan/Desktop/output/"
-output_folder = "G:/Johannes/output"
+#output_folder = "G:/Johannes/output"
 
 
 #if for the training not the images in the input_folder should be used but the single shot orthophotos,
@@ -91,11 +91,10 @@ def convert_annotation_folder(input_folder, output_dir):
         
     
     flowers_to_use = filter_labels(labels,min_flowers)
-    
-    
+        
     print("Creating Labelmap file...")
     annotations_dir = os.path.join(output_dir, "model_inputs")
-    write_labels_to_labelmapfile(labels,annotations_dir)
+    write_labels_to_labelmapfile(flowers_to_use,annotations_dir)
     
     print("Splitting train and test dir...")
     labels_test = {}
@@ -104,8 +103,8 @@ def convert_annotation_folder(input_folder, output_dir):
     print("Converting Annotation data into tfrecord files...")
     train_csv = os.path.join(annotations_dir, "train_labels.csv")
     test_csv = os.path.join(annotations_dir, "test_labels.csv")
-    xml_to_csv.xml_to_csv(train_images_dir,train_csv)
-    xml_to_csv.xml_to_csv(test_images_dir,test_csv)
+    xml_to_csv.xml_to_csv(train_images_dir,train_csv,flowers_to_use=flowers_to_use)
+    xml_to_csv.xml_to_csv(test_images_dir,test_csv,flowers_to_use=flowers_to_use)
     
     train_tf_record = os.path.join(annotations_dir, "train.record")
     generate_tfrecord.make_tfrecords(train_csv,train_tf_record,train_images_dir, labels)
@@ -113,9 +112,10 @@ def convert_annotation_folder(input_folder, output_dir):
     generate_tfrecord.make_tfrecords(test_csv,test_tf_record,test_images_dir, labels)
     
     print("tfrecord training files generated from the follwing amount of flowers:")
-    print(labels)
+    print_labels(labels, flowers_to_use)
     print("the test data contains the following amount of flowers:")
-    print(labels_test)
+    print_labels(labels_test, flowers_to_use)
+    print(str(len(flowers_to_use)) + " classes used for training.")
     print("Done!")
 
 
@@ -290,8 +290,21 @@ def filter_labels(labels, min_instances=50):
     for key, value in labels.items():
         if value >= min_instances:
             flowers_to_use.append(key)
+    return flowers_to_use
 
+
+def print_labels(labels, flowers_to_use):
+    print("used:")
+    for key,value in labels.items():
+        if key in flowers_to_use:
+            print("    " + key + ": " + str(value))
     
+    print("not used due to lack of enough annotation data:")
+    for key,value in labels.items():
+        if not (key in flowers_to_use):
+            print("    " + key + ": " + str(value))
+
+   
 
 convert_annotation_folder(input_folder, output_folder)
 
