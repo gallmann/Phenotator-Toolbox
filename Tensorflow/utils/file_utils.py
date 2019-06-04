@@ -14,9 +14,6 @@ import json
 import shutil
 import xml.etree.cElementTree as ET
 
-#This function removes all ä, ö and ü from a provided string. (Important for tensorflow)
-def clean_string(s):
-    return s.encode(encoding='iso-8859-1').decode(encoding='utf-8').replace('ö','oe').replace('ä','ae').replace('ü','ue').lower().rstrip()
 
 
 def read_json_file(file_path):
@@ -27,6 +24,7 @@ def read_json_file(file_path):
                 return jsondata
             except Exception as e:
                 print(e)
+                print(file_path)
                 return None
     else:
         return None

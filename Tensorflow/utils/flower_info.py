@@ -33,6 +33,7 @@ flower_bounding_box_size = {
 'ranunculus acris'   : 11,
 'ranunculus bulbosus'   : 11,
 'ranunculus friesianus'   : 11,
+'ranunculus'   : 11,
 'salvia pratensis'   : 15,
 'tragopogon pratensis'   : 4,
 'trifolium pratense'   : 10,
@@ -85,5 +86,18 @@ def polygon_to_bounding_box(flower):
             
     return [round(top),round(left),round(bottom),round(right)]
 
+
 def clean_string(s):
-    return s.encode(encoding='iso-8859-1').decode(encoding='utf-8').replace('ö','oe').replace('ä','ae').replace('ü','ue').lower().rstrip()
+    #get rid of ä, ö, ü, upper case letters or trailing whitespaces
+    s = s.encode(encoding='iso-8859-1').decode(encoding='utf-8').replace('ö','oe').replace('ä','ae').replace('ü','ue').lower().rstrip()
+    
+    #different types of ranunculus cannot be distinguished from the image alone, therefore 
+    #just combine them to ranunculus
+    if "ranunculus" in s:
+        return "ranunculus"
+    else:
+        return s
+
+
+
+

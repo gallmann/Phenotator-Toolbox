@@ -28,9 +28,9 @@ The train.py script will write all outputs to the training directory.
     
 '''
 
-train_dir = "C:/Users/johan/Desktop/MasterThesis/Tensorflow/workspace/faster_rcnn_resnet101_coco"
-train_dir = "C:/Users/gallmanj.KP31-21-161/Desktop/output"
-train_dir = "G:/Johannes/output"
+train_dir = "C:/Users/johan/Desktop/output"
+#train_dir = "C:/Users/gallmanj.KP31-21-161/Desktop/output"
+#train_dir = "G:/Johannes/output"
 
 
 

@@ -42,12 +42,12 @@ single_shot_ortho_photos_path = ""
 #set the tile size of the images to do the tensorflow training on. This value should be chosen to suit your 
 #GPU capabilities and ground resolution (the higher the ground resolution, the greater this tile_size can 
 #be chosen.)
-tile_size = 300
+tile_size = 500
 
 #what portion of the images should be used for testing and not for training
 test_set_size = 0.2
 
-min_flowers = 20
+min_flowers = 50
 
 
 
@@ -237,7 +237,7 @@ def build_xml_tree(flowers, image_path, labels):
     ET.SubElement(size, "height").text = str(height)
     
     for flower in flowers:
-        flower_name = file_utils.clean_string(flower["name"])
+        flower_name = flower_info.clean_string(flower["name"])
         add_label_to_labelcount(flower_name, labels)
         
         annotation_object = ET.SubElement(root, "object")
@@ -303,8 +303,6 @@ def print_labels(labels, flowers_to_use):
     for key,value in labels.items():
         if not (key in flowers_to_use):
             print("    " + key + ": " + str(value))
-
-   
 
 convert_annotation_folder(input_folder, output_folder)
 
