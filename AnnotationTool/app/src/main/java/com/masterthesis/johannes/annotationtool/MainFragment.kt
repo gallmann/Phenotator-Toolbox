@@ -274,13 +274,13 @@ class MainFragment : Fragment(), FlowerListAdapter.ItemClickListener, View.OnTou
         when(id){
             R.id.floating_button_right -> {
                 val column: Int = getFileName(currImageUri,context!!).substringAfter("col").substringBefore('.').toInt()
-                val regex: Regex = "col([0-9]|[0-9][0-9]|[0-9][0-9][0-9]).".toRegex()
+                val regex: Regex = "col([0-9]|[0-9][0-9]|[0-9][0-9][0-9])\\.".toRegex()
                 val newImageName = regex.replace(getFileName(currImageUri,context!!),"col" +(column+1).toString() + ".")
                 currImageUri = getUri(projectDirectory,newImageName, context!!)!!
             }
             R.id.floating_button_left -> {
                 val column: Int = getFileName(currImageUri,context!!).substringAfter("col").substringBefore('.').toInt()
-                val regex: Regex = "col([0-9]|[0-9][0-9]|[0-9][0-9][0-9]).".toRegex()
+                val regex: Regex = "col([0-9]|[0-9][0-9]|[0-9][0-9][0-9])\\.".toRegex()
                 val newImageName = regex.replace(getFileName(currImageUri,context!!),"col" +(column-1).toString() + ".")
                 currImageUri = getUri(projectDirectory,newImageName, context!!)!!
 

@@ -255,11 +255,8 @@ class AnnotationState(@Transient var imageUri: Uri, @Transient var projectDirect
 
     private fun checkForNeighbouringTiles(){
         val column: Int = getFileName(imageUri,context).substringAfter("col").substringBefore('.').toInt()
-        println(column)
         var regex: Regex = "col([0-9]|[0-9][0-9]|[0-9][0-9][0-9])\\.".toRegex()
-        println(getFileName(imageUri,context))
         var neighbourFileName = regex.replace(getFileName(imageUri,context),"col" +(column+1).toString() + ".")
-        println(neighbourFileName)
         hasRightNeighbour = doesFileExist(projectDirectory,neighbourFileName,context)
 
         neighbourFileName = regex.replace(getFileName(imageUri,context),"col" +(column-1).toString() + ".")
