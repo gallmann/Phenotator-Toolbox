@@ -25,12 +25,12 @@ From this input it generates multiple outputs:
 
 #Annotation Folder with Annotations made with the Android App
 input_folder = "C:/Users/johan/Desktop/MasterThesis/Data/May_23/MaskedAnnotationData"
-#input_folder = "G:/Johannes/Data/May_23/MaskedAnnotationData"
+input_folder = "G:/Johannes/Data/May_23/MaskedAnnotationData"
 
 
 #All outputs will be printed into this folder
 output_folder = "C:/Users/johan/Desktop/output/"
-#output_folder = "G:/Johannes/output"
+output_folder = "G:/Johannes/output"
 
 
 #if for the training not the images in the input_folder should be used but the single shot orthophotos,
@@ -42,15 +42,16 @@ single_shot_ortho_photos_path = ""
 #set the tile size of the images to do the tensorflow training on. This value should be chosen to suit your 
 #GPU capabilities and ground resolution (the higher the ground resolution, the greater this tile_size can 
 #be chosen.)
-tile_size = 500
+tile_size = 450
 
 #what portion of the images should be used for testing and not for training
 test_set_size = 0.2
 
+#minimum amount of flower instances to include species in training
 min_flowers = 50
 
 
-
+print("Loading libraries...")
 import os
 import xml.etree.cElementTree as ET
 from PIL import Image
@@ -61,7 +62,6 @@ import utils.generate_tfrecord as generate_tfrecord
 from utils import flower_info
 from utils import apply_annotations
 from utils import file_utils
-from object_detection.utils import visualization_utils
 import progressbar
 
 
