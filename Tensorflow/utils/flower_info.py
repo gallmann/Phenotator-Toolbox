@@ -39,7 +39,8 @@ flower_bounding_box_size = {
 'trifolium pratense'   : 10,
 'veronica chamaedris'   : 4,
 'vicia sativa'   : 6,
-'vicia sepium'   : 4
+'vicia sepium'   : 4,
+'dianthus carthusionorum': 14
 }
 
 

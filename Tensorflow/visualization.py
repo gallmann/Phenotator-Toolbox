@@ -9,7 +9,7 @@ data has to be provided.
 """
 
 
-input_folder = "C:/Users/johan/Desktop/MasterThesis/Data/May_23/MaskedAnnotationData"
+input_folder = "C:/Users/johan/Desktop/MasterThesis/Data/June_06/MaskedAnnotationData"
 
 output_folder = "C:/Users/johan/Desktop/vis_im"
 
@@ -44,7 +44,7 @@ def draw_bounding_boxes(input_folder, output_folder):
             annotation_data = file_utils.read_json_file(annotation_path)
             annotations = annotation_data["annotatedFlowers"]
             for flower in annotations:
-                flower_name = file_utils.clean_string(flower["name"])
+                flower_name = flower_info.clean_string(flower["name"])
                 [top,left,bottom,right] = flower_info.get_bbox(flower)
                 if not flower_name in flowers:
                     flowers.append(flower_name)
@@ -55,7 +55,7 @@ def draw_bounding_boxes(input_folder, output_folder):
         elif annotation_path_xml and os.path.isfile(annotation_path_xml):
             annotations = file_utils.get_annotations_from_xml(annotation_path_xml)
             for flower in annotations:
-                flower_name = file_utils.clean_string(flower["name"])
+                flower_name = flower_info.clean_string(flower["name"])
                 [top,left,bottom,right] = flower["bounding_box"]
                 if not flower_name in flowers:
                     flowers.append(flower_name)
