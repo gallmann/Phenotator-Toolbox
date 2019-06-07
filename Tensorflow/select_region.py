@@ -15,7 +15,7 @@ from utils import file_utils
 import progressbar
 
 
-input_folder = "G:/Johannes/Data/May_23/test"
+input_folder = "G:/Johannes/Data/May_23/MaskedAnnotationData"
 
 
 

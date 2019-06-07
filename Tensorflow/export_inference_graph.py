@@ -15,9 +15,10 @@
 
 import os
 from utils import file_utils
+from utils import constants
 
-train_dir = "G:/Johannes/output"
-train_dir = "C:/Users/johan/Desktop/output"
+train_dir = constants.train_dir
+#train_dir = "C:/Users/johan/Desktop/output"
 
 
 

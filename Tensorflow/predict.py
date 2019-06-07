@@ -13,21 +13,21 @@ Created on Fri Apr  5 15:50:29 2019
 #output_folder = "C:/Users/gallmanj.KP31-21-161/Desktop/vis_im"
 
 
+from utils import constants
 
+train_dir = constants.train_dir
 
-train_dir = "C:/Users/johan/Desktop/output"
+images_to_predict = constants.images_to_predict
 
-prediction_images = "C:/Users/johan/Desktop/images_to_predict"
-
-output_folder = "C:/Users/johan/Desktop/predictions"
+output_folder = constants.predictions
 
 
 
 
 #size of tiles to feed into prediction network
-tile_size = 300
+tile_size = constants.tile_size
 #minimum distance from edge of tile for prediction to be considered
-padding = 30
+padding = 50
 
 
 PATH_TO_TEST_IMAGES_DIR = train_dir + "/images/test"
@@ -71,8 +71,8 @@ def predict():
        
     tensor_dict = get_tensor_dict(tile_size)
     image_tensor = tf.get_default_graph().get_tensor_by_name('image_tensor:0') 
-    all_images = file_utils.get_all_tifs_in_folder(prediction_images)
-    all_images.extend(file_utils.get_all_images_in_folder(prediction_images))
+    all_images = file_utils.get_all_tifs_in_folder(images_to_predict)
+    all_images.extend(file_utils.get_all_images_in_folder(images_to_predict))
     
     for image_path in all_images:
         image = Image.open(image_path)

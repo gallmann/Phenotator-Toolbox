@@ -27,10 +27,11 @@ Inside the pre-trained-model the pipeline.config file must be properly configure
 The train.py script will write all outputs to the training directory.
     
 '''
+from utils import constants
 
-train_dir = "C:/Users/johan/Desktop/output"
-#train_dir = "C:/Users/gallmanj.KP31-21-161/Desktop/output"
-#train_dir = "G:/Johannes/output"
+
+
+train_dir = constants.train_dir
 
 
 
