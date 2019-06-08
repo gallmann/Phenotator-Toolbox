@@ -22,8 +22,6 @@ images_to_predict = constants.images_to_predict
 output_folder = constants.predictions
 
 
-
-
 #size of tiles to feed into prediction network
 tile_size = constants.tile_size
 #minimum distance from edge of tile for prediction to be considered
@@ -131,7 +129,8 @@ def predict():
         for detection in detections:
             col = get_color_for_name(detection["name"], category_index)
             [top,left,bottom,right] = detection["bounding_box"]
-            visualization_utils.draw_bounding_box_on_image(image,top,left,bottom,right,display_str_list=(),thickness=1, color=col, use_normalized_coordinates=False)          
+            score_string = str('{0:.2f}'.format(detection["score"]))
+            visualization_utils.draw_bounding_box_on_image(image,top,left,bottom,right,display_str_list=[score_string,detection["name"]],thickness=1, color=col, use_normalized_coordinates=False)          
         predictions_out_path = os.path.join(output_folder, os.path.basename(image_path)[:-4] + "_predictions.json")
         file_utils.save_json_file(detections,predictions_out_path)
         
@@ -151,7 +150,7 @@ def get_ground_truth_annotations(image_path):
         ground_truth = []
         for fl in annotated_flowers:
             flower = {}
-            flower["name"] = file_utils.clean_string(fl["name"])
+            flower["name"] = flower_info.clean_string(fl["name"])
             flower["bounding_box"] = flower_info.get_bbox(fl)
             ground_truth.append(flower)
                         

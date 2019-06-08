@@ -13,9 +13,9 @@ import numpy
 from PIL import Image, ImageDraw
 from utils import file_utils
 import progressbar
+from utils import constants
 
-
-input_folder = "G:/Johannes/Data/May_23/MaskedAnnotationData"
+input_folder = constants.input_folders[0]
 
 
 

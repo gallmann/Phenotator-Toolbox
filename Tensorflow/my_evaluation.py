@@ -15,6 +15,7 @@ from utils import file_utils
 import numpy as np
 from object_detection.utils import object_detection_evaluation
 from object_detection.core import standard_fields
+from object_detection.utils import per_image_evaluation
 
 
 def evaluate():
@@ -38,16 +39,22 @@ def evaluate():
         gt_dict = {standard_fields.InputDataFields.groundtruth_boxes: bounding_boxes_gt, standard_fields.InputDataFields.groundtruth_classes:classes_gt}
         prediction_dict = {standard_fields.DetectionResultFields.detection_boxes: bounding_boxes_p,standard_fields.DetectionResultFields.detection_scores: scores_p, standard_fields.DetectionResultFields.detection_classes:classes_p}
 
+        
 
-
-        object_detection_evaluator = object_detection_evaluation.ObjectDetectionEvaluator(categories, matching_iou_threshold=iou_threshold,evaluate_precision_recall=False)
+        object_detection_evaluator = object_detection_evaluation.ObjectDetectionEvaluator(categories, matching_iou_threshold=iou_threshold,evaluate_precision_recall=True)
         object_detection_evaluator.add_single_ground_truth_image_info(image_path,gt_dict)
         object_detection_evaluator.add_single_detected_image_info(image_path,prediction_dict)
         print(object_detection_evaluator.evaluate())
-        object_detection_evaluator = object_detection_evaluation.WeightedPascalDetectionEvaluator(categories, matching_iou_threshold=iou_threshold)
-        object_detection_evaluator.add_single_ground_truth_image_info(image_path,gt_dict)
-        object_detection_evaluator.add_single_detected_image_info(image_path,prediction_dict)
-        print(object_detection_evaluator.evaluate())
+        
+
+        print(object_detection_evaluator._evaluation.recalls_per_class)
+        
+        per_image_eval = per_image_evaluation.PerImageEvaluation(2)
+        #per_image_eval._compute_tp_fp(bounding_boxes_p, scores_p, classes_p, bounding_boxes_gt, classes_gt, None, None)
+        #object_detection_evaluator = object_detection_evaluation.WeightedPascalDetectionEvaluator(categories, matching_iou_threshold=iou_threshold)
+        #object_detection_evaluator.add_single_ground_truth_image_info(image_path,gt_dict)
+        #object_detection_evaluator.add_single_detected_image_info(image_path,prediction_dict)
+        #print(object_detection_evaluator.evaluate())
 
         
 def to_numpy_representations(annotations, categories):
