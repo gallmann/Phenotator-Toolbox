@@ -44,6 +44,8 @@ flower_bounding_box_size = {
 }
 
 
+
+
 def get_bbox_size(flower_name):
     return flower_bounding_box_size[flower_name]
 
@@ -96,6 +98,8 @@ def clean_string(s):
     #just combine them to ranunculus
     if "ranunculus" in s:
         return "ranunculus"
+    if "flos" in s and "cuculi" in s:
+        return "lychnis flos cuculi"
     else:
         return s
 

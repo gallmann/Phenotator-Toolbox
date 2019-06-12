@@ -9,7 +9,7 @@ data has to be provided.
 """
 
 from utils import constants
-input_folder = constants.input_folders[1]
+input_folder = constants.input_folders[0]
 
 output_folder = constants.vis_im
 
@@ -49,7 +49,7 @@ def draw_bounding_boxes(input_folder, output_folder):
                 if not flower_name in flowers:
                     flowers.append(flower_name)
                 col = get_color_for_index(flowers.index(flower_name))
-                visualization_utils.draw_bounding_box_on_image(image,top,left,bottom,right,display_str_list=(), color=col, use_normalized_coordinates=False, thickness=1)
+                visualization_utils.draw_bounding_box_on_image(image,top,left,bottom,right,display_str_list=[flower_name], color=col, use_normalized_coordinates=False, thickness=1)
                 
         
         elif annotation_path_xml and os.path.isfile(annotation_path_xml):
@@ -60,7 +60,7 @@ def draw_bounding_boxes(input_folder, output_folder):
                 if not flower_name in flowers:
                     flowers.append(flower_name)
                 col = get_color_for_index(flowers.index(flower_name))
-                visualization_utils.draw_bounding_box_on_image(image,top,left,bottom,right,display_str_list=(), color=col, use_normalized_coordinates=False, thickness=1)
+                visualization_utils.draw_bounding_box_on_image(image,top,left,bottom,right,display_str_list=[flower_name], color=col, use_normalized_coordinates=False, thickness=1)
 
         image_name = os.path.basename(image_path)
         image.save(os.path.join(output_folder,image_name))
