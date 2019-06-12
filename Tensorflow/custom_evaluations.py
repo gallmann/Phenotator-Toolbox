@@ -19,6 +19,7 @@ from object_detection.utils import visualization_utils
 from PIL import Image
 import os
 from object_detection.utils import label_map_util
+import progressbar
 
 
 iou_threshold = 0.4
@@ -30,9 +31,14 @@ def evaluate():
             
     flower_names = get_flower_names_from_labelmap(PATH_TO_LABELS)
     
+    stats = {}
+    for flower_name in flower_names:
+        stats[flower_name] = {"tp": 0, "fp": 0, "fn": 0}
+
     images = file_utils.get_all_images_in_folder(input_folder)
     
-    for image_path in images:
+    for i in progressbar.progressbar(range(len(images))):
+        image_path = images[i]
         
         predictions_path = image_path[:-4] + "_predictions.json"
         ground_truth_path = image_path[:-4] + "_ground_truth.json"
@@ -47,10 +53,6 @@ def evaluate():
         for gt in ground_truths:
             gt["hits"] = 0
                 
-        stats = {}
-        
-        for flower_name in flower_names:
-            stats[flower_name] = {"tp": 0, "fp": 0, "fn": 0}
                 
         predictions = sorted(predictions, key=lambda k: -k['score']) 
 
@@ -104,24 +106,19 @@ def evaluate():
             elif prediction["hits"] > 1:
                 print("Damn, a prediction hit more than one ground truths")
         '''
-        print(stats)
-        for flower_name in flower_names:
-            print(flower_name + ":")
-            stat = stats[flower_name]
-            if float(stat["fp"]+stat["tp"]) == 0:
-                precision = "-"
-            else:
-                precision = float(stat["tp"]) / float(stat["fp"]+stat["tp"])
-            if float(stat["tp"] + stat["fn"]) == 0:
-                recall = "-"
-            else:
-                recall = float(stat["tp"]) / float(stat["tp"] + stat["fn"])
         
-            print("   precision: " + str(precision))
-            print("   recall: " + str(recall))
-           
         image = Image.open(image_path)
-
+        
+        for prediction in predictions:
+            for gt in ground_truths:
+                if prediction["label"] == "fp" and gt["label"] == "fn":
+                    if iou(prediction["bounding_box"], gt["bounding_box"])>iou_threshold:
+                        [top,left,bottom,right] = gt["bounding_box"]
+                        visualization_utils.draw_bounding_box_on_image(image,top,left,bottom,right,display_str_list=["Misclassification", "is: " + gt["name"] , "pred: " + prediction["name"]],thickness=2, color="DarkOrange", use_normalized_coordinates=False)          
+                        ground_truths.remove(gt)
+                        predictions.remove(prediction)
+        
+        
         for prediction in predictions:
             [top,left,bottom,right] = prediction["bounding_box"]
             if prediction["label"] == "fp":
@@ -129,9 +126,28 @@ def evaluate():
         for gt in ground_truths:
             if gt["label"] == "fn":
                 [top,left,bottom,right] = gt["bounding_box"]
-                visualization_utils.draw_bounding_box_on_image(image,top,left,bottom,right,display_str_list=["FN", gt["name"]],thickness=2, color="red", use_normalized_coordinates=False)          
+                visualization_utils.draw_bounding_box_on_image(image,top,left,bottom,right,display_str_list=["FN", gt["name"]],thickness=2, color="MediumVioletRed", use_normalized_coordinates=False)          
         image_output_path = os.path.join(output_folder, os.path.basename(image_path))
         image.save(image_output_path)
+
+
+
+    for flower_name in flower_names:
+        stat = stats[flower_name]
+        n = stat["tp"] + stat["fn"]
+        print(flower_name + " (n=" + str(n) + "):")
+        if float(stat["fp"]+stat["tp"]) == 0:
+            precision = "-"
+        else:
+            precision = float(stat["tp"]) / float(stat["fp"]+stat["tp"])
+        if float(stat["tp"] + stat["fn"]) == 0:
+            recall = "-"
+        else:
+            recall = float(stat["tp"]) / float(stat["tp"] + stat["fn"])
+    
+        print("   precision: " + str(precision))
+        print("   recall: " + str(recall))
+        print("   TP: " + str(stat["tp"]) + " FP: " + str(stat["fp"]) + " FN: " + str(stat["fn"]))
 
         
         
@@ -183,6 +199,7 @@ def filter_ground_truth(ground_truths, flower_names):
 
                 
 def get_flower_names_from_labelmap(labelmap_path):
+    
     flower_names = []
     category_index = label_map_util.create_category_index_from_labelmap(labelmap_path, use_display_name=True)
     for d in category_index:
