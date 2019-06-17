@@ -35,12 +35,18 @@ flower_bounding_box_size = {
 'ranunculus friesianus'   : 11,
 'ranunculus'   : 11,
 'salvia pratensis'   : 15,
-'tragopogon pratensis'   : 4,
+'tragopogon pratensis'   : 17,
 'trifolium pratense'   : 10,
 'veronica chamaedris'   : 4,
 'vicia sativa'   : 6,
 'vicia sepium'   : 4,
-'dianthus carthusionorum': 14
+'dianthus carthusionorum': 11,
+'lathyrus pratensis' : 8,
+'leontodon hispidus' : 18,
+'centaurea jacea': 20,
+'rhinanthus alectorolophus': 20,
+'trifolium repens': 10,
+'orchis sp': 20
 }
 
 
@@ -92,14 +98,28 @@ def polygon_to_bounding_box(flower):
 
 def clean_string(s):
     #get rid of ä, ö, ü, upper case letters or trailing whitespaces
-    s = s.encode(encoding='iso-8859-1').decode(encoding='utf-8').replace('ö','oe').replace('ä','ae').replace('ü','ue').lower().rstrip()
+    s = s.encode(encoding='iso-8859-1').decode(encoding='utf-8').replace('ö','oe').replace('ä','ae').replace('ü','ue').lower().rstrip(" ,.:")
+    
+    #correct spelling errors
+    if "dianthus carthusionorum" in s:
+        return "dianthus carthusianorum"
+    if "rhinantus alectorolophus" in s:
+        return "rhinanthus alectorolophus"
+    if "flos" in s and "cuculi" in s:
+        return "lychnis flos cuculi"
+
+    
     
     #different types of ranunculus cannot be distinguished from the image alone, therefore 
     #just combine them to ranunculus
     if "ranunculus" in s:
         return "ranunculus"
-    if "flos" in s and "cuculi" in s:
-        return "lychnis flos cuculi"
+    if "lathyrus pratensis" in s:
+        return "lotus corniculatus"
+    if "carum carvi" in s:
+        return "galium mollugo"
+    if "leontodon hispidus" in s or "tragopogon pratensis" in s :
+        return "crepis biennis"
     else:
         return s
 

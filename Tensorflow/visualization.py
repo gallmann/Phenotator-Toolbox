@@ -10,7 +10,8 @@ data has to be provided.
 
 from utils import constants
 input_folder = constants.input_folders[0]
-
+input_folder = "C:/Users/johan/Desktop/output/images/annotated_ortho_photos"
+input_folder = "C:/Users/johan/Desktop/bothtablets"
 output_folder = constants.vis_im
 
 
@@ -42,6 +43,8 @@ def draw_bounding_boxes(input_folder, output_folder):
         annotation_path_xml = image_path[:-4] + ".xml"
         if annotation_path and os.path.isfile(annotation_path):
             annotation_data = file_utils.read_json_file(annotation_path)
+            if not annotation_data:
+                continue
             annotations = annotation_data["annotatedFlowers"]
             for flower in annotations:
                 flower_name = flower_info.clean_string(flower["name"])

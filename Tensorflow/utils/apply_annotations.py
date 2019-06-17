@@ -90,24 +90,34 @@ def copy_annotations(annotated_image_path, annotation_path, ortho_png, ortho_tif
     
     #loop through all annotations
     for i in range(len(annotation_data["annotatedFlowers"])-1,-1,-1):
-        # get pixel coordinates of annotation
-        x = annotation_data["annotatedFlowers"][i]["polygon"][0]["x"]
-        y = annotation_data["annotatedFlowers"][i]["polygon"][0]["y"]
-
-        # translate the annotation pixels to the ortho_png image
-        (x_target,y_target) = translate_pixel_coordinates(x,y,height,width,annotated_image_coordinates, ortho_tif_coordinates,ortho_height,ortho_width)
         
-        #check if the translation of the annotation has pixel coordinates within the bounds of the image to be annotated
-        if(x_target < ortho_width and y_target < ortho_height and x_target > 0 and y_target > 0):
+        annotation = annotation_data["annotatedFlowers"][i]
+        output_annotation = annotation
+        should_be_added = True
+        
+        for coord_ind in range(0,len(annotation["polygon"])):
+            # get pixel coordinates of annotation
+            x = annotation["polygon"][coord_ind]["x"]
+            y = annotation["polygon"][coord_ind]["y"]
+    
+            # translate the annotation pixels to the ortho_png image
+            (x_target,y_target) = translate_pixel_coordinates(x,y,height,width,annotated_image_coordinates, ortho_tif_coordinates,ortho_height,ortho_width)
             
+            #check if the translation of the annotation has pixel coordinates within the bounds of the image to be annotated
+            if(not (x_target < ortho_width and y_target < ortho_height and x_target > 0 and y_target > 0)):
+                should_be_added = False
+                break
             #check if the output pixel is completely white. If so, the flower is most probably not within the
             #bounds of the image but outside where the image is white (because of orthorectification)
-            pix = orthoTif.load()
-            if(pix[x_target,y_target] != (255,255,255)):
+            elif orthoTif.load()[x_target,y_target] == (255,255,255):
+                should_be_added = False
+                break
+            else:
                 #if the annotation is within the image and the pixel is not white, add the annotation to the output_annotations
-                annotation_data["annotatedFlowers"][i]["polygon"][0]["x"] = x_target
-                annotation_data["annotatedFlowers"][i]["polygon"][0]["y"] = y_target
-                output_annotations["annotatedFlowers"].append(annotation_data["annotatedFlowers"][i])
+                output_annotation["polygon"][coord_ind]["x"] = x_target
+                output_annotation["polygon"][coord_ind]["y"] = y_target
+        if should_be_added:
+            output_annotations["annotatedFlowers"].append(annotation_data["annotatedFlowers"][i])
                 
    
     #save annotation file
@@ -178,7 +188,6 @@ def get_intersection(geo1,geo2):
         intersectionRect.ul_lat = topY
         intersectionRect.lr_lon = rightX
         intersectionRect.lr_lat = bottomY
-
         return intersectionRect
     else:
         return None
