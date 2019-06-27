@@ -50,7 +50,7 @@ flower_bounding_box_size = {
 }
 
 
-
+from matplotlib import colors
 
 def get_bbox_size(flower_name):
     return flower_bounding_box_size[flower_name]
@@ -96,7 +96,49 @@ def polygon_to_bounding_box(flower):
     return [round(top),round(left),round(bottom),round(right)]
 
 
-def clean_string(s):
+STANDARD_COLORS = [
+    'AliceBlue', 'Chartreuse', 'Aqua', 'Aquamarine', 'Azure', 'Beige', 'Bisque',
+    'BlanchedAlmond', 'BlueViolet', 'BurlyWood', 'CadetBlue', 'AntiqueWhite',
+    'Chocolate', 'Coral', 'CornflowerBlue', 'Cornsilk', 'Crimson', 'Cyan',
+    'DarkCyan', 'DarkGoldenRod', 'DarkGrey', 'DarkKhaki', 'DarkOrange',
+    'DarkOrchid', 'DarkSalmon', 'DarkSeaGreen', 'DarkTurquoise', 'DarkViolet',
+    'DeepPink', 'DeepSkyBlue', 'DodgerBlue', 'FireBrick', 'FloralWhite',
+    'ForestGreen', 'Fuchsia', 'Gainsboro', 'GhostWhite', 'Gold', 'GoldenRod',
+    'Salmon', 'Tan', 'HoneyDew', 'HotPink', 'IndianRed', 'Ivory', 'Khaki',
+    'Lavender', 'LavenderBlush', 'LawnGreen', 'LemonChiffon', 'LightBlue',
+    'LightCoral', 'LightCyan', 'LightGoldenRodYellow', 'LightGray', 'LightGrey',
+    'LightGreen', 'LightPink', 'LightSalmon', 'LightSeaGreen', 'LightSkyBlue',
+    'LightSlateGray', 'LightSlateGrey', 'LightSteelBlue', 'LightYellow', 'Lime',
+    'LimeGreen', 'Linen', 'Magenta', 'MediumAquaMarine', 'MediumOrchid',
+    'MediumPurple', 'MediumSeaGreen', 'MediumSlateBlue', 'MediumSpringGreen',
+    'MediumTurquoise', 'MediumVioletRed', 'MintCream', 'MistyRose', 'Moccasin',
+    'NavajoWhite', 'OldLace', 'Olive', 'OliveDrab', 'Orange', 'OrangeRed',
+    'Orchid', 'PaleGoldenRod', 'PaleGreen', 'PaleTurquoise', 'PaleVioletRed',
+    'PapayaWhip', 'PeachPuff', 'Peru', 'Pink', 'Plum', 'PowderBlue', 'Purple',
+    'Red', 'RosyBrown', 'RoyalBlue', 'SaddleBrown', 'Green', 'SandyBrown',
+    'SeaGreen', 'SeaShell', 'Sienna', 'Silver', 'SkyBlue', 'SlateBlue',
+    'SlateGray', 'SlateGrey', 'Snow', 'SpringGreen', 'SteelBlue', 'GreenYellow',
+    'Teal', 'Thistle', 'Tomato', 'Turquoise', 'Violet', 'Wheat', 'White',
+    'WhiteSmoke', 'Yellow', 'YellowGreen'
+]
+
+
+
+def get_color_for_flower(flower_name, get_rgb_value=False):
+    flower_name = correct_spelling_errors(flower_name)
+    for i,name in enumerate(flower_bounding_box_size):
+        if name == flower_name:
+            if get_rgb_value:
+                rgba = list(colors.to_rgba(STANDARD_COLORS[i]))
+                for i in range(0,3):
+                    rgba[i] = int(rgba[i]*255)
+                rgba[3] = 64
+                return rgba
+            return STANDARD_COLORS[i]
+    return STANDARD_COLORS[40]
+    
+    
+def correct_spelling_errors(s):
     #get rid of ä, ö, ü, upper case letters or trailing whitespaces
     s = s.encode(encoding='iso-8859-1').decode(encoding='utf-8').replace('ö','oe').replace('ä','ae').replace('ü','ue').lower().rstrip(" ,.:")
     
@@ -107,8 +149,13 @@ def clean_string(s):
         return "rhinanthus alectorolophus"
     if "flos" in s and "cuculi" in s:
         return "lychnis flos cuculi"
-
     
+    return s
+    
+    
+def clean_string(s):
+    
+    s = correct_spelling_errors(s)    
     
     #different types of ranunculus cannot be distinguished from the image alone, therefore 
     #just combine them to ranunculus
