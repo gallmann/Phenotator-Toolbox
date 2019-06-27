@@ -96,7 +96,13 @@ def get_annotations_from_xml(xml_path):
     
     
     
+def check_all_json_files_in_folder(folder_path):
+    for file in os.listdir(folder_path):
+        if file.endswith(".json"):
+            read_json_file(file)
+    print("if no errors were printed, everything is fine")
     
+
     
     
     

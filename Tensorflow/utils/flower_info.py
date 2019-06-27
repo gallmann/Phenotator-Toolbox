@@ -40,7 +40,7 @@ flower_bounding_box_size = {
 'veronica chamaedris'   : 4,
 'vicia sativa'   : 6,
 'vicia sepium'   : 4,
-'dianthus carthusionorum': 11,
+'dianthus carthusianorum': 11,
 'lathyrus pratensis' : 8,
 'leontodon hispidus' : 18,
 'centaurea jacea': 20,
