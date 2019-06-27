@@ -14,7 +14,7 @@ import json
 import shutil
 import xml.etree.cElementTree as ET
 from PIL import Image
-import flower_info
+from utils import flower_info
 
 
 
@@ -95,14 +95,26 @@ def get_annotations_from_xml(xml_path):
     return annotations
 
     
+def get_annotations(image_path):
+    annotation_path = image_path[:-4] + "_annotations.json"
+    annotation_data = read_json_file(annotation_path)
+    if(not annotation_data):
+        return []
+    annotations = annotation_data["annotatedFlowers"]
+    return annotations
+
 
 def annotations_to_labelme_file(annotations,output_path,image_path):
     image = Image.open(image_path)    
     width, height = image.size
-    label_me_dict_template = {"version":"3.15.2","flags":{},"shapes":[],"lineColor":[0,255,0,64],"fillColor":[255,0,0,64],"imagePath":os.path.basename(output_path)[:-5] + ".png", "imageData":None,"imageHeight":height,"imageWidth":width}
-    for flower in annotations:
-        flower_dict = {"label":flower["name"], "line_color":None,"fill_color":None,"points":[],"shape_type":"polygon","flags":{}}
-        [top,left,bottom,right] = flower_info.get_bbox(flower)
+    label_me_dict_template = {"version":"3.15.2","flags":{},"shapes":[],"lineColor":[0,255,0,64],"fillColor":[255,0,0,64],"imagePath":os.path.basename(image_path), "imageData":None,"imageHeight":height,"imageWidth":width}
+    if annotations:
+        for flower in annotations:
+            col = flower_info.get_color_for_flower(flower["name"], get_rgb_value=True)
+            flower_dict = {"label":flower["name"], "line_color":col,"fill_color":col,"points":[],"shape_type":"polygon","flags":{}}
+            [top,left,bottom,right] = flower_info.get_bbox(flower)
+            flower_dict["points"] = [[left,top],[left,bottom],[right,bottom],[right,top]]
+            label_me_dict_template["shapes"].append(flower_dict)
         
     save_json_file(label_me_dict_template,output_path)
     
