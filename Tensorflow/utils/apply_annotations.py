@@ -31,43 +31,44 @@ class GeoInformation(object):
 
 
 
-
-
-
 # This function takes all images together with the annotation files in the annotated_folder
 # and based on this annotation data generates the annotation files for all images (.tif) in the
 # images_folder. The newly generated annotated images will be saved to the output_folder
 def apply_annotations_to_images(annotated_folder, images_folder, output_folder):
     
     all_ortho_tifs = file_utils.get_all_tifs_in_folder(images_folder)
-    all_annotated_images = file_utils.get_all_images_in_folder(annotated_folder)
     
     print("Adding Annotations to all ortho images:")
     
     # loop through all images in the images_folder
     for i in progressbar.progressbar(range(len(all_ortho_tifs))):
-        
-        ortho_tif = all_ortho_tifs[i]
+        apply_annotations_to_image(annotated_folder,all_ortho_tifs[i],output_folder)
+    
+def apply_annotations_to_image(annotated_folder, image_path, output_folder):
+    
+    all_annotated_images = file_utils.get_all_images_in_folder(annotated_folder)
+    
+    ortho_tif = image_path
 
-        #convert all images in images_folder to png and copy them to output folder. Also create empty annotation.json files
-        im = Image.open(ortho_tif)
-        im.thumbnail(im.size)
-        ortho_png = os.path.join(output_folder, os.path.basename(ortho_tif)[:-4] + ".png")
-        im.save(ortho_png, quality=100)
-        annotation_template = {"annotatedFlowers": []}
-        with open(os.path.join(output_folder,os.path.basename(ortho_tif)[:-4] + "_annotations.json"), 'w') as outfile:
-            json.dump(annotation_template, outfile)
+    #convert all images in images_folder to png and copy them to output folder. Also create empty annotation.json files
+    im = Image.open(ortho_tif)
+    im.thumbnail(im.size)
+    ortho_png = os.path.join(output_folder, os.path.basename(ortho_tif)[:-4] + ".png")
+    im.save(ortho_png, quality=100)
+    annotation_template = {"annotatedFlowers": []}
+    with open(os.path.join(output_folder,os.path.basename(ortho_tif)[:-4] + "_annotations.json"), 'w') as outfile:
+        json.dump(annotation_template, outfile)
 
-        #loop through all images in annotated_folder and images_folder and call copy_annotations() if the two
-        #images share a common area
-        c = get_geo_coordinates(ortho_tif)
-        for annotated_image in all_annotated_images:
-            d = get_geo_coordinates(annotated_image)
-            annotation_path = annotated_image[:-4] + "_annotations.json"
-            intersection = get_intersection(c,d)
-            if intersection:
-                copy_annotations(annotated_image,annotation_path, ortho_png, c, d)  
-                
+    #loop through all images in annotated_folder and images_folder and call copy_annotations() if the two
+    #images share a common area
+    c = get_geo_coordinates(ortho_tif)
+    for annotated_image in all_annotated_images:
+        d = get_geo_coordinates(annotated_image)
+        annotation_path = annotated_image[:-4] + "_annotations.json"
+        intersection = get_intersection(c,d)
+        if intersection:
+            copy_annotations(annotated_image,annotation_path, ortho_png, c, d)  
+                    
     
 # copies all annotations from the annotated_image to the ortho_png image.
 def copy_annotations(annotated_image_path, annotation_path, ortho_png, ortho_tif_coordinates, annotated_image_coordinates):
@@ -118,7 +119,7 @@ def copy_annotations(annotated_image_path, annotation_path, ortho_png, ortho_tif
                 break
             #check if the output pixel is completely white. If so, the flower is most probably not within the
             #bounds of the image but outside where the image is white (because of orthorectification)
-            elif is_pixel_white(x,y,image):
+            elif is_pixel_white(x,y,orthoTif):
                 should_be_added = False
                 break
         if should_be_added:
