@@ -44,9 +44,14 @@ class PreprocessTool(object):
         inSRS_converter.ImportFromWkt(inSRS_wkt)  # populates the spatial ref object with our WKT SRS
         inSRS_forPyProj = inSRS_converter.ExportToProj4()  # Exports an SRS ref as a Proj4 string usable by PyProj
         
-        #swiss represents the coordinate system of the georeferenced image saved at in_path
-        #this should be the swiss coordinate system CH1903+ / LV95 ("+init=EPSG:2056")
-        swiss = pyproj.Proj(inSRS_forPyProj) 
+        print("coord_system: " + str(inSRS_forPyProj))
+        create_geoinfo_file = True
+        try:
+            #swiss represents the coordinate system of the georeferenced image saved at in_path
+            #this should be the swiss coordinate system CH1903+ / LV95 ("+init=EPSG:2056")
+            swiss = pyproj.Proj(inSRS_forPyProj) 
+        except RuntimeError:
+            create_geoinfo_file = False
         # LatLon with WGS84 datum used by GPS units and Google Earth
         wgs84=pyproj.Proj("+init=EPSG:4326") 
         
@@ -83,21 +88,21 @@ class PreprocessTool(object):
                 progress = min((i+ y_progress*tile_size_x)/xsize,0.99)
                 progress_callback(progress)
 
-                
-                #calculate upper left and lower right coordinates of image tile
-                geo_info_curr = GeoInformation()
-                geo_info_curr.ul_lon = ulx + (i * xres)
-                geo_info_curr.ul_lat = uly + j* yres
-                geo_info_curr.lr_lon = ulx + (i+tile_size_x) * xres
-                geo_info_curr.lr_lat = uly + (j+tile_size_x) * yres
-                
-                #convert them to wgs84
-                geo_info_curr.lr_lon,geo_info_curr.lr_lat  = pyproj.transform(swiss, wgs84, geo_info_curr.lr_lon, geo_info_curr.lr_lat)
-                geo_info_curr.ul_lon,geo_info_curr.ul_lat = pyproj.transform(swiss, wgs84, geo_info_curr.ul_lon, geo_info_curr.ul_lat)
-
-                #save geoinfo file
-                with open(out_path_json, 'w') as outfile:
-                    json.dump(geo_info_curr.__dict__, outfile)
+                if create_geoinfo_file:
+                    #calculate upper left and lower right coordinates of image tile
+                    geo_info_curr = GeoInformation()
+                    geo_info_curr.ul_lon = ulx + (i * xres)
+                    geo_info_curr.ul_lat = uly + j* yres
+                    geo_info_curr.lr_lon = ulx + (i+tile_size_x) * xres
+                    geo_info_curr.lr_lat = uly + (j+tile_size_x) * yres
+                    
+                    #convert them to wgs84
+                    geo_info_curr.lr_lon,geo_info_curr.lr_lat  = pyproj.transform(swiss, wgs84, geo_info_curr.lr_lon, geo_info_curr.lr_lat)
+                    geo_info_curr.ul_lon,geo_info_curr.ul_lat = pyproj.transform(swiss, wgs84, geo_info_curr.ul_lon, geo_info_curr.ul_lat)
+    
+                    #save geoinfo file
+                    with open(out_path_json, 'w') as outfile:
+                        json.dump(geo_info_curr.__dict__, outfile)
         
         
             #update UI progressbar
