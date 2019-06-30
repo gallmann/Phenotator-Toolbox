@@ -58,7 +58,6 @@ import utils.xml_to_csv as xml_to_csv
 import random
 import utils.generate_tfrecord as generate_tfrecord
 from utils import flower_info
-from utils import apply_annotations
 from utils import file_utils
 import progressbar
 
@@ -77,13 +76,14 @@ def convert_annotation_folder():
     for input_folder_index in range(0,len(input_folders)):
         
         input_folder = input_folders[input_folder_index]
+        '''
         single_shot_ortho_photos_path = single_shot_ortho_photos_paths[input_folder_index]
         
         if(single_shot_ortho_photos_path != ""):
             annotated_ortho_photos_path = os.path.join(os.path.join(output_dir,"images"),"annotated_ortho_photos")
             apply_annotations.apply_annotations_to_images(input_folder, single_shot_ortho_photos_path,annotated_ortho_photos_path)
             input_folder = annotated_ortho_photos_path
-        
+        '''
         image_paths = file_utils.get_all_images_in_folder(input_folder)
     
         print("Tiling images (and annotations) into chunks suitable for Tensorflow training:")
@@ -165,7 +165,8 @@ def get_flowers_within_bounds(annotation_path, x_offset, y_offset):
     annotations = annotation_data["annotatedFlowers"]
 
     for flower in annotations:
-        #if not flower["name"] == "Margarite":
+        if flower["name"] == "roi":
+            continue
         
         [top,left,bottom,right] = flower_info.get_bbox(flower)
         [top,left,bottom,right] = [top-y_offset, left -x_offset, bottom-y_offset, right - x_offset]

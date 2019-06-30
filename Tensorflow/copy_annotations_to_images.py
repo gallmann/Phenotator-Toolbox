@@ -9,9 +9,9 @@ Created on Thu Jun 27 13:32:49 2019
 from utils import constants
 
 
-annotated_folder = "G:/Johannes/Data/June_29/flight2/AnnotationData"
-to_be_annotated_folder = "G:/Johannes/Data/June_29/flight2/Agisoft/single_ortho_tifs"
-output_folder = "G:/Johannes/Data/June_29/flight2/AnnotatedSinglePhotos"
+annotated_folder = "G:/Johannes/Data/June_14/MaskedAnnotationData"
+to_be_annotated_folder = "G:/Johannes/Data/June_14/Agisoft/sigle_ortho_tifs"
+output_folder = "G:/Johannes/Data/June_14/MaskedAnnotatedSingleOrthoPhotos"
 
 
 from utils import apply_annotations
@@ -20,6 +20,8 @@ import subprocess
 import os
 import tkinter
 from tkinter import messagebox
+import random
+import progressbar
 
 #copies all annotations from the annotated_folder to all images in the to_be_annotated_folder and saves
 #them into the output_folder
@@ -43,22 +45,29 @@ def check_images(output_folder):
 #This allows the user to inerrupt this process and continue on at a later time. 
 def copy_annotations_to_images_one_by_one(annotated_folder, to_be_annotated_folder, output_folder):
     all_images = file_utils.get_all_tifs_in_folder(to_be_annotated_folder)
+    random.shuffle(all_images)
+
     # hide main window
     root = tkinter.Tk()
     root.withdraw()
     # message box display
     messagebox.showinfo("Information","A window will open with the LabelMe Program. It will show one single image with the annotations. Please check all annotations and modify them if necessary! Also make sure the 'roi' polygon is set correctly. Only the regions within a 'roi' polygon will be further processed. The rest of the image is discarded. Once this is done, simply close the LabelMe program and a new image will be opened in a new LabelMe program instance.")
-
-    for image_path in all_images:
+    
+    for i in progressbar.progressbar(range(len(all_images))):
+        image_path = all_images[i]
         image_path_in_output_folder = os.path.join(output_folder,os.path.basename(image_path)[:-4]+".png")
         if os.path.isfile(image_path_in_output_folder):
             continue
-
-        apply_annotations.apply_annotations_to_image(annotated_folder,image_path,output_folder)
         
+        
+        apply_annotations.apply_annotations_to_image(annotated_folder,image_path,output_folder)
         annotations = file_utils.get_annotations(image_path_in_output_folder)
         roi_file_path = image_path_in_output_folder[:-4] + ".json"
         file_utils.annotations_to_labelme_file(annotations,roi_file_path,image_path_in_output_folder)
+        if(len(annotations) == 0):
+            file_utils.strip_image(image_path_in_output_folder,roi_file_path,image_path_in_output_folder)
+            continue
+        
         subprocess.call(["labelme", image_path_in_output_folder, "--nodata", "--autosave", "--labels", "roi"])
         file_utils.strip_image(image_path_in_output_folder,roi_file_path,image_path_in_output_folder)
         
