@@ -12,8 +12,8 @@ import json
 from PIL import Image
 from utils import file_utils
 import progressbar
-
-
+from shapely.geometry import Polygon
+from shapely.geometry import box
 
 
 
@@ -28,6 +28,11 @@ class GeoInformation(object):
         else:
             for key in dictionary:
                 setattr(self, key, dictionary[key])
+
+
+
+
+
 
 # This function takes all images together with the annotation files in the annotated_folder
 # and based on this annotation data generates the annotation files for all images (.tif) in the
@@ -86,45 +91,107 @@ def copy_annotations(annotated_image_path, annotation_path, ortho_png, ortho_tif
     output_annotations_path = ortho_png[:-4] + "_annotations.json"
     output_annotations = file_utils.read_json_file(output_annotations_path)
     
-    #TODO Polygon
     
     #loop through all annotations
     for i in range(len(annotation_data["annotatedFlowers"])-1,-1,-1):
         
         annotation = annotation_data["annotatedFlowers"][i]
-        output_annotation = annotation
         should_be_added = True
-        
-        for coord_ind in range(0,len(annotation["polygon"])):
-            # get pixel coordinates of annotation
-            x = annotation["polygon"][coord_ind]["x"]
-            y = annotation["polygon"][coord_ind]["y"]
-    
-            # translate the annotation pixels to the ortho_png image
-            (x_target,y_target) = translate_pixel_coordinates(x,y,height,width,annotated_image_coordinates, ortho_tif_coordinates,ortho_height,ortho_width)
+        translated_annotation = translate_annotation(annotation,height,width,annotated_image_coordinates, ortho_tif_coordinates,ortho_height,ortho_width)
+
+        if annotation["name"] == "roi":
             
+            result_polygon = get_intersection_of_polygon_and_image_bounds(ortho_width,ortho_height,annotation["polygon"])
+            if result_polygon:
+                translated_annotation["polygon"] = result_polygon
+                output_annotations["annotatedFlowers"].append(translated_annotation)
+            continue
+        
+        for coord_ind in range(0,len(translated_annotation["polygon"])):
+            # get pixel coordinates of annotation
+            x = translated_annotation["polygon"][coord_ind]["x"]
+            y = translated_annotation["polygon"][coord_ind]["y"]
+                        
             #check if the translation of the annotation has pixel coordinates within the bounds of the image to be annotated
-            if(not (x_target < ortho_width and y_target < ortho_height and x_target > 0 and y_target > 0)):
+            if(not are_coordinates_within_image_bounds(x,y,ortho_width,ortho_height)):
                 should_be_added = False
                 break
             #check if the output pixel is completely white. If so, the flower is most probably not within the
             #bounds of the image but outside where the image is white (because of orthorectification)
-            elif orthoTif.load()[x_target,y_target] == (255,255,255):
+            elif is_pixel_white(x,y,image):
                 should_be_added = False
                 break
-            else:
-                #if the annotation is within the image and the pixel is not white, add the annotation to the output_annotations
-                output_annotation["polygon"][coord_ind]["x"] = x_target
-                output_annotation["polygon"][coord_ind]["y"] = y_target
         if should_be_added:
-            output_annotations["annotatedFlowers"].append(annotation_data["annotatedFlowers"][i])
+            output_annotations["annotatedFlowers"].append(translated_annotation)
                 
-   
     #save annotation file
     with open(output_annotations_path, 'w') as outfile:
         json.dump(output_annotations, outfile)
+        
+        
+        
+def translate_annotation(annotation,height,width,annotated_image_coordinates, ortho_tif_coordinates,ortho_height,ortho_width):
+    output_annotation = annotation
+    for coord_ind in range(0,len(annotation["polygon"])):
+        # get pixel coordinates of annotation
+        x = annotation["polygon"][coord_ind]["x"]
+        y = annotation["polygon"][coord_ind]["y"]
+        # translate the annotation pixels to the ortho_png image
+        (x_target,y_target) = translate_pixel_coordinates(x,y,height,width,annotated_image_coordinates, ortho_tif_coordinates,ortho_height,ortho_width)
+        
+        output_annotation["polygon"][coord_ind]["x"] = x_target
+        output_annotation["polygon"][coord_ind]["y"] = y_target
+    return output_annotation
+        
+        
+        
+def get_intersection_of_polygon_and_image_bounds(image_width,image_height,roi_polygon):
+        
+    image_box = box(0,0,image_width,image_height)
+    roi_polygon_array = []
+    for coord_ind in range(0,len(roi_polygon)):
+        roi_polygon_array.append([roi_polygon[coord_ind]["x"],roi_polygon[coord_ind]["y"]])
+    roi_polygon = Polygon(roi_polygon_array)
+    intersection = image_box.intersection(roi_polygon)
     
+    if intersection.is_empty:
+        return None
+    intersection_array = list(intersection.exterior.coords)
+    
+    result_polygon = []
+    for coord_ind in range(0,len(intersection_array)-1):
+        result_polygon.append({"x":intersection_array[coord_ind][0],"y":intersection_array[coord_ind][1]})
+    return result_polygon
 
+    
+def are_coordinates_within_colorful_image(x,y,image,width,height):
+    return not is_pixel_white(x,y,image) and are_coordinates_within_image_bounds(x,y,width,height)
+
+def are_coordinates_within_image_bounds(x,y,width,height):
+    #check if the (x,y) coordinates lay within the image bounds
+    if(x < width and y < height and x > 0 and y > 0):
+        return True
+    return False
+        
+def is_pixel_white(x,y,image):
+    if not are_coordinates_within_image_bounds(x,y,image.width,image.height):
+        return False
+    if image.load()[x,y] == (255,255,255):
+        return True
+    return False
+
+def get_roi_annotation(annotation):
+    return 0
+
+#convenience method
+def translate_pixel_coordinates_conv(annotation,coord_ind,height,width,source_geo_coords,target_geo_coords,height_target,width_target):
+    x = annotation["polygon"][coord_ind]["x"]
+    y = annotation["polygon"][coord_ind]["y"]
+            
+    # translate the annotation pixels to the ortho_png image
+    return translate_pixel_coordinates(x,y,height,width,annotated_image_coordinates, ortho_tif_coordinates,ortho_height,ortho_width)
+
+    
 # translates the coordinates of an annotation from one geo annotated image to the other
 def translate_pixel_coordinates(x,y,height,width,source_geo_coords,target_geo_coords,height_target,width_target):
     rel_x = x/width
