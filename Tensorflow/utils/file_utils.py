@@ -112,8 +112,13 @@ def annotations_to_labelme_file(annotations,output_path,image_path):
         for flower in annotations:
             col = flower_info.get_color_for_flower(flower["name"], get_rgb_value=True)
             flower_dict = {"label":flower["name"], "line_color":col,"fill_color":col,"points":[],"shape_type":"polygon","flags":{}}
-            [top,left,bottom,right] = flower_info.get_bbox(flower)
-            flower_dict["points"] = [[left,top],[left,bottom],[right,bottom],[right,top]]
+            if flower["name"] == "roi":
+                flower_dict["points"] = []
+                for point in flower["polygon"]:
+                    flower_dict["points"].append([point["x"],point["y"]])
+            else:
+                [top,left,bottom,right] = flower_info.get_bbox(flower)
+                flower_dict["points"] = [[left,top],[left,bottom],[right,bottom],[right,top]]
             label_me_dict_template["shapes"].append(flower_dict)
         
     save_json_file(label_me_dict_template,output_path)
@@ -124,7 +129,4 @@ def check_all_json_files_in_folder(folder_path):
         if file.endswith(".json"):
             read_json_file(file)
     print("if no errors were printed, everything is fine")
-    
-
-    
     
