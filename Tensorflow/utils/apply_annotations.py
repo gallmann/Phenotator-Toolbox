@@ -184,14 +184,6 @@ def is_pixel_white(x,y,image):
 def get_roi_annotation(annotation):
     return 0
 
-#convenience method
-def translate_pixel_coordinates_conv(annotation,coord_ind,height,width,source_geo_coords,target_geo_coords,height_target,width_target):
-    x = annotation["polygon"][coord_ind]["x"]
-    y = annotation["polygon"][coord_ind]["y"]
-            
-    # translate the annotation pixels to the ortho_png image
-    return translate_pixel_coordinates(x,y,height,width,annotated_image_coordinates, ortho_tif_coordinates,ortho_height,ortho_width)
-
     
 # translates the coordinates of an annotation from one geo annotated image to the other
 def translate_pixel_coordinates(x,y,height,width,source_geo_coords,target_geo_coords,height_target,width_target):

@@ -18,7 +18,6 @@ from utils import apply_annotations
 from utils import file_utils
 import subprocess
 import os
-import select_region
 import tkinter
 from tkinter import messagebox
 
@@ -61,7 +60,7 @@ def copy_annotations_to_images_one_by_one(annotated_folder, to_be_annotated_fold
         roi_file_path = image_path_in_output_folder[:-4] + ".json"
         file_utils.annotations_to_labelme_file(annotations,roi_file_path,image_path_in_output_folder)
         subprocess.call(["labelme", image_path_in_output_folder, "--nodata", "--autosave", "--labels", "roi"])
-        select_region.strip_image(image_path_in_output_folder,roi_file_path,image_path_in_output_folder)
+        file_utils.strip_image(image_path_in_output_folder,roi_file_path,image_path_in_output_folder)
         
 
 copy_annotations_to_images_one_by_one(annotated_folder,to_be_annotated_folder,output_folder)
