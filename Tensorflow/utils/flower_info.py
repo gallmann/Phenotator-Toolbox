@@ -55,7 +55,7 @@ from matplotlib import colors
 def get_bbox_size(flower_name):
     return flower_bounding_box_size[flower_name]
 
-def get_bbox(flower):
+def get_bbox(flower):        
     if(flower["isPolygon"]):
         [top,left,bottom,right] = polygon_to_bounding_box(flower)
         return [top,left,bottom,right]
@@ -126,16 +126,19 @@ STANDARD_COLORS = [
 
 def get_color_for_flower(flower_name, get_rgb_value=False):
     flower_name = correct_spelling_errors(flower_name)
+    return_color = STANDARD_COLORS[40]
     for i,name in enumerate(flower_bounding_box_size):
         if name == flower_name:
-            if get_rgb_value:
-                rgba = list(colors.to_rgba(STANDARD_COLORS[i]))
-                for i in range(0,3):
-                    rgba[i] = int(rgba[i]*255)
-                rgba[3] = 64
-                return rgba
-            return STANDARD_COLORS[i]
-    return STANDARD_COLORS[40]
+            return_color = STANDARD_COLORS[i]
+            
+    if get_rgb_value:
+        rgba = list(colors.to_rgba(return_color))
+        for i in range(0,3):
+            rgba[i] = int(rgba[i]*255)
+        rgba[3] = 64
+        return rgba
+    else:
+        return return_color
     
     
 def correct_spelling_errors(s):
