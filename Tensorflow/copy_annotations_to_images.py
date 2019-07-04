@@ -9,9 +9,9 @@ Created on Thu Jun 27 13:32:49 2019
 from utils import constants
 
 
-annotated_folder = "G:/Johannes/Data/June_14/MaskedAnnotationData"
-to_be_annotated_folder = "G:/Johannes/Data/June_14/Agisoft/sigle_ortho_tifs"
-output_folder = "G:/Johannes/Data/June_14/MaskedAnnotatedSingleOrthoPhotos"
+annotated_folder = "C:/Users/johan/Desktop/MaskedAnnotationData"
+to_be_annotated_folder = "C:/Users/johan/Desktop/flight2/Agisoft/single_ortho_tifs"
+output_folder = "C:/Users/johan/Desktop/MaskedAnnotatedSingleOrthoPhotos"
 
 
 from utils import apply_annotations
@@ -56,6 +56,9 @@ def copy_annotations_to_images_one_by_one(annotated_folder, to_be_annotated_fold
     for i in progressbar.progressbar(range(len(all_images))):
         image_path = all_images[i]
         image_path_in_output_folder = os.path.join(output_folder,os.path.basename(image_path)[:-4]+".png")
+        roi_file_path = image_path_in_output_folder[:-4] + ".json"
+        annotations_file_path_in_output_folder = image_path_in_output_folder[:-4] + "_annotations.json"
+        
         if os.path.isfile(image_path_in_output_folder):
             continue
         
@@ -71,6 +74,9 @@ def copy_annotations_to_images_one_by_one(annotated_folder, to_be_annotated_fold
         subprocess.call(["labelme", image_path_in_output_folder, "--nodata", "--autosave", "--labels", "roi"])
         file_utils.strip_image(image_path_in_output_folder,roi_file_path,image_path_in_output_folder)
         
+        annotations = file_utils.get_annotations_from_labelme_file(roi_file_path)
+        file_utils.save_json_file(annotations, annotations_file_path_in_output_folder)
+
 
 copy_annotations_to_images_one_by_one(annotated_folder,to_be_annotated_folder,output_folder)
 #check_images(output_folder)

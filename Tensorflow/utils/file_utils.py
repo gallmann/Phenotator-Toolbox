@@ -123,6 +123,22 @@ def annotations_to_labelme_file(annotations,output_path,image_path):
         
     save_json_file(label_me_dict_template,output_path)
     
+def get_annotations_from_labelme_file(labelme_file):
+    labelme_dict = read_json_file(labelme_file)
+    annotations = {"annotatedFlowers":[]}
+    
+    
+    for annotation in labelme_dict["shapes"]:
+        result_annotation = {}
+        result_annotation["isPolygon"] = True
+        result_annotation["name"] = annotation["label"]
+        polygon = []
+        for point in annotation["points"]:
+            polygon.append({"x":point[0], "y":point[1]})
+        result_annotation["polygon"] = polygon
+        annotations["annotatedFlowers"].append(result_annotation)
+    return annotations
+
     
 def check_all_json_files_in_folder(folder_path):
     for file in os.listdir(folder_path):
