@@ -38,9 +38,6 @@ output_dir = constants.train_dir
 #be chosen.)
 tile_size = constants.tile_size
 
-#what portion of the images should be used for testing and not for training
-test_set_size = 0.2
-
 #choose between "random" and "deterministic" splitting
 split_mode = "deterministic"
 
@@ -190,24 +187,24 @@ def split_train_dir(train_dir,test_dir, labels, labels_test):
     global input_folders
     images = file_utils.get_all_images_in_folder(train_dir)
 
-    if split_mode == "random":
-        #shuffle the images randomly
-        random.shuffle(images)
-        #and move the first few images to the test folder
-        for i in range(0,int(len(images)*test_set_size)):
-            move_image_and_annotations_to_folder(images[i],test_dir,labels,labels_test)
-    
-    elif split_mode == "deterministic":
+    for input_folder_index in range(0,len(input_folders)):
+        portion_to_move_to_test_dir = float(splits[input_folder_index])
+        images_in_current_folder = []
+        #get all image_paths in current folder
+        for image_path in images:
+            if "inputdir" + str(input_folder_index) in image_path:
+                images_in_current_folder.append(image_path)
+
+        if split_mode == "random":
         
-        for input_folder_index in range(0,len(input_folders)):
-            
-            portion_to_move_to_test_dir = float(splits[input_folder_index])
-            images_in_current_folder = []
-            #get all image_paths in current folder
-            for image_path in images:
-                if "inputdir" + str(input_folder_index) in image_path:
-                    images_in_current_folder.append(image_path)
-            
+            #shuffle the images randomly
+            random.shuffle(images_in_current_folder)
+            #and move the first few images to the test folder
+            for i in range(0,int(len(images_in_current_folder)*portion_to_move_to_test_dir)):
+                move_image_and_annotations_to_folder(images_in_current_folder[i],test_dir,labels,labels_test)
+    
+        elif split_mode == "deterministic":
+                    
             #move every 1/portion_to_move_to_test_dir-th image to the test_dir
             split_counter = 0.0
             for i in range(0,int(len(images_in_current_folder))):
@@ -218,7 +215,6 @@ def split_train_dir(train_dir,test_dir, labels, labels_test):
             
 
             
-
 
 def move_image_and_annotations_to_folder(image_path,dest_folder, labels, labels_test):
     image_name = os.path.basename(image_path)
