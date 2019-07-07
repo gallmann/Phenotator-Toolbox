@@ -35,7 +35,7 @@ flower_bounding_box_size = {
 'picris hieracioides': 13,
 'plantago lanceolata'   : 8,
 'plantago major'   : 11,
-'prunella vulgaris': 13,
+'prunella vulgaris': 10,
 'ranunculus acris'   : 11,
 'ranunculus bulbosus'   : 11,
 'ranunculus friesianus'   : 11,

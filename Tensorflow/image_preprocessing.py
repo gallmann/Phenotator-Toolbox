@@ -22,20 +22,16 @@ From this input it generates multiple outputs:
     3. The eval, training, trained_inference_graphs and pre-trained-model folders are prepared.
 """
 
+
 from utils import constants
 
 #Annotation Folder with Annotations made with the Android App
 input_folders = constants.input_folders
 
+splits = constants.input_folders_splits
+
 #All outputs will be printed into this folder
 output_dir = constants.train_dir
-
-
-#if for the training not the images in the input_folder should be used but the single shot orthophotos,
-#set this variable to the path to the directory with the single shot orthophotos
-#If you do not wish to use the orthophotos, put the empty string ("")
-
-single_shot_ortho_photos_paths = constants.single_shot_ortho_photos_paths
 
 #set the tile size of the images to do the tensorflow training on. This value should be chosen to suit your 
 #GPU capabilities and ground resolution (the higher the ground resolution, the greater this tile_size can 
@@ -44,6 +40,9 @@ tile_size = constants.tile_size
 
 #what portion of the images should be used for testing and not for training
 test_set_size = 0.2
+
+#choose between "random" and "deterministic" splitting
+split_mode = "deterministic"
 
 #minimum amount of flower instances to include species in training
 min_flowers = 50
@@ -60,6 +59,7 @@ import utils.generate_tfrecord as generate_tfrecord
 from utils import flower_info
 from utils import file_utils
 import progressbar
+import sys
 
 
 
@@ -76,17 +76,12 @@ def convert_annotation_folder():
     for input_folder_index in range(0,len(input_folders)):
         
         input_folder = input_folders[input_folder_index]
-        '''
-        single_shot_ortho_photos_path = single_shot_ortho_photos_paths[input_folder_index]
-        
-        if(single_shot_ortho_photos_path != ""):
-            annotated_ortho_photos_path = os.path.join(os.path.join(output_dir,"images"),"annotated_ortho_photos")
-            apply_annotations.apply_annotations_to_images(input_folder, single_shot_ortho_photos_path,annotated_ortho_photos_path)
-            input_folder = annotated_ortho_photos_path
-        '''
+                
         image_paths = file_utils.get_all_images_in_folder(input_folder)
-    
-        print("Tiling images (and annotations) into chunks suitable for Tensorflow training:")
+        
+        print("")
+        print("Tiling images (and annotations) into chunks suitable for Tensorflow training: (" + input_folder + ")")
+        sys.stdout.flush()
         for i in progressbar.progressbar(range(len(image_paths))):
             image_path = image_paths[i]
             annotation_path = image_path[:-4] + "_annotations.json"
@@ -192,25 +187,52 @@ def is_bounding_box_within_image(tile_size, top, left, bottom, right):
 #This function makes a random split of all annotated images into training and testing directory
 def split_train_dir(train_dir,test_dir, labels, labels_test):
     
-    #shuffle the images randomly
+    global input_folders
     images = file_utils.get_all_images_in_folder(train_dir)
-    random.shuffle(images)
-    
-    #and move the first few images to the test folder
-    for i in range(0,int(len(images)*test_set_size)):
-        image_name = os.path.basename(images[i])
-        xml_name = os.path.basename(images[i])[:-4] + ".xml"
 
-        #update the labels count to represent the counts of the training data
-        xmlTree = ET.parse(images[i][:-4] + ".xml")
-        for elem in xmlTree.iter():
-            if(elem.tag == "name"):
-                flower_name = elem.text
-                labels[flower_name] = labels[flower_name]-1
-                add_label_to_labelcount(flower_name,labels_test)
-        move(images[i],os.path.join(test_dir,image_name))
-        move(images[i][:-4] + ".xml",os.path.join(test_dir,xml_name))
+    if split_mode == "random":
+        #shuffle the images randomly
+        random.shuffle(images)
+        #and move the first few images to the test folder
+        for i in range(0,int(len(images)*test_set_size)):
+            move_image_and_annotations_to_folder(images[i],test_dir,labels,labels_test)
+    
+    elif split_mode == "deterministic":
+        
+        for input_folder_index in range(0,len(input_folders)):
             
+            portion_to_move_to_test_dir = float(splits[input_folder_index])
+            images_in_current_folder = []
+            #get all image_paths in current folder
+            for image_path in images:
+                if "inputdir" + str(input_folder_index) in image_path:
+                    images_in_current_folder.append(image_path)
+            
+            #move every 1/portion_to_move_to_test_dir-th image to the test_dir
+            split_counter = 0.0
+            for i in range(0,int(len(images_in_current_folder))):
+                split_counter = split_counter + portion_to_move_to_test_dir
+                if split_counter >= 1:
+                    move_image_and_annotations_to_folder(images_in_current_folder[i],test_dir,labels,labels_test)
+                    split_counter = split_counter -1
+            
+
+            
+
+
+def move_image_and_annotations_to_folder(image_path,dest_folder, labels, labels_test):
+    image_name = os.path.basename(image_path)
+    xml_name = os.path.basename(image_path)[:-4] + ".xml"
+
+    #update the labels count to represent the counts of the training data
+    xmlTree = ET.parse(image_path[:-4] + ".xml")
+    for elem in xmlTree.iter():
+        if(elem.tag == "name"):    
+            flower_name = elem.text
+            labels[flower_name] = labels[flower_name]-1
+            add_label_to_labelcount(flower_name,labels_test)
+    move(image_path,os.path.join(dest_folder,image_name))
+    move(image_path[:-4] + ".xml",os.path.join(dest_folder,xml_name))
 
 
 #given a list of labels, this function prints them to a labelmap file needed by tensorflow
