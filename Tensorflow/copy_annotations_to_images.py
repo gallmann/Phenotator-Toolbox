@@ -10,8 +10,8 @@ from utils import constants
 
 
 annotated_folder = "C:/Users/johan/Desktop/MaskedAnnotationData"
-to_be_annotated_folder = "C:/Users/johan/Desktop/flight2/Agisoft/single_ortho_tifs"
-output_folder = "C:/Users/johan/Desktop/MaskedAnnotatedSingleOrthoPhotos"
+to_be_annotated_folder = "D:/MasterThesis/Data/July_03/Agisoft/single_ortho_tifs"
+output_folder = "D:/MasterThesis/Data/July_03/MaskedAnnotatedSingleOrthoPhotos"
 
 
 from utils import apply_annotations
@@ -22,6 +22,7 @@ import tkinter
 from tkinter import messagebox
 import random
 import progressbar
+import signal                         
 
 #copies all annotations from the annotated_folder to all images in the to_be_annotated_folder and saves
 #them into the output_folder
@@ -39,6 +40,11 @@ def check_images(output_folder):
     
     subprocess.call(["labelme", output_folder, "--nodata", "--autosave", "--labels", "roi"])
     
+def has_only_roi_annotations(annotations):
+    for annotation in annotations:
+        if annotation["name"] != "roi":
+            return False
+    return True
     
 #this function lets the user check all copied annotations one by one. Once one image is checked it is saved to the
 #output_folder. If one image inside the to_be_annotated_folder is already in the output_folder, nothing is done.
@@ -67,7 +73,7 @@ def copy_annotations_to_images_one_by_one(annotated_folder, to_be_annotated_fold
         annotations = file_utils.get_annotations(image_path_in_output_folder)
         roi_file_path = image_path_in_output_folder[:-4] + ".json"
         file_utils.annotations_to_labelme_file(annotations,roi_file_path,image_path_in_output_folder)
-        if(len(annotations) == 0):
+        if(len(annotations) == 0 or has_only_roi_annotations(annotations)):
             file_utils.strip_image(image_path_in_output_folder,roi_file_path,image_path_in_output_folder)
             continue
         
@@ -76,7 +82,20 @@ def copy_annotations_to_images_one_by_one(annotated_folder, to_be_annotated_fold
         
         annotations = file_utils.get_annotations_from_labelme_file(roi_file_path)
         file_utils.save_json_file(annotations, annotations_file_path_in_output_folder)
+        if terminate:
+            print("Exiting...")
+            break
 
+
+
+
+terminate = False                            
+
+def signal_handling(signum,frame):           
+    global terminate                         
+    terminate = True                         
+
+signal.signal(signal.SIGINT,signal_handling) 
 
 copy_annotations_to_images_one_by_one(annotated_folder,to_be_annotated_folder,output_folder)
 #check_images(output_folder)

@@ -111,14 +111,14 @@ def annotations_to_labelme_file(annotations,output_path,image_path):
     if annotations:
         for flower in annotations:
             col = flower_info.get_color_for_flower(flower["name"], get_rgb_value=True)
-            flower_dict = {"label":flower["name"], "line_color":col,"fill_color":col,"points":[],"shape_type":"polygon","flags":{}}
+            flower_dict = {"label":flower["name"], "line_color":col,"fill_color":col,"points":[],"shape_type":"rectangle","flags":{}}
             if flower["name"] == "roi":
-                flower_dict["points"] = []
+                flower_dict["shape_type"] = "polygon"
                 for point in flower["polygon"]:
                     flower_dict["points"].append([point["x"],point["y"]])
             else:
                 [top,left,bottom,right] = flower_info.get_bbox(flower)
-                flower_dict["points"] = [[left,top],[left,bottom],[right,bottom],[right,top]]
+                flower_dict["points"] = [[left,top],[right,bottom]]
             label_me_dict_template["shapes"].append(flower_dict)
         
     save_json_file(label_me_dict_template,output_path)
