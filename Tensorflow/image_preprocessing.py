@@ -24,9 +24,6 @@ From this input it generates multiple outputs:
 
 
 from utils import constants
-
-
-
 print("Loading libraries...")
 import os
 import xml.etree.cElementTree as ET
@@ -60,7 +57,7 @@ def convert_annotation_folders(input_folders, splits, output_dir, tile_size, spl
             not for training
         output_dir (string): Path of the output directory
         tile_size (int): Image Tile size to use as Tensorflow input
-        split_mode (string): If split_mode is "random", the images are split
+        split_mode (str): If split_mode is "random", the images are split
             randomly into test and train directory. If split_mode is "deterministic",
             the images will be split in the same way every time this script is 
             executed and therefore making different configurations comparable
@@ -130,6 +127,21 @@ def convert_annotation_folders(input_folders, splits, output_dir, tile_size, spl
     
 def tile_image_and_annotations(image_path, annotation_path, output_folder,labels,input_folder_index, tile_size):
     
+    """Tiles the image and the annotations into square shaped tiles of size tile_size
+
+    Parameters:
+        image_path (str): The image path 
+        annotation_path (str): The path of the annotation file
+        output_folder (string): Path of the output directory
+        labels (dict): a dict inside of which the flowers are counted
+        input_folder_index (int): the index of the input folder
+        tile_size (int): the tile size 
+    
+    Returns:
+        Fills the output_folder with all tiles (and annotation files in xml format)
+        that contain any flowers.
+    """
+
     image = Image.open(image_path)
     image_name = os.path.basename(image_path)
     
@@ -156,8 +168,20 @@ def tile_image_and_annotations(image_path, annotation_path, output_folder,labels
 
 
 
-#This function returns a list of all annotations that are located within the specified bounds of the image
 def get_flowers_within_bounds(annotation_path, x_offset, y_offset, tile_size):
+    
+    """Returns a list of all annotations that are located within the specified bounds of the image
+
+    Parameters:
+        annotation_path (str): path of the annotation file 
+        x_offset (int): the left bound of the tile to search in
+        y_offset (int): the top bound of the tile to search in
+        tile_size (int): the tile size 
+    
+    Returns:
+        list: a list of dicts containing all annotations within the specified bounds
+    """
+
     filtered_annotations = []
     annotation_data = file_utils.read_json_file(annotation_path)
     if(not annotation_data):
@@ -176,8 +200,22 @@ def get_flowers_within_bounds(annotation_path, x_offset, y_offset, tile_size):
     return filtered_annotations
 
 
-#This function checks if a specified bounding box intersects with the image tile
 def is_bounding_box_within_image(tile_size, top, left, bottom, right):
+    """Checks if a specified bounding box intersects with the image tile
+
+    Parameters:
+        tile_size (int): the tile size 
+        top (int): top bound of bounding box 
+        left (int): left bound of bounding box 
+        bottom (int): bottom bound of bounding box 
+        right (int): right bound of bounding box 
+    
+    Returns:
+        bool: True if the specified bounding box is within the image bounds,
+            False otherwise
+    """
+
+    
     if left < 0 and right < 0:
         return False
     if left >= tile_size and right >= tile_size:
@@ -189,13 +227,36 @@ def is_bounding_box_within_image(tile_size, top, left, bottom, right):
     return True
 
 
-#This function makes a random split of all annotated images into training and testing directory
 def split_train_dir(train_dir,test_dir,labels, labels_test,split_mode,input_folders,splits, test_dir_full_size = None):
+    """Splits all annotated images into training and testing directory
+
+    Parameters:
+        train_dir (str): the directory path containing all images and xml annotation files 
+        test_dir (str): path to the test directory where the test images (and 
+                 annotations will be copied to) 
+        labels (dict): a dict inside of which the flowers are counted
+        labels_test (dict): a dict inside of which the flowers are counted that
+            moved to the test directory
+        split_mode (str): If split_mode is "random", the images are split
+            randomly into test and train directory. If split_mode is "deterministic",
+            the images will be split in the same way every time this script is 
+            executed and therefore making different configurations comparable
+        input_folders (list): A list of strings containing all input_folders. 
+        splits (list): A list of floats between 0 and 1 of the same length as 
+            input_folders. Each boolean indicates what portion of the images
+            inside the corresponding input folder should be used for testing and
+            not for training
+        test_dir_full_size (str): path of folder to which all full size original
+            images that are moved to the test directory should be copied to.
+            (this folder can be used for evaluation after training) (default is None)
     
+    Returns:
+        None
+    """
+
     images = file_utils.get_all_images_in_folder(train_dir)
 
     for input_folder_index in range(0,len(input_folders)):
-        print("input_folders")
         portion_to_move_to_test_dir = float(splits[input_folder_index])
         images_in_current_folder = []
         image_names_in_current_folder = []
@@ -242,6 +303,19 @@ def split_train_dir(train_dir,test_dir,labels, labels_test,split_mode,input_fold
             
 
 def move_image_and_annotations_to_folder(image_path,dest_folder, labels, labels_test):
+    """Moves and image alonside with its annotation file to another folder and updates the flower counts
+
+    Parameters:
+        image_path (str): path to the image
+        dest_folder (str): path to the destination folder
+        labels (dict): a dict inside of which the flowers are counted
+        labels_test (dict): a dict inside of which the flowers are counted that
+            moved to the test directory
+    
+    Returns:
+        None
+    """
+
     image_name = os.path.basename(image_path)
     xml_name = os.path.basename(image_path)[:-4] + ".xml"
 
@@ -256,9 +330,17 @@ def move_image_and_annotations_to_folder(image_path,dest_folder, labels, labels_
     move(image_path[:-4] + ".xml",os.path.join(dest_folder,xml_name))
 
 
-#given a list of labels, this function prints them to a labelmap file needed by tensorflow
 def write_labels_to_labelmapfile(labels, output_path):
+    """Given a list of labels, prints them to a labelmap file needed by tensorflow
+
+    Parameters:
+        labels (dict): a dict inside of which the flowers are counted
+        output_path (str): a directory path where the labelmap.pbtxt file should be saved to
     
+    Returns:
+        None
+    """
+
     output_name = os.path.join(output_path, "label_map.pbtxt")
     end = '\n'
     s = ' '
@@ -275,9 +357,18 @@ def write_labels_to_labelmapfile(labels, output_path):
         f.write(out)
             
             
-#Given a list of flowers, this function builds an xml tree from it. The XML tree is needed to
-#create the tensorflow .record files
 def build_xml_tree(flowers, image_path, labels):
+    """Given a list of flowers, this function builds an xml tree from it. The XML tree is needed to create the tensorflow .record files
+
+    Parameters:
+        flowers (list): a list of flower dicts
+        image_path (str): the path of the corresponding image
+        labels (dict): a dict inside of which the flowers are counted
+
+    Returns:
+        None
+    """
+
     root = ET.Element("annotation")
     
     image = Image.open(image_path)
@@ -314,15 +405,32 @@ def build_xml_tree(flowers, image_path, labels):
 
 #small helper function to keep track of how many flowers of each species have been annotated 
 def add_label_to_labelcount(flower_name, label_count):
+    """Small helper function to to add a flower to a label_count dict
+    
+    Parameters:
+        flower_name (str): name of the flower to add to the dict
+        label_count (dict): a dict inside of which the flowers are counted
+
+    Returns:
+        None
+    """
+
     if(label_count.get(flower_name) == None):
         label_count[flower_name] = 1
     else:
         label_count[flower_name] = label_count[flower_name] + 1
 
 
-#This function creates the whole folder structure of the output. All subsequent scripts such as train.py, 
-#predict.py, export_inference_graph.py or eval.py rely on this folder structure
 def make_training_dir_folder_structure(root_folder):
+    """Creates the whole folder structure of the output. All subsequent scripts such as train.py, predict.py, export_inference_graph.py or eval.py rely on this folder structure
+    
+    Parameters:
+        root_folder (str): path to a folder inside of which the project folder structure is created
+
+    Returns:
+        None
+    """
+
     images_folder = os.path.join(root_folder, "images")
     os.makedirs(images_folder,exist_ok=True)
     file_utils.delete_folder_contents(images_folder)
@@ -338,6 +446,15 @@ def make_training_dir_folder_structure(root_folder):
 
     #This function takes the labels map and returns an array with the flower names that have more than min_instances instances
 def filter_labels(labels, min_instances=50):
+    """Creates an array with the flower names that have more than min_instances instances
+    
+    Parameters:
+        labels (dict): a dict inside of which the flowers are counted
+        min_instances (int): minimum instances to pass the filter (default is 50)
+    Returns:
+        list: a list containing all flower names that have more than min_instances instances
+    """
+
     flowers_to_use = []
     for key, value in labels.items():
         if value >= min_instances:
@@ -346,6 +463,16 @@ def filter_labels(labels, min_instances=50):
 
 
 def print_labels(labels, flowers_to_use):
+    """Prints the label_count dict to the console in readable format
+    
+    Parameters:
+        labels (dict): a dict inside of which the flowers are counted
+        flowers_to_use (list): list of strings of the flower names that should
+            be used for training
+    Returns:
+        None
+    """
+
     print("used:")
     for key,value in labels.items():
         if key in flowers_to_use:
@@ -355,6 +482,8 @@ def print_labels(labels, flowers_to_use):
     for key,value in labels.items():
         if not (key in flowers_to_use):
             print("    " + key + ": " + str(value))
+
+
 
 if __name__== "__main__":
     #Annotation Folder with Annotations made with the Android App
