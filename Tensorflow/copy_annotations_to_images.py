@@ -50,7 +50,7 @@ def has_only_roi_annotations(annotations):
 #output_folder. If one image inside the to_be_annotated_folder is already in the output_folder, nothing is done.
 #This allows the user to inerrupt this process and continue on at a later time. 
 def copy_annotations_to_images_one_by_one(annotated_folder, to_be_annotated_folder, output_folder):
-    all_images = file_utils.get_all_tifs_in_folder(to_be_annotated_folder)
+    all_images = file_utils.get_all_images_in_folder(to_be_annotated_folder)
     random.shuffle(all_images)
 
     # hide main window

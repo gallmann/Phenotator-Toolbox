@@ -19,6 +19,16 @@ import numpy
 
 
 def read_json_file(file_path):
+    """Reads a json file into a dict
+
+    Parameters:
+        file_path (str): path to json file
+    
+    Returns:
+        dict: a dictionary containing the json file data (or None if the 
+            file does not exist)
+    """
+
     if file_path and os.path.isfile(file_path):
         with open(file_path, 'r') as f:
             try:
@@ -33,6 +43,16 @@ def read_json_file(file_path):
 
 
 def save_json_file(dictionary, output_path):
+    """Saves a dictionary to a json file
+
+    Parameters:
+        dictionary (dict): the dictionary containing the data
+        output_path (str): the path of the output json file
+    
+    Returns:
+        None
+    """
+
     with open(output_path, 'w') as fp:
         json.dump(dictionary, fp)
         
@@ -40,23 +60,33 @@ def save_json_file(dictionary, output_path):
 
 
 def get_all_images_in_folder(folder_path):
+    """Finds all images (png, jpg or tif) inside a folder
+
+    Parameters:
+        folder_path (str): the folder path to look for images inside
+    
+    Returns:
+        list: a list of image_paths (strings)
+    """
+
     images = []
     for file in os.listdir(folder_path):
-        if file.endswith(".png"):
+        if file.endswith(".png") or file.endswith(".jpg") or file.endswith(".tif"):
             images.append(os.path.join(folder_path, file))
     return images
 
-
-
-def get_all_tifs_in_folder(folder_path):
-    images = []
-    for file in os.listdir(folder_path):
-        if file.endswith(".tif"):
-            images.append(os.path.join(folder_path, file))
-    return images
 
 
 def delete_folder_contents(folder_path):
+    """Deletes all files and subfolders within a folder
+
+    Parameters:
+        folder_path (str): the folder path to delete all contents in
+    
+    Returns:
+        None
+    """
+
     for the_file in os.listdir(folder_path):
         file_path = os.path.join(folder_path, the_file)
         try:
@@ -69,6 +99,15 @@ def delete_folder_contents(folder_path):
     
     
 def get_annotations_from_xml(xml_path):
+    """Reads annotations from an xml file
+
+    Parameters:
+        xml_path (str): the file path to the xml file containing the annotations
+    
+    Returns:
+        list: a list of dicts containing all annotations
+    """
+
     annotations = []
     tree = ET.parse(xml_path)
     root = tree.getroot()
@@ -96,15 +135,37 @@ def get_annotations_from_xml(xml_path):
 
     
 def get_annotations(image_path):
+    """Reads the annotations from either the tablet annotations (imagename_annotations.json)
+        or the LabelMe annotations (imagename.json)
+
+    Parameters:
+        image_path (str): path to the image of which the annotations should be read
+    
+    Returns:
+        list: a list containing all annotations corresponding to that image.
+            Returns the empty list if no annotation file is present
+    """
     annotation_path = image_path[:-4] + "_annotations.json"
     annotation_data = read_json_file(annotation_path)
     if(not annotation_data):
-        return []
+        annotation_data = get_annotations_from_labelme_file(image_path[:-4]+".json")
+        if(not annotation_data):
+            return []
     annotations = annotation_data["annotatedFlowers"]
     return annotations
 
 
 def annotations_to_labelme_file(annotations,output_path,image_path):
+    """Saves a list of annotations to a labelme file
+
+    Parameters:
+        annotations (list): list of dicts containing all annotations
+        output_path (str): file path of the output (labelme json) file
+        image_path (str): path of the image to which the annotations correspond
+    Returns:
+        None
+    """
+
     image = Image.open(image_path)    
     width, height = image.size
     label_me_dict_template = {"version":"3.15.2","flags":{},"shapes":[],"lineColor":[0,255,0,64],"fillColor":[255,0,0,64],"imagePath":os.path.basename(image_path), "imageData":None,"imageHeight":height,"imageWidth":width}
@@ -124,7 +185,19 @@ def annotations_to_labelme_file(annotations,output_path,image_path):
     save_json_file(label_me_dict_template,output_path)
     
 def get_annotations_from_labelme_file(labelme_file):
+    """Reads the annotations from a LabelMe annotation file (imagename.json)
+
+    Parameters:
+        labelme_file (str): path to the labelme annotation file
+    
+    Returns:
+        list: a list containing all annotations corresponding to that image.
+            (Returns the empty list if no annotation file is present)
+    """
+
     labelme_dict = read_json_file(labelme_file)
+    if not labelme_dict:
+        return []
     annotations = {"annotatedFlowers":[]}
     
     
@@ -141,13 +214,34 @@ def get_annotations_from_labelme_file(labelme_file):
 
     
 def check_all_json_files_in_folder(folder_path):
+    """Checks all json files within the provided folder to have the correct format
+
+    Parameters:
+        folder_path (str): path to the folder containing json files
+    
+    Returns:
+        None
+    """
+
     for file in os.listdir(folder_path):
         if file.endswith(".json"):
             read_json_file(file)
     print("if no errors were printed, everything is fine")
     
-#turns all pixels that are not within a roi polygon black
+    
 def strip_image(input_image_path, roi_file, output_image_path):
+    """Turns all pixels that are not within a roi polygon black
+
+    Parameters:
+        input_image_path (str): path to the image
+        roi_file (str): path to the roi_file (labelme file containing polygons 
+                 that are labelled 'roi')
+        output_image_path (str): where to save the stripped image to
+    
+    Returns:
+        None
+    """
+
     
     polygons_json = read_json_file(roi_file)["shapes"]
     polygons = []

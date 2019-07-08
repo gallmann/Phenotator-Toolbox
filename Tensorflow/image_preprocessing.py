@@ -86,9 +86,8 @@ def convert_annotation_folders(input_folders, splits, output_dir, tile_size, spl
         sys.stdout.flush()
         for i in progressbar.progressbar(range(len(image_paths))):
             image_path = image_paths[i]
-            annotation_path = image_path[:-4] + "_annotations.json"
     
-            tile_image_and_annotations(image_path,annotation_path,train_images_dir, labels, input_folder_index, tile_size)
+            tile_image_and_annotations(image_path,train_images_dir, labels, input_folder_index, tile_size)
         
     
     
@@ -125,13 +124,14 @@ def convert_annotation_folders(input_folders, splits, output_dir, tile_size, spl
 
 
     
-def tile_image_and_annotations(image_path, annotation_path, output_folder,labels,input_folder_index, tile_size):
+def tile_image_and_annotations(image_path, output_folder,labels,input_folder_index, tile_size):
     
     """Tiles the image and the annotations into square shaped tiles of size tile_size
+        Requires the image to have either a tablet annotation file (imagename_annotations.json)
+        or the LabelMe annotation file (imagename.json) stored in the same folder
 
     Parameters:
         image_path (str): The image path 
-        annotation_path (str): The path of the annotation file
         output_folder (string): Path of the output directory
         labels (dict): a dict inside of which the flowers are counted
         input_folder_index (int): the index of the input folder
@@ -149,7 +149,7 @@ def tile_image_and_annotations(image_path, annotation_path, output_folder,labels
     currenty = 0
     while currenty < image.size[1]:
         while currentx < image.size[0]:
-            filtered_annotations = get_flowers_within_bounds(annotation_path, currentx,currenty,tile_size)
+            filtered_annotations = get_flowers_within_bounds(image_path, currentx,currenty,tile_size)
             if len(filtered_annotations) == 0:
                 #Ignore image tiles without any annotations
                 currentx += tile_size
@@ -168,12 +168,12 @@ def tile_image_and_annotations(image_path, annotation_path, output_folder,labels
 
 
 
-def get_flowers_within_bounds(annotation_path, x_offset, y_offset, tile_size):
+def get_flowers_within_bounds(image_path, x_offset, y_offset, tile_size):
     
     """Returns a list of all annotations that are located within the specified bounds of the image
 
     Parameters:
-        annotation_path (str): path of the annotation file 
+        image_path (str): path of the image file
         x_offset (int): the left bound of the tile to search in
         y_offset (int): the top bound of the tile to search in
         tile_size (int): the tile size 
@@ -183,10 +183,7 @@ def get_flowers_within_bounds(annotation_path, x_offset, y_offset, tile_size):
     """
 
     filtered_annotations = []
-    annotation_data = file_utils.read_json_file(annotation_path)
-    if(not annotation_data):
-        return filtered_annotations
-    annotations = annotation_data["annotatedFlowers"]
+    annotations = file_utils.get_annotations(image_path)
 
     for flower in annotations:
         if flower["name"] == "roi":
