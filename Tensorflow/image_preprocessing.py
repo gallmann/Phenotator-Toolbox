@@ -25,24 +25,6 @@ From this input it generates multiple outputs:
 
 from utils import constants
 
-#Annotation Folder with Annotations made with the Android App
-input_folders = constants.input_folders
-
-splits = constants.input_folders_splits
-
-#All outputs will be printed into this folder
-output_dir = constants.train_dir
-
-#set the tile size of the images to do the tensorflow training on. This value should be chosen to suit your 
-#GPU capabilities and ground resolution (the higher the ground resolution, the greater this tile_size can 
-#be chosen.)
-tile_size = constants.tile_size
-
-#choose between "random" and "deterministic" splitting
-split_mode = "deterministic"
-
-#minimum amount of flower instances to include species in training
-min_flowers = 50
 
 
 print("Loading libraries...")
@@ -50,6 +32,7 @@ import os
 import xml.etree.cElementTree as ET
 from PIL import Image
 from shutil import move
+from shutil import copy
 import utils.xml_to_csv as xml_to_csv
 import random
 import utils.generate_tfrecord as generate_tfrecord
@@ -61,15 +44,40 @@ import sys
 
 
 
-def convert_annotation_folder():
+def convert_annotation_folders(input_folders, splits, output_dir, tile_size, split_mode, min_flowers):
     
+    """Converts the contents of a list of input folders into tensorflow readable format ready for training
+
+    Parameters:
+        input_folders (list): A list of strings containing all input_folders. 
+            The input folders should contain images alongside with annotation
+            files. The images can be in png, jpg or tif format. The annotation
+            files can either be created with the LabelMe application (imagename.json)
+            or with the AnnotationApp (imagename_annotations.json).
+        splits (list): A list of floats between 0 and 1 of the same length as 
+            input_folders. Each boolean indicates what portion of the images
+            inside the corresponding input folder should be used for testing and
+            not for training
+        output_dir (string): Path of the output directory
+        tile_size (int): Image Tile size to use as Tensorflow input
+        split_mode (string): If split_mode is "random", the images are split
+            randomly into test and train directory. If split_mode is "deterministic",
+            the images will be split in the same way every time this script is 
+            executed and therefore making different configurations comparable
+        min_flowers (int): Minimum amount of flower needed for including it in the
+            training
+    
+    Returns:
+        A filled output_dir with all necessary inputs for the Tensorflow model training
+    """
+
     make_training_dir_folder_structure(output_dir)
     
     labels = {}
     train_images_dir = os.path.join(os.path.join(output_dir, "images"),"train")
     test_images_dir = os.path.join(os.path.join(output_dir, "images"),"test")
-    
-    global input_folders
+    test_images_dir_full_size = os.path.join(os.path.join(output_dir, "images"),"test_full_size")
+
     for input_folder_index in range(0,len(input_folders)):
         
         input_folder = input_folders[input_folder_index]
@@ -83,7 +91,7 @@ def convert_annotation_folder():
             image_path = image_paths[i]
             annotation_path = image_path[:-4] + "_annotations.json"
     
-            tile_image_and_annotations(image_path,annotation_path,train_images_dir, labels, input_folder_index)
+            tile_image_and_annotations(image_path,annotation_path,train_images_dir, labels, input_folder_index, tile_size)
         
     
     
@@ -98,7 +106,7 @@ def convert_annotation_folder():
     
     print("Splitting train and test dir...")
     labels_test = {}
-    split_train_dir(train_images_dir,test_images_dir,labels, labels_test)
+    split_train_dir(train_images_dir,test_images_dir, labels, labels_test,split_mode,input_folders,splits,test_dir_full_size = test_images_dir_full_size)
     
     print("Converting Annotation data into tfrecord files...")
     train_csv = os.path.join(annotations_dir, "train_labels.csv")
@@ -120,22 +128,22 @@ def convert_annotation_folder():
 
 
     
-def tile_image_and_annotations(image_path, annotation_path, output_folder,labels,input_folder_index):
+def tile_image_and_annotations(image_path, annotation_path, output_folder,labels,input_folder_index, tile_size):
     
     image = Image.open(image_path)
-    image_name = os.path.basename(image_path)[:-4]
+    image_name = os.path.basename(image_path)
     
     currentx = 0
     currenty = 0
     while currenty < image.size[1]:
         while currentx < image.size[0]:
-            filtered_annotations = get_flowers_within_bounds(annotation_path, currentx,currenty)
+            filtered_annotations = get_flowers_within_bounds(annotation_path, currentx,currenty,tile_size)
             if len(filtered_annotations) == 0:
                 #Ignore image tiles without any annotations
                 currentx += tile_size
                 continue
             tile = image.crop((currentx,currenty,currentx + tile_size,currenty + tile_size))
-            output_image_path = os.path.join(output_folder, image_name + "_subtile_" + "x" + str(currentx) + "y" + str(currenty) + "inputdir" + str(input_folder_index) + ".png")
+            output_image_path = os.path.join(output_folder, image_name + "_subtile_" + "x" + str(currentx) + "y" + str(currenty) + "_inputdir" + str(input_folder_index) + ".png")
             tile.save(output_image_path,"PNG")
             
             xml_path = output_image_path[:-4] + ".xml"
@@ -149,7 +157,7 @@ def tile_image_and_annotations(image_path, annotation_path, output_folder,labels
 
 
 #This function returns a list of all annotations that are located within the specified bounds of the image
-def get_flowers_within_bounds(annotation_path, x_offset, y_offset):
+def get_flowers_within_bounds(annotation_path, x_offset, y_offset, tile_size):
     filtered_annotations = []
     annotation_data = file_utils.read_json_file(annotation_path)
     if(not annotation_data):
@@ -163,7 +171,7 @@ def get_flowers_within_bounds(annotation_path, x_offset, y_offset):
         [top,left,bottom,right] = flower_info.get_bbox(flower)
         [top,left,bottom,right] = [top-y_offset, left -x_offset, bottom-y_offset, right - x_offset]
         if is_bounding_box_within_image(tile_size, top,left,bottom,right):
-            flower["bounding_box"] = [max(0,top),max(0,left),min(tile_size,bottom),min(tile_size,right)]  
+            flower["bounding_box"] = [max(-1,top),max(-1,left),min(tile_size+1,bottom),min(tile_size+1,right)]  
             filtered_annotations.append(flower)
     return filtered_annotations
 
@@ -182,19 +190,25 @@ def is_bounding_box_within_image(tile_size, top, left, bottom, right):
 
 
 #This function makes a random split of all annotated images into training and testing directory
-def split_train_dir(train_dir,test_dir, labels, labels_test):
+def split_train_dir(train_dir,test_dir,labels, labels_test,split_mode,input_folders,splits, test_dir_full_size = None):
     
-    global input_folders
     images = file_utils.get_all_images_in_folder(train_dir)
 
     for input_folder_index in range(0,len(input_folders)):
+        print("input_folders")
         portion_to_move_to_test_dir = float(splits[input_folder_index])
         images_in_current_folder = []
+        image_names_in_current_folder = []
+        
+
         #get all image_paths in current folder
         for image_path in images:
             if "inputdir" + str(input_folder_index) in image_path:
                 images_in_current_folder.append(image_path)
-
+                image_name = os.path.basename(image_path).split("_subtile",1)[0] 
+                if not image_name in image_names_in_current_folder:
+                    image_names_in_current_folder.append(image_name)
+            
         if split_mode == "random":
         
             #shuffle the images randomly
@@ -206,12 +220,23 @@ def split_train_dir(train_dir,test_dir, labels, labels_test):
         elif split_mode == "deterministic":
                     
             #move every 1/portion_to_move_to_test_dir-th image to the test_dir
-            split_counter = 0.0
-            for i in range(0,int(len(images_in_current_folder))):
+            split_counter = 0.5
+            #loop through all image_names (corresponding to untiled original images)
+            for image_name in image_names_in_current_folder:
                 split_counter = split_counter + portion_to_move_to_test_dir
+                #if the split_counter is greater than one, all image_tiles corresponding to that original image should be
+                #moved to the test directory
                 if split_counter >= 1:
-                    move_image_and_annotations_to_folder(images_in_current_folder[i],test_dir,labels,labels_test)
+                    if test_dir_full_size:
+                        original_image_name = os.path.join(input_folders[input_folder_index], image_name)
+                        copy(original_image_name,os.path.join(test_dir_full_size,"inputdir" + str(input_folder_index) + "_" +image_name))
+                        copy(original_image_name[:-4] + "_annotations.json",os.path.join(test_dir_full_size,"inputdir" + str(input_folder_index) + "_" +image_name[:-4] + "_annotations.json"))
+
+                    for image_tile in images_in_current_folder:
+                        if image_name in os.path.basename(image_tile):
+                            move_image_and_annotations_to_folder(image_tile,test_dir,labels,labels_test)
                     split_counter = split_counter -1
+                    
             
 
             
@@ -303,7 +328,7 @@ def make_training_dir_folder_structure(root_folder):
     file_utils.delete_folder_contents(images_folder)
     os.makedirs(os.path.join(images_folder,"test"),exist_ok=True)
     os.makedirs(os.path.join(images_folder,"train"),exist_ok=True)
-    os.makedirs(os.path.join(images_folder,"annotated_ortho_photos"),exist_ok=True)
+    os.makedirs(os.path.join(images_folder,"test_full_size"),exist_ok=True)
     os.makedirs(os.path.join(root_folder,"model_inputs"),exist_ok=True)
     os.makedirs(os.path.join(root_folder,"pre-trained-model"),exist_ok=True)
     os.makedirs(os.path.join(root_folder,"trained_inference_graphs"),exist_ok=True)
@@ -331,5 +356,25 @@ def print_labels(labels, flowers_to_use):
         if not (key in flowers_to_use):
             print("    " + key + ": " + str(value))
 
-convert_annotation_folder()
+if __name__== "__main__":
+    #Annotation Folder with Annotations made with the Android App
+    input_folders = constants.input_folders
+    
+    splits = constants.input_folders_splits
+    
+    #All outputs will be printed into this folder
+    output_dir = constants.train_dir
+    
+    #set the tile size of the images to do the tensorflow training on. This value should be chosen to suit your 
+    #GPU capabilities and ground resolution (the higher the ground resolution, the greater this tile_size can 
+    #be chosen.)
+    tile_size = constants.tile_size
+    
+    #choose between "random" and "deterministic" splitting
+    split_mode = "deterministic"
+    
+    #minimum amount of flower instances to include species in training
+    min_flowers = constants.min_flowers
+
+    convert_annotation_folders(input_folders, splits, output_dir, tile_size, split_mode, min_flowers)
 
