@@ -68,6 +68,10 @@ def convert_annotation_folders(input_folders, splits, output_dir, tile_size, spl
         A filled output_dir with all necessary inputs for the Tensorflow model training
     """
 
+    if len(input_folders) != len(splits):
+        print("Error: Make sure that you provide the same number of input folders and split values")
+        return
+
     make_training_dir_folder_structure(output_dir)
     
     labels = {}
@@ -119,7 +123,7 @@ def convert_annotation_folders(input_folders, splits, output_dir, tile_size, spl
     print_labels(labels, flowers_to_use)
     print("the test data contains the following amount of flowers:")
     print_labels(labels_test, flowers_to_use)
-    print(str(len(flowers_to_use)) + " classes used for training.")
+    print(str(len(flowers_to_use)) + " classes usable for training.")
     print("Done!")
 
 
