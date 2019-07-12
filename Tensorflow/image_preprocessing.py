@@ -152,7 +152,7 @@ def tile_image_and_annotations(image_path, output_folder,labels,input_folder_ind
             filtered_annotations = get_flowers_within_bounds(image_path, currentx,currenty,tile_size)
             if len(filtered_annotations) == 0:
                 #Ignore image tiles without any annotations
-                currentx += tile_size
+                currentx += tile_size-50
                 continue
             tile = image.crop((currentx,currenty,currentx + tile_size,currenty + tile_size))
             output_image_path = os.path.join(output_folder, image_name + "_subtile_" + "x" + str(currentx) + "y" + str(currenty) + "_inputdir" + str(input_folder_index) + ".png")
@@ -162,8 +162,8 @@ def tile_image_and_annotations(image_path, output_folder,labels,input_folder_ind
             annotations_xml = build_xml_tree(filtered_annotations,output_image_path,labels)
             annotations_xml.write(xml_path)
             
-            currentx += tile_size
-        currenty += tile_size
+            currentx += tile_size-50
+        currenty += tile_size-50
         currentx = 0
 
 
