@@ -27,6 +27,8 @@ Inside the pre-trained-model the pipeline.config file must be properly configure
 The train.py script will write all outputs to the training directory.
     
 '''
+
+
 from utils import constants
 
 
@@ -70,7 +72,7 @@ Example usage:
         --train_config_path=train_config.pbtxt \
         --input_config_path=train_input_config.pbtxt
 """
-
+print("Loading libraries...")
 import functools
 import json
 import os
@@ -209,6 +211,14 @@ def main(_):
       FLAGS.train_dir,
       graph_hook_fn=graph_rewriter_fn)
 
+def run(project_dir):
+    global train_dir
+    train_dir = project_dir
+    global pipeline_config_path
+    pipeline_config_path = train_dir + "/pre-trained-model/pipeline.config"
+
+    tf.app.run(main)
 
 if __name__ == '__main__':
-  tf.app.run()
+    print("halleluja")
+    run()

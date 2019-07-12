@@ -13,6 +13,8 @@
 # limitations under the License.
 # ==============================================================================
 
+
+print("Loading libraries...")
 import os
 from utils import file_utils
 from utils import constants
@@ -183,6 +185,20 @@ def main(_):
       FLAGS.input_type, pipeline_config, FLAGS.trained_checkpoint_prefix,
       FLAGS.output_directory, input_shape=input_shape,
       write_inference_graph=FLAGS.write_inference_graph)
+
+
+def run(project_dir):
+    global train_dir
+    global output_directory
+    global pipeline_config_path
+    global trained_checkpoint_prefix
+    train_dir = project_dir
+    output_directory =  train_dir + "/trained_inference_graphs/output_inference_graph_v1.pb"
+    pipeline_config_path = train_dir + "/pre-trained-model/pipeline.config"
+    trained_checkpoint_prefix = train_dir + "/training/model.ckpt-" + str(find_latest_model(train_dir + "/training/"))
+    file_utils.delete_folder_contents(output_directory)
+
+    tf.app.run(main)
 
 
 if __name__ == '__main__':
