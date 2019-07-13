@@ -146,12 +146,16 @@ def tile_image_and_annotations(image_path, output_folder,labels,input_folder_ind
         that contain any flowers.
     """
 
+    tile_sizes=[450,300,225,900,300,225,450,225,300,225]
+    
     image = Image.open(image_path)
     image_name = os.path.basename(image_path)
     
+    counter = 0
     currentx = 0
     currenty = 0
     while currenty < image.size[1]:
+        tile_size = tile_sizes[counter%len(tile_sizes)]
         while currentx < image.size[0]:
             filtered_annotations = get_flowers_within_bounds(image_path, currentx,currenty,tile_size)
             if len(filtered_annotations) == 0:
@@ -169,6 +173,7 @@ def tile_image_and_annotations(image_path, output_folder,labels,input_folder_ind
             currentx += tile_size-50
         currenty += tile_size-50
         currentx = 0
+        counter = counter + 1
 
 
 
