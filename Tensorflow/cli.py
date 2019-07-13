@@ -17,7 +17,7 @@ def cli():
     Running 'python cli.py COMMAND -h' provides more detailed information about
     this command and all possible flags that can be set.
     
-    Note that for each option a default value can be set in the constants.py
+    Note that for most options a default value can be set in the constants.py
     file. 
     
 
@@ -105,7 +105,71 @@ def evaluate(predictions_folder,evaluations_folder,iou_threshold):
     custom_evaluations.evaluate(predictions_folder, evaluations_folder, iou_threshold)
     
     
+@cli.command(short_help='Visualize Bounding Boxes.')
+@click.argument('input-folder',type=click.Path())
+@click.argument('output-folder', type=click.Path())
+@click.option('--with-name-info', default=constants.visualize_bounding_boxes_with_name,type=bool, help='If True, the name will be printed on top of each bounding box. If False, only the bounding boxes will be drawn.',show_default=True)
+@click.option('--clean-output-folder', default=constants.clean_output_folder,type=bool, help='If True, all contents of the output folder will be deleted before the execution of the command.',show_default=True)
+def visualize(input_folder,output_folder,with_name_info,clean_output_folder):
+    """
+        Draws the bounding boxes on each image in the input folder. The input folder therefore
+        needs to contain images (png, jpg or tif) and annotation files (LabelMe json, AnnotationApp 
+        json or Tensorflow xml format)
+    """
+    import visualization
+    visualization.draw_bounding_boxes(input_folder,output_folder,with_name_info,clean_output_folder)
 
+
+
+@cli.command(short_help='Copy Annotations to geo referenced images.')
+@click.argument('annotated-folder',type=click.Path())
+@click.argument('to-be-annotated-folder', type=click.Path())
+@click.argument('output-folder', type=click.Path())
+@click.option('--one-by-one', default=constants.one_by_one,type=bool, help="If True, the annotations will be applied to one image in the 'to-be-annotated-folder' at a time. It will be shown to the user in the LabelMe Application such that the user can check and adjust the copied annotations.",show_default=True)
+def copy_annotations(annotated_folder, to_be_annotated_folder, output_folder,one_by_one):
+    """
+        If you have one folder with annotated images that are geo referenced, with this command you can
+        copy the annotations from that folder to other images that are also georeferenced. 
+        
+        An image can be georeferenced in the standard geotif format in any coordinate system. Alternatively,
+        it can be a normal png or jpg image with a json file called imagename_geoinfo.json in
+        the same folder. The imagename_geoinfo.json file must contain the
+        following information in the WGS84 coordinate system:
+        {"lr_lon": a, "lr_lat": b, "ul_lon": c, "ul_lat": d}
+        
+        With CTRL+C the execution of the script can be interupted. In the one-by-one mode, the execution
+        can later be continued.
+    """
     
+    import copy_annotations_to_images
+    
+    if one_by_one:
+        copy_annotations_to_images.copy_annotations_to_images_one_by_one(annotated_folder, to_be_annotated_folder, output_folder)
+    else:
+        copy_annotations_to_images.copy_annotations_to_images(annotated_folder, to_be_annotated_folder, output_folder)
+
+
+@cli.command(short_help='Annotate images or adjust existing annotations.')
+@click.argument('input-folder', type=click.Path())
+@click.option('--roi-strip', default=False,type=bool, help="",show_default=True)
+def annotate(input_folder,roi_strip):
+    """
+        Running this command will open the LabelMe Application with which all images
+        in the input-folder can be annotated. If the images in the input folder are already
+        annotated, these annotations can be viewed adjusted.
+        
+        If the roi-strip flag is set to True, the user can select Regions of Interest (RoI)
+        in the images. To do so, the user has to draw one or multiple polygons around the
+        region(s) of interest and label them 'roi'. After the user has labelled all images
+        accordingly, only the Regions of Interest (RoI) are
+        kept in the images. The rest of the pixels are overriden with black.
+        
+    """
+    
+    import select_region
+    select_region.check_annotations(input_folder,roi_strip)
+    
+
+
 if __name__ == '__main__':
     cli(prog_name='python cli.py')

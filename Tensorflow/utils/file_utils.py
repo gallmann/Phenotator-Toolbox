@@ -107,8 +107,10 @@ def get_annotations_from_xml(xml_path):
     Returns:
         list: a list of dicts containing all annotations
     """
-
+    
     annotations = []
+    if not os.path.isfile(xml_path):
+        return annotations
     tree = ET.parse(xml_path)
     root = tree.getroot()
     for child in root:
@@ -129,14 +131,16 @@ def get_annotations_from_xml(xml_path):
                         if(bound.tag == "ymax"):
                             bottom = int(bound.text)
                     flower["bounding_box"] = [top,left,bottom,right]
-                            
+                    flower["isPolygon"] = True
+                    polygon = [{"x":left, "y":top},{"x":right, "y":bottom}]
+                    flower["polygon"] = polygon
             annotations.append(flower)
     return annotations
 
     
 def get_annotations(image_path):
-    """Reads the annotations from either the tablet annotations (imagename_annotations.json)
-        or the LabelMe annotations (imagename.json)
+    """Reads the annotations from either the tablet annotations (imagename_annotations.json),
+        the LabelMe annotations (imagename.json) or tensorflow xml format annotations (imagename.xml)
 
     Parameters:
         image_path (str): path to the image of which the annotations should be read
@@ -150,7 +154,10 @@ def get_annotations(image_path):
     if(not annotation_data):
         annotation_data = get_annotations_from_labelme_file(image_path[:-4]+".json")
         if(not annotation_data):
-            return []
+            annotations = get_annotations_from_xml(image_path[:-4]+".xml")
+            annotation_data= {"annotatedFlowers":annotations}
+            if(not annotation_data):
+                return []
     annotations = annotation_data["annotatedFlowers"]
     return annotations
 

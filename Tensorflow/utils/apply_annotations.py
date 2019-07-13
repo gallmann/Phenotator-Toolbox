@@ -14,6 +14,7 @@ from utils import file_utils
 import progressbar
 from shapely.geometry import Polygon
 from shapely.geometry import box
+import osr
 
 
 
@@ -36,7 +37,7 @@ class GeoInformation(object):
 # images_folder. The newly generated annotated images will be saved to the output_folder
 def apply_annotations_to_images(annotated_folder, images_folder, output_folder):
     
-    all_ortho_tifs = file_utils.get_all_tifs_in_folder(images_folder)
+    all_ortho_tifs = file_utils.get_all_images_in_folder(images_folder)
     
     print("Adding Annotations to all ortho images:")
     
@@ -50,7 +51,7 @@ def apply_annotations_to_image(annotated_folder, image_path, output_folder):
     
     ortho_tif = image_path
 
-    #convert all images in images_folder to png and copy them to output folder. Also create empty annotation.json files
+    #convert the georeferenced tif to png and copy it to the output folder. Also create empty imagename_annotations.json file
     im = Image.open(ortho_tif)
     im.thumbnail(im.size)
     ortho_png = os.path.join(output_folder, os.path.basename(ortho_tif)[:-4] + ".png")
@@ -59,7 +60,7 @@ def apply_annotations_to_image(annotated_folder, image_path, output_folder):
     with open(os.path.join(output_folder,os.path.basename(ortho_tif)[:-4] + "_annotations.json"), 'w') as outfile:
         json.dump(annotation_template, outfile)
 
-    #loop through all images in annotated_folder and images_folder and call copy_annotations() if the two
+    #loop through all images in annotated_folder and call copy_annotations() if the two
     #images share a common area
     c = get_geo_coordinates(ortho_tif)
     for annotated_image in all_annotated_images:
@@ -205,7 +206,7 @@ def translate_pixel_coordinates(x,y,height,width,source_geo_coords,target_geo_co
 #returns geo_coordinates in swiss coordinate system
 def get_geo_coordinates(input_image):
     
-    if input_image.endswith(".png"):
+    if input_image.endswith(".png") or input_image.endswith(".jpg"):
         #if the input_image is a .png file, there should be a geoinfo.json file in the same folder
         #where the geo information is read from
         geo_info_path = input_image[:-4] +  "_geoinfo.json"
@@ -219,16 +220,26 @@ def get_geo_coordinates(input_image):
             return geo_info
     else:
         #if the input_image is a geo-annotated .tif file, read the geo information using gdal
-        inDS = gdal.Open(input_image)
-            
-        ulx, xres, xskew, uly, yskew, yres  = inDS.GetGeoTransform()
-        lrx = ulx + (inDS.RasterXSize * xres)
-        lry = uly + (inDS.RasterYSize * yres)
+        ds = gdal.Open(input_image)
+        inSRS_wkt = ds.GetProjection()  # gives SRS in WKT
+        inSRS_converter = osr.SpatialReference()  # makes an empty spatial ref object
+        inSRS_converter.ImportFromWkt(inSRS_wkt)  # populates the spatial ref object with our WKT SRS
+        inSRS_forPyProj = inSRS_converter.ExportToProj4()  # Exports an SRS ref as a Proj4 string usable by PyProj
+        
+        input_coord_system = pyproj.Proj(inSRS_forPyProj) 
+        swiss = pyproj.Proj("+init=EPSG:2056")
+        
+        ulx, xres, xskew, uly, yskew, yres  = ds.GetGeoTransform()
+        lrx = ulx + (ds.RasterXSize * xres)
+        lry = uly + (ds.RasterYSize * yres)
         geo_info = GeoInformation()
         geo_info.lr_lon = lrx
         geo_info.lr_lat = lry
         geo_info.ul_lon = ulx
         geo_info.ul_lat = uly
+        geo_info.lr_lon,geo_info.lr_lat = pyproj.transform(input_coord_system, swiss, geo_info.lr_lon, geo_info.lr_lat)
+        geo_info.ul_lon,geo_info.ul_lat = pyproj.transform(input_coord_system, swiss, geo_info.ul_lon, geo_info.ul_lat)
+
         return geo_info
 
 

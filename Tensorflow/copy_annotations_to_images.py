@@ -5,15 +5,8 @@ Created on Thu Jun 27 13:32:49 2019
 @author: johan
 """
 
-
+print("Loading libraries...")
 from utils import constants
-
-
-annotated_folder = "C:/Users/johan/Desktop/MaskedAnnotationData"
-to_be_annotated_folder = "D:/MasterThesis/Data/July_03/Agisoft/single_ortho_tifs"
-output_folder = "D:/MasterThesis/Data/July_03/MaskedAnnotatedSingleOrthoPhotos"
-
-
 from utils import apply_annotations
 from utils import file_utils
 import subprocess
@@ -23,6 +16,7 @@ from tkinter import messagebox
 import random
 import progressbar
 import signal                         
+terminate = False                            
 
 #copies all annotations from the annotated_folder to all images in the to_be_annotated_folder and saves
 #them into the output_folder
@@ -89,15 +83,19 @@ def copy_annotations_to_images_one_by_one(annotated_folder, to_be_annotated_fold
 
 
 
-terminate = False                            
 
 def signal_handling(signum,frame):           
     global terminate                         
-    terminate = True                         
+    terminate = True       
 
 signal.signal(signal.SIGINT,signal_handling) 
 
-copy_annotations_to_images_one_by_one(annotated_folder,to_be_annotated_folder,output_folder)
+            
+if __name__ == '__main__':
+    annotated_folder = "C:/Users/johan/Desktop/MaskedAnnotationData"
+    to_be_annotated_folder = "D:/MasterThesis/Data/July_03/Agisoft/single_ortho_tifs"
+    output_folder = "D:/MasterThesis/Data/July_03/MaskedAnnotatedSingleOrthoPhotos"
+    copy_annotations_to_images_one_by_one(annotated_folder,to_be_annotated_folder,output_folder)
 #check_images(output_folder)
 
 
