@@ -7,34 +7,8 @@ Created on Fri Apr  5 15:50:29 2019
 
 
 
-
-#train_dir = "G:/Johannes/output"
-
-#output_folder = "C:/Users/gallmanj.KP31-21-161/Desktop/vis_im"
-
-
+print("Loading libraries...")
 from utils import constants
-
-train_dir = constants.train_dir
-
-images_to_predict = constants.images_to_predict
-
-output_folder = constants.predictions
-
-
-#size of tiles to feed into prediction network
-tile_size = constants.tile_size
-#minimum distance from edge of tile for prediction to be considered
-padding = 50
-
-
-PATH_TO_TEST_IMAGES_DIR = train_dir + "/images/test"
-MODEL_NAME = train_dir + "/trained_inference_graphs/output_inference_graph_v1.pb"
-# Path to frozen detection graph. This is the actual model that is used for the object detection.
-PATH_TO_FROZEN_GRAPH = MODEL_NAME + '/frozen_inference_graph.pb'
-PATH_TO_LABELS = train_dir + "/model_inputs/label_map.pbtxt"
-
-
 import os
 #os.environ["CUDA_VISIBLE_DEVICES"] = '-1'
 from utils import file_utils
@@ -55,11 +29,17 @@ from object_detection.utils import ops as utils_ops
 if StrictVersion(tf.__version__) < StrictVersion('1.9.0'):
   raise ImportError('Please upgrade your TensorFlow installation to v1.9.* or later!')
 from object_detection.utils import label_map_util
-from object_detection.utils import visualization_utils as vis_util
 
 
-def predict():
-  detection_graph = get_detection_graph()
+def predict(train_dir,images_to_predict,output_folder,tile_size,prediction_overlap):
+    
+  MODEL_NAME = train_dir + "/trained_inference_graphs/output_inference_graph_v1.pb"
+  # Path to frozen detection graph. This is the actual model that is used for the object detection.
+  PATH_TO_FROZEN_GRAPH = MODEL_NAME + '/frozen_inference_graph.pb'
+  PATH_TO_LABELS = train_dir + "/model_inputs/label_map.pbtxt"
+
+    
+  detection_graph = get_detection_graph(PATH_TO_FROZEN_GRAPH)
   category_index = label_map_util.create_category_index_from_labelmap(PATH_TO_LABELS, use_display_name=True)
   print(category_index)
 
@@ -69,8 +49,7 @@ def predict():
        
     tensor_dict = get_tensor_dict(tile_size)
     image_tensor = tf.get_default_graph().get_tensor_by_name('image_tensor:0') 
-    all_images = file_utils.get_all_tifs_in_folder(images_to_predict)
-    all_images.extend(file_utils.get_all_images_in_folder(images_to_predict))
+    all_images = file_utils.get_all_images_in_folder(images_to_predict)
     
     for image_path in all_images:
         image = Image.open(image_path)
@@ -81,8 +60,8 @@ def predict():
         detections = []
         
         #create appropriate tiles from image
-        for x_start in progressbar.progressbar(range(-padding, width-1,tile_size-2*padding)):
-            for y_start in range(-padding,height-1,tile_size-2*padding):
+        for x_start in progressbar.progressbar(range(-prediction_overlap, width-1,tile_size-2*prediction_overlap)):
+            for y_start in range(-prediction_overlap,height-1,tile_size-2*prediction_overlap):
                 crop_rectangle = (x_start, y_start, x_start+tile_size, y_start + tile_size)
                 cropped_im = image.crop(crop_rectangle)
                 
@@ -101,7 +80,7 @@ def predict():
                 for i,score in enumerate(output_dict['detection_scores']):
                     center_x = (output_dict['detection_boxes'][i][3]+output_dict['detection_boxes'][i][1])/2*tile_size
                     center_y = (output_dict['detection_boxes'][i][2]+output_dict['detection_boxes'][i][0])/2*tile_size
-                    if score > 0.5 and center_x >= padding and center_y >= padding and center_x < tile_size-padding and center_y < tile_size-padding:
+                    if score > 0.5 and center_x >= prediction_overlap and center_y >= prediction_overlap and center_x < tile_size-prediction_overlap and center_y < tile_size-prediction_overlap:
                         count += 1
                         top = round(output_dict['detection_boxes'][i][0] * tile_size + y_start)
                         left = round(output_dict['detection_boxes'][i][1] * tile_size + x_start)
@@ -157,7 +136,7 @@ def get_ground_truth_annotations(image_path):
     return ground_truth
         
 
-def get_detection_graph():
+def get_detection_graph(PATH_TO_FROZEN_GRAPH):
     detection_graph = tf.Graph()
     with detection_graph.as_default():
       od_graph_def = tf.GraphDef()
@@ -221,6 +200,21 @@ def get_tensor_dict(tile_size):
   return tensor_dict
 
 
-predict()
+
+if __name__ == '__main__':
+    
+    train_dir = constants.train_dir
+
+    images_to_predict = constants.images_to_predict
+    
+    output_folder = constants.predictions_folder
+    
+    
+    #size of tiles to feed into prediction network
+    tile_size = constants.tile_size
+    #minimum distance from edge of tile for prediction to be considered
+    prediction_overlap = constants.prediction_overlap
+
+    predict(train_dir,images_to_predict,output_folder,tile_size,prediction_overlap)
 
     

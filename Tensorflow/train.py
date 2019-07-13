@@ -220,5 +220,4 @@ def run(project_dir):
     tf.app.run(main)
 
 if __name__ == '__main__':
-    print("halleluja")
     run()

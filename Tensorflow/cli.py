@@ -53,7 +53,7 @@ def image_preprocessing(input_folder,split,project_folder,tile_size,split_mode,m
     
     
 @cli.command(short_help='Train a network.')
-@click.option('--project-dir', default=constants.train_dir,type=click.Path(), help='Provide the project folder that was also used for the image-preprocessing command.')
+@click.option('--project-dir', default=constants.train_dir,type=click.Path(), help='Provide the project folder that was also used for the image-preprocessing command.',show_default=True)
 def train(project_dir):
     """
     Trains a network. Pressing CTRL+C during the training process interrupts the training.
@@ -66,7 +66,7 @@ def train(project_dir):
         
 
 @cli.command(short_help='Export the trained inference graph.')
-@click.option('--project-dir', default=constants.train_dir,type=click.Path(), help='Provide the project folder that was also used for the training.')
+@click.option('--project-dir', default=constants.train_dir,type=click.Path(), help='Provide the project folder that was also used for the training.',show_default=True)
 def export_inference_graph(project_dir):
     """
         Exports the trained network to a format that can then be used to make predictions.
@@ -76,8 +76,36 @@ def export_inference_graph(project_dir):
         
 
 
+@cli.command(short_help='Run Prediction.')
+@click.option('--project-dir', default=constants.train_dir,type=click.Path(), help='Provide the project folder that was used for the training.',show_default=True)
+@click.option('--images-to-predict', default=constants.images_to_predict,type=click.Path(), help='Path to a folder containing images on which the prediction algorithm should be run.',show_default=True)
+@click.option('--predictions-folder', default=constants.predictions_folder,type=click.Path(), help='Path to a folder where the prediction results should be saved to.',show_default=True)
+@click.option('--tile-size', default=constants.tile_size,type=int, help='Image Tile Size that should be used as Tensorflow input.',show_default=True)
+@click.option('--prediction-overlap', default=constants.prediction_overlap,type=int, help='The image tiles are predicted with an overlap to improve the results on the tile edges. Define the overlap in pixels with this flag.',show_default=True)
+def predict(project_dir,images_to_predict,predictions_folder,tile_size,prediction_overlap):
+    """
+        Runs the prediction algorithm on images (png, jpg and tif) of any size.
+    """
+    import predict
+    predict.predict(project_dir,images_to_predict,predictions_folder,tile_size,prediction_overlap)
 
 
 
+@cli.command(short_help='Evaluate Predictions.')
+@click.option('--predictions-folder', default=constants.predictions_folder,type=click.Path(), help='The folder where the predictions were saved to.',show_default=True)
+@click.option('--evaluations-folder', default=constants.prediction_evaluation_folder,type=click.Path(), help='The folder where the evaluation results should be saved to.',show_default=True)
+@click.option('--iou-threshold', default=constants.iou_threshold,type=click.FloatRange(0, 1), help='Defines what is the minimum IoU (Intersection over Union) overlap to count a prediction as a True Positive.',show_default=True)
+def evaluate(predictions_folder,evaluations_folder,iou_threshold):
+    """
+        If the images on which the predictions algorithm was run on had groundtruth information,
+        this command will evaluate the performance of the prediction algorithm on these images.
+        (Evaluation of Precision and Recall)
+    """
+    import custom_evaluations
+    custom_evaluations.evaluate(predictions_folder, evaluations_folder, iou_threshold)
+    
+    
+
+    
 if __name__ == '__main__':
     cli(prog_name='python cli.py')
