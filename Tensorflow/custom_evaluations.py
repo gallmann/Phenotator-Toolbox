@@ -125,25 +125,35 @@ def evaluate(input_folder, output_folder,iou_threshold):
         image.save(image_output_path)
 
 
-
+    flower_names.sort()
+    stat_overall = {"tp": 0, "fp": 0, "fn": 0}
     for flower_name in flower_names:
         stat = stats[flower_name]
-        n = stat["tp"] + stat["fn"]
-        print(flower_name + " (n=" + str(n) + "):")
-        if float(stat["fp"]+stat["tp"]) == 0:
-            precision = "-"
-        else:
-            precision = float(stat["tp"]) / float(stat["fp"]+stat["tp"])
-        if float(stat["tp"] + stat["fn"]) == 0:
-            recall = "-"
-        else:
-            recall = float(stat["tp"]) / float(stat["tp"] + stat["fn"])
-    
-        print("   precision: " + str(precision))
-        print("   recall: " + str(recall))
-        print("   TP: " + str(stat["tp"]) + " FP: " + str(stat["fp"]) + " FN: " + str(stat["fn"]))
+        stat_overall["tp"] += stat["tp"]
+        stat_overall["fp"] += stat["fp"]
+        stat_overall["fn"] += stat["fn"]
+        print_stats(stat,flower_name)
 
-        
+    print_stats(stat_overall,"Overall")
+
+
+def print_stats(stat, flower_name):
+    
+    n = stat["tp"] + stat["fn"]
+    print(flower_name + " (n=" + str(n) + "):")
+    if float(stat["fp"]+stat["tp"]) == 0:
+        precision = "-"
+    else:
+        precision = float(stat["tp"]) / float(stat["fp"]+stat["tp"])
+    if float(stat["tp"] + stat["fn"]) == 0:
+        recall = "-"
+    else:
+        recall = float(stat["tp"]) / float(stat["tp"] + stat["fn"])
+
+    print("   precision: " + str(precision))
+    print("   recall: " + str(recall))
+    print("   TP: " + str(stat["tp"]) + " FP: " + str(stat["fp"]) + " FN: " + str(stat["fn"]))
+
         
 def iou(a, b, epsilon=1e-5):
     """ Given two boxes `a` and `b` defined as a list of four numbers:
