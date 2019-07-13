@@ -23,8 +23,8 @@ From this input it generates multiple outputs:
 """
 
 
-from utils import constants
 print("Loading libraries...")
+from utils import constants
 import os
 import xml.etree.cElementTree as ET
 from PIL import Image
@@ -438,7 +438,11 @@ def make_training_dir_folder_structure(root_folder):
     os.makedirs(os.path.join(images_folder,"test"),exist_ok=True)
     os.makedirs(os.path.join(images_folder,"train"),exist_ok=True)
     os.makedirs(os.path.join(images_folder,"test_full_size"),exist_ok=True)
+    prediction_folder = os.path.join(root_folder,"predictions")
+    os.makedirs(prediction_folder,exist_ok=True)
+    os.makedirs(os.path.join(prediction_folder,"evaluations"),exist_ok=True)
     os.makedirs(os.path.join(root_folder,"model_inputs"),exist_ok=True)
+    os.makedirs(os.path.join(root_folder,"predictions"),exist_ok=True)
     os.makedirs(os.path.join(root_folder,"pre-trained-model"),exist_ok=True)
     os.makedirs(os.path.join(root_folder,"trained_inference_graphs"),exist_ok=True)
     os.makedirs(os.path.join(root_folder,"training"),exist_ok=True)

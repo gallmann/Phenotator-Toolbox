@@ -7,11 +7,6 @@ Created on Fri May 17 18:05:50 2019
 
 from utils import constants
 
-input_folder = constants.predictions
-output_folder = "C:/Users/johan/Desktop/predictions/tp"
-
-
-PATH_TO_LABELS = constants.train_dir + "/model_inputs/label_map.pbtxt"
 
 
 from utils import file_utils
@@ -22,13 +17,12 @@ from object_detection.utils import label_map_util
 import progressbar
 
 
-iou_threshold = 0.4
 
 
-def evaluate():
+def evaluate(input_folder, output_folder,iou_threshold):
     
     
-            
+    PATH_TO_LABELS = constants.train_dir + "/model_inputs/label_map.pbtxt"
     flower_names = get_flower_names_from_labelmap(PATH_TO_LABELS)
     
     stats = {}
@@ -206,6 +200,11 @@ def get_flower_names_from_labelmap(labelmap_path):
         flower_names.append(category_index[d]["name"])
     return flower_names
           
-evaluate()
-#predictions = file_utils.read_json(input_folder)
+
+
+if __name__ == '__main__':
+    input_folder = constants.predictions
+    output_folder = constants.prediction_evaluation_folder
+    iou_threshold = constants.iou_threshold
+    evaluate(input_folder, output_folder,iou_threshold)
 
