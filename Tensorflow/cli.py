@@ -20,6 +20,7 @@ def cli():
     Note that for most options a default value can be set in the constants.py
     file. 
     
+    
 
     """
 
@@ -30,13 +31,13 @@ def cli():
 
 @cli.command(short_help='Prepare a folder with annotated images for Training.')
 @click.option('--input-folder','-i',default=constants.input_folders,        type=click.Path(),   multiple=True,  help='Input Folder Path (can be multiple)')
-@click.option('--split', '-s',     default=constants.input_folders_splits, type=click.FloatRange(0, 1),    multiple=True,  help='Float between 0 and 1 indicating what portion should be used for the test set (must be the same number as input folders -> one number for each folder)')
+@click.option('--test-split', '-t',     default=constants.test_splits, type=click.FloatRange(0, 1),    multiple=True,  help='Float between 0 and 1 indicating what portion should be used for the test set (must be the same number as input folders -> one number for each folder)')
+@click.option('--validation-split', '-v',     default=constants.validation_splits, type=click.FloatRange(0, 1),    multiple=True,  help='Float between 0 and 1 indicating what portion should be used for the validation set (must be the same number as input folders -> one number for each folder)')
 @click.option('--project-folder', default=constants.train_dir,type=click.Path(), help='This project directory will be filled with various subfolders used during the training or evaluation process.',show_default=True)
 @click.option('--tile-size', default=constants.tile_size,type=int, help='Tile size to use as tensorflow input (squared tiles)',show_default=True)
 @click.option('--split-mode', default=constants.split_mode, help='Test set / Train set splitting technique. Deterministic mode ensures that an input directory is split the same way if this command is executed multiple times.',show_default=True,type=click.Choice(['random', 'deterministic']))
 @click.option('--min-instances', default=constants.min_flowers, type=int, help='Minimum instances of one class to include it in the training', show_default=True)
-
-def image_preprocessing(input_folder,split,project_folder,tile_size,split_mode,min_instances):
+def image_preprocessing(input_folder,test_split,validation_split,project_folder,tile_size,split_mode,min_instances):
     """
     
     Running this command converts one or multiple input folders containing annotated
@@ -48,21 +49,27 @@ def image_preprocessing(input_folder,split,project_folder,tile_size,split_mode,m
     """
     
     import image_preprocessing
-    image_preprocessing.convert_annotation_folders(input_folder, split, project_folder, tile_size, split_mode, min_instances)
+    image_preprocessing.convert_annotation_folders(input_folder, test_split,validation_split, project_folder, tile_size, split_mode, min_instances)
     
     
     
 @cli.command(short_help='Train a network.')
 @click.option('--project-dir', default=constants.train_dir,type=click.Path(), help='Provide the project folder that was also used for the image-preprocessing command.',show_default=True)
-def train(project_dir):
+@click.option('--max-steps', default=constants.max_steps,type=int, help='Max Training steps to carry out.',show_default=True)
+@click.option('--with-validation', default=constants.with_validation,type=bool, help='If true, the training process is carried out as long as the validation error decreases. If false, the training is carried out until max-steps is reached.',show_default=True)
+def train(project_dir, max_steps, with_validation):
     """
     Trains a network. Pressing CTRL+C during the training process interrupts the training.
     Running the train command again will resume the training. If the contents of the <path to project-folder>/training folder
     are deleted, the training will start from the beginning.
-    
     """
-    import train
-    train.run(project_dir)
+    
+    if with_validation:
+        import train_with_validation
+        train_with_validation.train_with_validation(project_dir,max_steps)
+    else:
+        import train
+        train.run(project_dir,max_steps)
         
 
 @cli.command(short_help='Export the trained inference graph.')
@@ -71,9 +78,9 @@ def export_inference_graph(project_dir):
     """
         Exports the trained network to a format that can then be used to make predictions.
     """
-    import export_inference_graph
-    export_inference_graph.run(project_dir)
-        
+    import my_export_inference_graph
+    my_export_inference_graph.run(project_dir)
+
 
 
 @cli.command(short_help='Run Prediction.')

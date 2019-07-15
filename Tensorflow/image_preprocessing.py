@@ -37,11 +37,14 @@ from utils import flower_info
 from utils import file_utils
 import progressbar
 import sys
+import tensorflow as tf
+from google.protobuf import text_format
+from object_detection.protos import pipeline_pb2
 
 
 
 
-def convert_annotation_folders(input_folders, splits, output_dir, tile_size, split_mode, min_flowers):
+def convert_annotation_folders(input_folders, test_splits, validation_splits, output_dir, tile_size, split_mode, min_flowers):
     
     """Converts the contents of a list of input folders into tensorflow readable format ready for training
 
@@ -68,7 +71,7 @@ def convert_annotation_folders(input_folders, splits, output_dir, tile_size, spl
         A filled output_dir with all necessary inputs for the Tensorflow model training
     """
 
-    if len(input_folders) != len(splits):
+    if len(input_folders) > len(test_splits) or len(input_folders) > len(validation_splits):
         print("Error: Make sure that you provide the same number of input folders and split values")
         return
 
@@ -78,6 +81,8 @@ def convert_annotation_folders(input_folders, splits, output_dir, tile_size, spl
     train_images_dir = os.path.join(os.path.join(output_dir, "images"),"train")
     test_images_dir = os.path.join(os.path.join(output_dir, "images"),"test")
     test_images_dir_full_size = os.path.join(os.path.join(output_dir, "images"),"test_full_size")
+    validation_images_dir = os.path.join(os.path.join(output_dir, "images"),"validation")
+    validation_images_dir_full_size = os.path.join(os.path.join(output_dir, "images"),"validation_full_size")
 
     for input_folder_index in range(0,len(input_folders)):
         
@@ -104,9 +109,15 @@ def convert_annotation_folders(input_folders, splits, output_dir, tile_size, spl
     annotations_dir = os.path.join(output_dir, "model_inputs")
     write_labels_to_labelmapfile(flowers_to_use,annotations_dir)
     
-    print("Splitting train and test dir...")
+    print("Splitting train dir into train, test and validation dir...")
     labels_test = {}
-    split_train_dir(train_images_dir,test_images_dir, labels, labels_test,split_mode,input_folders,splits,test_dir_full_size = test_images_dir_full_size)
+    split_train_dir(train_images_dir,test_images_dir, labels, labels_test,split_mode,input_folders,test_splits,full_size_splitted_dir = test_images_dir_full_size)
+    labels_validation = {}
+    validation_splits = list(validation_splits)
+    for i in range(len(validation_splits)):
+        validation_splits[i] = validation_splits[i]/(1-test_splits[i])
+    split_train_dir(train_images_dir,validation_images_dir, labels, labels_validation,split_mode,input_folders,validation_splits,full_size_splitted_dir = validation_images_dir_full_size)
+
     
     print("Converting Annotation data into tfrecord files...")
     train_csv = os.path.join(annotations_dir, "train_labels.csv")
@@ -119,10 +130,15 @@ def convert_annotation_folders(input_folders, splits, output_dir, tile_size, spl
     test_tf_record = os.path.join(annotations_dir, "test.record")
     generate_tfrecord.make_tfrecords(test_csv,test_tf_record,test_images_dir, labels)
     
+    set_num_classes_in_config_file(len(flowers_to_use),output_dir)
+    
     print("tfrecord training files generated from the follwing amount of flowers:")
     print_labels(labels, flowers_to_use)
     print("the test data contains the following amount of flowers:")
     print_labels(labels_test, flowers_to_use)
+    print("the validation data contains the following amount of flowers:")
+    print_labels(labels_validation, flowers_to_use)
+
     print(str(len(flowers_to_use)) + " classes usable for training.")
     print("Done!")
 
@@ -233,16 +249,16 @@ def is_bounding_box_within_image(tile_size, top, left, bottom, right):
     return True
 
 
-def split_train_dir(train_dir,test_dir,labels, labels_test,split_mode,input_folders,splits, test_dir_full_size = None):
+def split_train_dir(src_dir,dst_dir,labels, labels_dst,split_mode,input_folders,splits, full_size_splitted_dir = None):
     """Splits all annotated images into training and testing directory
 
     Parameters:
-        train_dir (str): the directory path containing all images and xml annotation files 
-        test_dir (str): path to the test directory where the test images (and 
-                 annotations will be copied to) 
+        src_dir (str): the directory path containing all images and xml annotation files 
+        dst_dir (str): path to the test directory where part of the images (and 
+                 annotations) will be copied to
         labels (dict): a dict inside of which the flowers are counted
-        labels_test (dict): a dict inside of which the flowers are counted that
-            moved to the test directory
+        labels_dst (dict): a dict inside of which the flowers are counted that
+            moved to the dst directory
         split_mode (str): If split_mode is "random", the images are split
             randomly into test and train directory. If split_mode is "deterministic",
             the images will be split in the same way every time this script is 
@@ -250,7 +266,7 @@ def split_train_dir(train_dir,test_dir,labels, labels_test,split_mode,input_fold
         input_folders (list): A list of strings containing all input_folders. 
         splits (list): A list of floats between 0 and 1 of the same length as 
             input_folders. Each boolean indicates what portion of the images
-            inside the corresponding input folder should be used for testing and
+            inside the corresponding input folder should be used for testing or validating and
             not for training
         test_dir_full_size (str): path of folder to which all full size original
             images that are moved to the test directory should be copied to.
@@ -260,7 +276,7 @@ def split_train_dir(train_dir,test_dir,labels, labels_test,split_mode,input_fold
         None
     """
 
-    images = file_utils.get_all_images_in_folder(train_dir)
+    images = file_utils.get_all_images_in_folder(src_dir)
 
     for input_folder_index in range(0,len(input_folders)):
         portion_to_move_to_test_dir = float(splits[input_folder_index])
@@ -282,11 +298,11 @@ def split_train_dir(train_dir,test_dir,labels, labels_test,split_mode,input_fold
             random.shuffle(images_in_current_folder)
             #and move the first few images to the test folder
             for i in range(0,int(len(images_in_current_folder)*portion_to_move_to_test_dir)):
-                move_image_and_annotations_to_folder(images_in_current_folder[i],test_dir,labels,labels_test)
+                move_image_and_annotations_to_folder(images_in_current_folder[i],dst_dir,labels,labels_dst)
     
         elif split_mode == "deterministic":
                     
-            #move every 1/portion_to_move_to_test_dir-th image to the test_dir
+            #move every 1/portion_to_move_to_test_dir-th image to the dst_dir
             split_counter = 0.5
             #loop through all image_names (corresponding to untiled original images)
             for image_name in image_names_in_current_folder:
@@ -294,14 +310,14 @@ def split_train_dir(train_dir,test_dir,labels, labels_test,split_mode,input_fold
                 #if the split_counter is greater than one, all image_tiles corresponding to that original image should be
                 #moved to the test directory
                 if split_counter >= 1:
-                    if test_dir_full_size:
+                    if full_size_splitted_dir:
                         original_image_name = os.path.join(input_folders[input_folder_index], image_name)
-                        copy(original_image_name,os.path.join(test_dir_full_size,"inputdir" + str(input_folder_index) + "_" +image_name))
-                        copy(original_image_name[:-4] + "_annotations.json",os.path.join(test_dir_full_size,"inputdir" + str(input_folder_index) + "_" +image_name[:-4] + "_annotations.json"))
+                        copy(original_image_name,os.path.join(full_size_splitted_dir,"inputdir" + str(input_folder_index) + "_" +image_name))
+                        copy(original_image_name[:-4] + "_annotations.json",os.path.join(full_size_splitted_dir,"inputdir" + str(input_folder_index) + "_" +image_name[:-4] + "_annotations.json"))
 
                     for image_tile in images_in_current_folder:
                         if image_name in os.path.basename(image_tile):
-                            move_image_and_annotations_to_folder(image_tile,test_dir,labels,labels_test)
+                            move_image_and_annotations_to_folder(image_tile,dst_dir,labels,labels_dst)
                     split_counter = split_counter -1
                     
             
@@ -443,6 +459,8 @@ def make_training_dir_folder_structure(root_folder):
     os.makedirs(os.path.join(images_folder,"test"),exist_ok=True)
     os.makedirs(os.path.join(images_folder,"train"),exist_ok=True)
     os.makedirs(os.path.join(images_folder,"test_full_size"),exist_ok=True)
+    os.makedirs(os.path.join(images_folder,"validation"),exist_ok=True)
+    os.makedirs(os.path.join(images_folder,"validation_full_size"),exist_ok=True)
     prediction_folder = os.path.join(root_folder,"predictions")
     os.makedirs(prediction_folder,exist_ok=True)
     os.makedirs(os.path.join(prediction_folder,"evaluations"),exist_ok=True)
@@ -450,8 +468,12 @@ def make_training_dir_folder_structure(root_folder):
     os.makedirs(os.path.join(root_folder,"predictions"),exist_ok=True)
     os.makedirs(os.path.join(root_folder,"pre-trained-model"),exist_ok=True)
     os.makedirs(os.path.join(root_folder,"trained_inference_graphs"),exist_ok=True)
-    os.makedirs(os.path.join(root_folder,"training"),exist_ok=True)
+    training_folder = os.path.join(root_folder,"training")
+    os.makedirs(training_folder,exist_ok=True)
     os.makedirs(os.path.join(root_folder,"eval"),exist_ok=True)
+    validation_folder = os.path.join(root_folder,"validation")
+    os.makedirs(validation_folder,exist_ok=True)
+    os.makedirs(os.path.join(validation_folder,"evaluation"),exist_ok=True)
 
 
     #This function takes the labels map and returns an array with the flower names that have more than min_instances instances
@@ -470,6 +492,20 @@ def filter_labels(labels, min_instances=50):
         if value >= min_instances:
             flowers_to_use.append(key)
     return flowers_to_use
+
+
+def set_num_classes_in_config_file(num_classes,project_dir):
+    pipeline_config = pipeline_pb2.TrainEvalPipelineConfig()                                                                                                                                                                                                          
+    with tf.gfile.GFile(project_dir + "/pre-trained-model/pipeline.config", "r") as f:                                                                                                                                                                                                                     
+        proto_str = f.read()                                                                                                                                                                                                                                          
+        text_format.Merge(proto_str, pipeline_config)                                                                                                                                                                                                                 
+
+    pipeline_config.model.faster_rcnn.num_classes = num_classes                                                                                                                                                                                         
+
+    config_text = text_format.MessageToString(pipeline_config)                                                                                                                                                                                                        
+    with tf.gfile.Open(project_dir + "/pre-trained-model/pipeline.config", "wb") as f:                                                                                                                                                                                                                       
+        f.write(config_text)                                                                                                                                                                                                                                          
+
 
 
 def print_labels(labels, flowers_to_use):
@@ -499,8 +535,9 @@ if __name__== "__main__":
     #Annotation Folder with Annotations made with the Android App
     input_folders = constants.input_folders
     
-    splits = constants.input_folders_splits
-    
+    test_splits = constants.test_splits
+    validation_splits = constants.validation_splits
+
     #All outputs will be printed into this folder
     output_dir = constants.train_dir
     
@@ -515,5 +552,5 @@ if __name__== "__main__":
     #minimum amount of flower instances to include species in training
     min_flowers = constants.min_flowers
 
-    convert_annotation_folders(input_folders, splits, output_dir, tile_size, split_mode, min_flowers)
+    convert_annotation_folders(input_folders, test_splits,validation_splits, output_dir, tile_size, split_mode, min_flowers)
 

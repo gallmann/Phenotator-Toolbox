@@ -5,21 +5,19 @@ Created on Fri May 17 18:05:50 2019
 @author: johan
 """
 
+print("Loading libraries...")
 from utils import constants
-
-
-
 from utils import file_utils
 from object_detection.utils import visualization_utils
 from PIL import Image
 import os
 from object_detection.utils import label_map_util
 import progressbar
+from utils import constants
 
 
 
-
-def evaluate(input_folder, output_folder,iou_threshold):
+def evaluate(input_folder, output_folder,iou_threshold=constants.iou_threshold):
     
     
     PATH_TO_LABELS = constants.train_dir + "/model_inputs/label_map.pbtxt"
@@ -135,7 +133,7 @@ def evaluate(input_folder, output_folder,iou_threshold):
         print_stats(stat,flower_name)
 
     print_stats(stat_overall,"Overall")
-
+    return stat_overall
 
 def print_stats(stat, flower_name):
     
