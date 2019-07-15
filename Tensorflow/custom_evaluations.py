@@ -24,7 +24,7 @@ def evaluate(input_folder, output_folder,iou_threshold):
     
     PATH_TO_LABELS = constants.train_dir + "/model_inputs/label_map.pbtxt"
     flower_names = get_flower_names_from_labelmap(PATH_TO_LABELS)
-    
+    print(flower_names)
     stats = {}
     for flower_name in flower_names:
         stats[flower_name] = {"tp": 0, "fp": 0, "fn": 0}
@@ -38,10 +38,12 @@ def evaluate(input_folder, output_folder,iou_threshold):
         ground_truth_path = image_path[:-4] + "_ground_truth.json"
         
         predictions = file_utils.read_json_file(predictions_path)
-        ground_truths = filter_ground_truth(file_utils.read_json_file(ground_truth_path),flower_names)
-        
+        ground_truths = file_utils.read_json_file(ground_truth_path)
         if not predictions or not ground_truths:
             continue
+
+        ground_truths = filter_ground_truth(ground_truths,flower_names)
+        
         
         
         for gt in ground_truths:
@@ -213,7 +215,7 @@ def get_flower_names_from_labelmap(labelmap_path):
 
 
 if __name__ == '__main__':
-    input_folder = constants.predictions
+    input_folder = constants.predictions_folder
     output_folder = constants.prediction_evaluation_folder
     iou_threshold = constants.iou_threshold
     evaluate(input_folder, output_folder,iou_threshold)
