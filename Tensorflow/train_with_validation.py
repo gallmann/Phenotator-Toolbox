@@ -25,8 +25,11 @@ def train_with_validation(project_dir,max_steps):
     training_folder = os.path.join(project_dir,"training")
     checkpoints_folder = os.path.join(training_folder,"checkpoints")
     os.makedirs(checkpoints_folder,exist_ok=True)
-
-    precision_recall_list = [(0,0),(0,0),(0,0)]
+    precision_recall_file = os.path.join(checkpoints_folder,"precision_recall_evolution.txt")
+    
+    precision_recall_list = get_precision_recall_list_from_file(precision_recall_file)
+    best_configuration = 0
+    best_index = 0
     
     current_step = get_max_checkpoint(checkpoints_folder)
     
@@ -38,30 +41,44 @@ def train_with_validation(project_dir,max_steps):
             print("An exception occured in the train script. Continue anyways")
         
         print("Export inference graph...")
-        my_export_inference_graph.run(project_dir)
         
         copy_checkpoint_to_folder(num_steps,training_folder, checkpoints_folder)
+
+        my_export_inference_graph.run(project_dir,look_in_checkpoints_dir=False)
         
         predict.predict(project_dir,validation_images_folder,validation_folder,constants.tile_size,constants.prediction_overlap)
         
         stats = custom_evaluations.evaluate(validation_folder, evaluation_folder)
         (precision,recall) = get_precision_and_recall_from_stat(stats)
         precision_recall_list.append((precision,recall))
-        pr_len = len(precision_recall_list)
         
-        with open(os.path.join(checkpoints_folder,"precision_recall_evolution.txt"), "a") as text_file:
+        with open(precision_recall_file, "a") as text_file:
             text_file.write("step " + str(num_steps) + ": " + str((precision,recall)))
-
-        value_this = precision + recall
-        value_last = precision_recall_list[pr_len-2][0]+precision_recall_list[pr_len-2][1]
-        value_last2 = precision_recall_list[pr_len-3][0]+precision_recall_list[pr_len-3][1]
-        value_last3 = precision_recall_list[pr_len-4][0]+precision_recall_list[pr_len-4][1]
-
-
-        if(value_this < value_last and value_this < value_last2 and value_this < value_last3):
-            break
+            
+        if precision+recall > best_configuration:
+            best_configuration = precision+recall
+            best_index = len(precision_recall_list)-1
+        else:
+            if len(precision_recall_list)-1-best_index >=3:
+                break
       
-     
+
+def get_precision_recall_list_from_file(file_path):
+    
+    precision_recall_list = [(0,0),(0,0),(0,0)]
+    
+    
+    if os.path.isfile(file_path):
+        #precision recall evolution exists
+        with open(file_path) as f:
+            lines = f.readlines()
+            
+        for line in lines:
+            precision = float(line[line.find(": (")+len(": ("):line.rfind(",")])
+            recall = float(line[line.find(",")+len(","):line.rfind(")")])
+            precision_recall_list.append((precision,recall))
+        
+    return precision_recall_list
         
 def get_max_checkpoint(checkpoints_folder):
     largest_number = -1                        

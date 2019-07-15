@@ -131,14 +131,12 @@ def main(_):
       FLAGS.output_directory, input_shape=input_shape,
       write_inference_graph=FLAGS.write_inference_graph)
 
-
-def run(project_dir):
-    global FLAGS
-    def find_latest_model(directory):
-        
-        
+def find_best_model(training_directory, look_in_checkpoints_dir = True):
+    
+    
+    if not look_in_checkpoints_dir:
         largest_number = -1
-        for file in os.listdir(directory):
+        for file in os.listdir(training_directory):
             if file.endswith(".index") and file.startswith("model.ckpt-"):
                 start = file.index("model.ckpt-") + len("model.ckpt-")
                 end = file.index( ".index", start )
@@ -147,10 +145,49 @@ def run(project_dir):
                     largest_number = curr_number
         return largest_number
 
+        return os.path.join(training_directory,"model.ckpt-" + str(largest_number))
+    
+    
+    checkpoints_dir = os.path.join(training_directory,"checkpoints")
+    precision_recall_evolution_file = os.path.join(checkpoints_dir,"precision_recall_evolution.txt")
+    if os.path.isdir(checkpoints_dir):
+        #there is a checkpoints dir
+        if os.path.isfile(precision_recall_evolution_file):
+            #precision recall evolution exists
+            with open(precision_recall_evolution_file) as f:
+                lines = f.readlines()
+            
+            best_configuration = 0
+            best_step = 0
+                
+            for line in lines:
+                step =int(line[line.find("step ")+len("step "):line.rfind(": ")])
+                precision = float(line[line.find(": (")+len(": ("):line.rfind(",")])
+                recall = float(line[line.find(",")+len(","):line.rfind(")")])
+                  
+                if(precision+recall > best_configuration):
+                    best_configuration = precision+recall
+                    best_step = step
+            checkpoint_file = os.path.join(checkpoints_dir,"model.ckpt-" + str(best_step))
+            if os.path.isfile(checkpoint_file):
+                return checkpoint_file
+            else:
+                return find_best_model(training_directory,look_in_checkpoints_dir=False)
+
+        
+
+
+
+
+
+def run(project_dir,look_in_checkpoints_dir = True):
+    global FLAGS
+
     train_dir = project_dir
     output_directory =  train_dir + "/trained_inference_graphs/output_inference_graph_v1.pb"
     pipeline_config_path = train_dir + "/pre-trained-model/pipeline.config"
-    trained_checkpoint_prefix = train_dir + "/training/model.ckpt-" + str(find_latest_model(train_dir + "/training/"))
+    training_directory = os.path.join(project_dir,"training")
+    trained_checkpoint_prefix = find_best_model(training_directory,look_in_checkpoints_dir)
     file_utils.delete_folder_contents(output_directory)
     
     def del_all_flags(FLAGS):

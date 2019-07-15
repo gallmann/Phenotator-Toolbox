@@ -60,8 +60,9 @@ def image_preprocessing(input_folder,test_split,validation_split,project_folder,
 def train(project_dir, max_steps, with_validation):
     """
     Trains a network. Pressing CTRL+C during the training process interrupts the training.
-    Running the train command again will resume the training. If the contents of the <path to project-folder>/training folder
-    are deleted, the training will start from the beginning.
+    Running the train command again will resume the training. If you want to start training
+    from the beginning, make sure that the contents of the <path to project-folder>/training folder
+    are all deleted.
     """
     
     if with_validation:
