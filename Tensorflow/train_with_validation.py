@@ -48,7 +48,7 @@ def train_with_validation(project_dir,max_steps):
         pr_len = len(precision_recall_list)
         
         with open(os.path.join(checkpoints_folder,"precision_recall_evolution.txt"), "a") as text_file:
-            text_file.write("step " + str(num_steps) + ": " + str(precision_recall_list))
+            text_file.write("step " + str(num_steps) + ": " + str((precision,recall)))
 
         value_this = precision + recall
         value_last = precision_recall_list[pr_len-2][0]+precision_recall_list[pr_len-2][1]
