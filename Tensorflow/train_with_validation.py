@@ -27,8 +27,10 @@ def train_with_validation(project_dir,max_steps):
     os.makedirs(checkpoints_folder,exist_ok=True)
 
     precision_recall_list = [(0,0),(0,0),(0,0)]
-
-    for num_steps in range(5000,max_steps,5000):
+    
+    current_step = get_max_checkpoint(checkpoints_folder)
+    
+    for num_steps in range(max(5000,current_step+5000),max_steps,5000):
         try:
             print("Train 5000 steps...")
             train.run(project_dir,num_steps)
@@ -59,7 +61,20 @@ def train_with_validation(project_dir,max_steps):
         if(value_this < value_last and value_this < value_last2 and value_this < value_last3):
             break
       
+     
         
+def get_max_checkpoint(checkpoints_folder):
+    largest_number = -1                        
+    for file in os.listdir(checkpoints_folder):
+        if file.endswith(".index") and file.startswith("model.ckpt-"):
+            start = file.index("model.ckpt-") + len("model.ckpt-")
+            end = file.index( ".index", start )
+            curr_number = int(file[start:end])
+            if(curr_number>largest_number):
+                largest_number = curr_number
+    return largest_number
+
+
 def copy_checkpoint_to_folder(checkpoint,src_dir,dst_dir):
     for file in os.listdir(src_dir):
         if "model.ckpt-" + str(checkpoint) in file:
