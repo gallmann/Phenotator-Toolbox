@@ -77,6 +77,9 @@ import functools
 import json
 import os
 import tensorflow as tf
+from google.protobuf import text_format
+from object_detection.protos import pipeline_pb2
+from shutil import copyfile
 
 from object_detection.builders import dataset_builder
 from object_detection.builders import graph_rewriter_builder
@@ -86,34 +89,6 @@ from object_detection.utils import config_util
 
 tf.logging.set_verbosity(tf.logging.INFO)
 
-flags = tf.app.flags
-flags.DEFINE_string('master', '', 'Name of the TensorFlow master to use.')
-flags.DEFINE_integer('task', 0, 'task id')
-flags.DEFINE_integer('num_clones', 1, 'Number of clones to deploy per worker.')
-flags.DEFINE_boolean('clone_on_cpu', False,
-                     'Force clones to be deployed on CPU.  Note that even if '
-                     'set to False (allowing ops to run on gpu), some ops may '
-                     'still be run on the CPU if they have no GPU kernel.')
-flags.DEFINE_integer('worker_replicas', 1, 'Number of worker+trainer '
-                     'replicas.')
-flags.DEFINE_integer('ps_tasks', 0,
-                     'Number of parameter server tasks. If None, does not use '
-                     'a parameter server.')
-flags.DEFINE_string('train_dir', train_dir + "/training",
-                    'Directory to save the checkpoints and training summaries.')
-
-flags.DEFINE_string('pipeline_config_path', pipeline_config_path,
-                    'Path to a pipeline_pb2.TrainEvalPipelineConfig config '
-                    'file. If provided, other configs are ignored')
-
-flags.DEFINE_string('train_config_path', '',
-                    'Path to a train_pb2.TrainConfig config file.')
-flags.DEFINE_string('input_config_path', '',
-                    'Path to an input_reader_pb2.InputReader config file.')
-flags.DEFINE_string('model_config_path', '',
-                    'Path to a model_pb2.DetectionModel config file.')
-
-FLAGS = flags.FLAGS
 
 
 @tf.contrib.framework.deprecated(None, 'Use object_detection/model_main.py.')
@@ -211,13 +186,74 @@ def main(_):
       FLAGS.train_dir,
       graph_hook_fn=graph_rewriter_fn)
 
-def run(project_dir):
+def set_num_steps_in_config_file(num_steps,project_dir):
+    
+    #edit config file in pre_trained_model_folder
+    pipeline_config = pipeline_pb2.TrainEvalPipelineConfig()                                                                                                                                                                                                          
+    with tf.gfile.GFile(project_dir + "/pre-trained-model/pipeline.config", "r") as f:                                                                                                                                                                                                                     
+        proto_str = f.read()                                                                                                                                                                                                                                          
+        text_format.Merge(proto_str, pipeline_config)                                                                                                                                                                                                                 
+
+    pipeline_config.train_config.num_steps = num_steps                                                                                                                                                                                          
+
+    config_text = text_format.MessageToString(pipeline_config)                                                                                                                                                                                                        
+    with tf.gfile.Open(project_dir + "/pre-trained-model/pipeline.config", "wb") as f:                                                                                                                                                                                                                       
+        f.write(config_text)   
+    
+    #copy file to training folder
+    src = project_dir + "/pre-trained-model/pipeline.config"
+    dst = project_dir + "/training/pipeline.config"
+    copyfile(src, dst)
+                                                                                                                                                                                                                                       
+
+def run(project_dir,max_steps):
+    set_num_steps_in_config_file(max_steps,project_dir)
     global train_dir
     train_dir = project_dir
     global pipeline_config_path
     pipeline_config_path = train_dir + "/pre-trained-model/pipeline.config"
+    global FLAGS
+    tf.reset_default_graph() 
+    def del_all_flags(FLAGS):
+        flags_dict = FLAGS._flags()    
+        keys_list = [keys for keys in flags_dict]    
+        for keys in keys_list:
+            FLAGS.__delattr__(keys)
+    
+    del_all_flags(tf.flags.FLAGS)
 
-    tf.app.run(main)
+    flags = tf.app.flags
+    flags.DEFINE_string('master', '', 'Name of the TensorFlow master to use.')
+    flags.DEFINE_integer('task', 0, 'task id')
+    flags.DEFINE_integer('num_clones', 1, 'Number of clones to deploy per worker.')
+    flags.DEFINE_boolean('clone_on_cpu', False,
+                         'Force clones to be deployed on CPU.  Note that even if '
+                         'set to False (allowing ops to run on gpu), some ops may '
+                         'still be run on the CPU if they have no GPU kernel.')
+    flags.DEFINE_integer('worker_replicas', 1, 'Number of worker+trainer '
+                         'replicas.')
+    flags.DEFINE_integer('ps_tasks', 0,
+                         'Number of parameter server tasks. If None, does not use '
+                         'a parameter server.')
+    flags.DEFINE_string('train_dir', train_dir + "/training",
+                        'Directory to save the checkpoints and training summaries.')
+    
+    flags.DEFINE_string('pipeline_config_path', pipeline_config_path,
+                        'Path to a pipeline_pb2.TrainEvalPipelineConfig config '
+                        'file. If provided, other configs are ignored')
+    
+    flags.DEFINE_string('train_config_path', '',
+                        'Path to a train_pb2.TrainConfig config file.')
+    flags.DEFINE_string('input_config_path', '',
+                        'Path to an input_reader_pb2.InputReader config file.')
+    flags.DEFINE_string('model_config_path', '',
+                        'Path to a model_pb2.DetectionModel config file.')
+    
+    FLAGS = flags.FLAGS
+
+    
+    main(None)
+    #tf.app.run(main)
 
 if __name__ == '__main__':
     run(train_dir)
