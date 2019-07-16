@@ -154,7 +154,6 @@ def find_best_model(training_directory, look_in_checkpoints_dir = True):
             #precision recall evolution exists
             with open(precision_recall_evolution_file) as f:
                 lines = f.readlines()
-            
             best_configuration = 0
             best_step = 0
                 
@@ -163,11 +162,11 @@ def find_best_model(training_directory, look_in_checkpoints_dir = True):
                 precision = float(line[line.find(": (")+len(": ("):line.rfind(",")])
                 recall = float(line[line.find(",")+len(","):line.rfind(")")])
                   
-                if(precision+recall > best_configuration):
-                    best_configuration = precision+recall
+                if(precision+recall-abs(precision-recall) > best_configuration):
+                    best_configuration = precision+recall-abs(precision-recall)
                     best_step = step
             checkpoint_file = os.path.join(checkpoints_dir,"model.ckpt-" + str(best_step))
-            if os.path.isfile(checkpoint_file):
+            if os.path.isfile(checkpoint_file + ".index"):
                 return checkpoint_file
             else:
                 return find_best_model(training_directory,look_in_checkpoints_dir=False)
@@ -186,6 +185,10 @@ def run(project_dir,look_in_checkpoints_dir = True):
     pipeline_config_path = train_dir + "/pre-trained-model/pipeline.config"
     training_directory = os.path.join(project_dir,"training")
     trained_checkpoint_prefix = find_best_model(training_directory,look_in_checkpoints_dir)
+    import time
+    
+    time.sleep( 5 )
+
     file_utils.delete_folder_contents(output_directory)
     
     print("Exporting " + trained_checkpoint_prefix)

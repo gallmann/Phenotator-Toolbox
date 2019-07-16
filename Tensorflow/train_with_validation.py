@@ -28,8 +28,7 @@ def train_with_validation(project_dir,max_steps):
     precision_recall_file = os.path.join(checkpoints_folder,"precision_recall_evolution.txt")
     
     precision_recall_list = get_precision_recall_list_from_file(precision_recall_file)
-    best_configuration = 0
-    best_index = 0
+    (best_index,best_configuration) = get_best_configuration_from_precision_recall_list(precision_recall_list)
     
     current_step = get_max_checkpoint(checkpoints_folder)
     
@@ -55,13 +54,23 @@ def train_with_validation(project_dir,max_steps):
         with open(precision_recall_file, "a") as text_file:
             text_file.write("step " + str(num_steps) + ": " + str((precision,recall)) + "\n")
             
-        if precision+recall > best_configuration:
-            best_configuration = precision+recall
+        if precision+recall-abs(precision-recall) > best_configuration:
+            best_configuration = precision+recall-abs(precision-recall)
             best_index = len(precision_recall_list)-1
         else:
-            if len(precision_recall_list)-1-best_index >=3:
+            if len(precision_recall_list)-1-best_index >=6:
                 break
       
+def get_best_configuration_from_precision_recall_list(precision_recall_list):
+    best_configuration = 0
+    best_index = 0
+        
+    for index,(precision,recall) in enumerate(precision_recall_list):
+        if(precision+recall-abs(precision-recall) > best_configuration):
+            best_configuration = precision+recall-abs(precision-recall)
+            best_index = index
+    return (best_index,best_configuration)
+
 
 def get_precision_recall_list_from_file(file_path):
     
