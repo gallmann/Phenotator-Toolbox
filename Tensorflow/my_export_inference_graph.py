@@ -143,8 +143,6 @@ def find_best_model(training_directory, look_in_checkpoints_dir = True):
                 curr_number = int(file[start:end])
                 if(curr_number>largest_number):
                     largest_number = curr_number
-        return largest_number
-
         return os.path.join(training_directory,"model.ckpt-" + str(largest_number))
     
     
