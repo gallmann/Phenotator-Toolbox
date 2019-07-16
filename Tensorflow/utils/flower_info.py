@@ -177,6 +177,8 @@ def clean_string(s):
         return "crepis biennis"
     if "lychnis flos cuculi" in s:
         return "centaurea jacea"
+    if "achillea millefolium" in s:
+        return "daucus carota"
     else:
         return s
 
