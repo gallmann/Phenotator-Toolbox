@@ -53,7 +53,7 @@ def train_with_validation(project_dir,max_steps):
         precision_recall_list.append((precision,recall))
         
         with open(precision_recall_file, "a") as text_file:
-            text_file.write("step " + str(num_steps) + ": " + str((precision,recall)))
+            text_file.write("step " + str(num_steps) + ": " + str((precision,recall)) + "\n")
             
         if precision+recall > best_configuration:
             best_configuration = precision+recall
