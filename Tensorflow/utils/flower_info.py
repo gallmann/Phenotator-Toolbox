@@ -173,8 +173,10 @@ def clean_string(s):
         return "lotus corniculatus"
     if "carum carvi" in s:
         return "galium mollugo"
-    if "leontodon hispidus" in s or "tragopogon pratensis" in s :
+    if "leontodon hispidus" in s or "tragopogon pratensis" in s or "picris hieracioides" in s :
         return "crepis biennis"
+    if "lychnis flos cuculi" in s:
+        return "centaurea jacea"
     else:
         return s
 
