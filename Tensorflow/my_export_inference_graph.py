@@ -188,6 +188,8 @@ def run(project_dir,look_in_checkpoints_dir = True):
     trained_checkpoint_prefix = find_best_model(training_directory,look_in_checkpoints_dir)
     file_utils.delete_folder_contents(output_directory)
     
+    print("Exporting " + trained_checkpoint_prefix)
+    
     def del_all_flags(FLAGS):
         flags_dict = FLAGS._flags()    
         keys_list = [keys for keys in flags_dict]    

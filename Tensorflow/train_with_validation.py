@@ -33,7 +33,7 @@ def train_with_validation(project_dir,max_steps):
     
     current_step = get_max_checkpoint(checkpoints_folder)
     
-    for num_steps in range(max(5000,current_step+5000),max_steps,5000):
+    for num_steps in range(max(2500,current_step+2500),max_steps,2500):
         try:
             print("Train 5000 steps...")
             train.run(project_dir,num_steps)
