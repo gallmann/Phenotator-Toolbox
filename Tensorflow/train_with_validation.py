@@ -48,12 +48,13 @@ def train_with_validation(project_dir,max_steps):
         predict.predict(project_dir,validation_images_folder,validation_folder,constants.tile_size,constants.prediction_overlap)
         
         stats = custom_evaluations.evaluate(validation_folder, evaluation_folder)
-        (precision,recall,mAP) = get_precision_and_recall_from_stat(stats)
-        precision_recall_list.append((precision,recall,mAP))
+        (precision,recall,mAP,f1) = get_precision_and_recall_from_stat(stats)
+        precision_recall_list.append((precision,recall,mAP,f1))
         
         with open(precision_recall_file, "a") as text_file:
-            text_file.write("step " + str(num_steps) + ": " + str((precision,recall,mAP)) + "\n")
-            
+            text_file.write("step " + str(num_steps) + "; precision: " + str(precision) + " recall: " + str(recall) + " mAP: " + str(mAP) + " f1: " + str(f1) + "\n")
+        
+        
         if precision+recall-abs(precision-recall) > best_configuration:
             best_configuration = precision+recall-abs(precision-recall)
             best_index = len(precision_recall_list)-1
@@ -69,7 +70,7 @@ def get_best_configuration_from_precision_recall_list(precision_recall_list):
     best_configuration = 0
     best_index = 0
         
-    for index,(precision,recall,mAP) in enumerate(precision_recall_list):
+    for index,(precision,recall,mAP,f1) in enumerate(precision_recall_list):
         if(precision+recall-abs(precision-recall) > best_configuration):
             best_configuration = precision+recall-abs(precision-recall)
             best_index = index
@@ -78,7 +79,7 @@ def get_best_configuration_from_precision_recall_list(precision_recall_list):
 
 def get_precision_recall_list_from_file(file_path):
     
-    precision_recall_list = [(0,0,0),(0,0,0),(0,0,0)]
+    precision_recall_list = []
     
     
     if os.path.isfile(file_path):
@@ -87,10 +88,11 @@ def get_precision_recall_list_from_file(file_path):
             lines = f.readlines()
             
         for line in lines:
-            precision = float(line[line.find(": (")+len(": ("):line.find(",")])
-            recall = float(line[line.find(",")+len(","):line.rfind(",")])
-            mAP = float(line[line.rfind(",")+len(","):line.rfind(")")])
-            precision_recall_list.append((precision,recall,mAP))
+            precision = float(line[line.find("; precision: ")+len("; precision: "):line.rfind(" recall: ")])
+            recall = float(line[line.find(" recall: ")+len(" recall: "):line.rfind(" mAP: ")])
+            mAP = float(line[line.rfind(" mAP: ")+len(" mAP: "):line.rfind(" f1: ")])
+            f1 = 2 * (precision*recall)/(precision+recall)
+            precision_recall_list.append((precision,recall,mAP,f1))
         
     return precision_recall_list
         
