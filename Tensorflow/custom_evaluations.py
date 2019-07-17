@@ -240,11 +240,15 @@ def print_stats(stat, flower_name):
     else:
         recall = float(stat["tp"]) / float(stat["tp"] + stat["fn"])
 
+    f1 = "-"
+    if recall != "-" and precision != "-" and ((recall >0) or (precision > 0)):
+        f1 = 2 * (precision*recall)/(precision+recall)
     print("   precision: " + str(precision))
     print("   recall: " + str(recall))
     print("   mAP: " + str(stat["mAP"]))
+    print("   f1: " + str(f1))
     print("   TP: " + str(stat["tp"]) + " FP: " + str(stat["fp"]) + " FN: " + str(stat["fn"]))
-    
+
         
 def iou(a, b, epsilon=1e-5):
     """ Given two boxes `a` and `b` defined as a list of four numbers:

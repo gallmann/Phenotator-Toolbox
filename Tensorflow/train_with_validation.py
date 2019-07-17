@@ -55,8 +55,8 @@ def train_with_validation(project_dir,max_steps):
             text_file.write("step " + str(num_steps) + "; precision: " + str(precision) + " recall: " + str(recall) + " mAP: " + str(mAP) + " f1: " + str(f1) + "\n")
         
         
-        if mAP > best_configuration:
-            best_configuration = mAP
+        if f1 > best_configuration:
+            best_configuration = f1
             best_index = len(precision_recall_list)-1
         else:
             if len(precision_recall_list)-1-best_index >=4:
