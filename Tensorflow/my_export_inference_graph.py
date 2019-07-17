@@ -164,8 +164,8 @@ def find_best_model(training_directory, look_in_checkpoints_dir = True):
                 mAP = float(line[line.rfind(" mAP: ")+len(" mAP: "):line.rfind(" f1: ")])
                 f1 = 2 * (precision*recall)/(precision+recall)
                   
-                if(precision+recall-abs(precision-recall) > best_configuration):
-                    best_configuration = precision+recall-abs(precision-recall)
+                if mAP > best_configuration:
+                    best_configuration = mAP
                     best_step = step
             checkpoint_file = os.path.join(checkpoints_dir,"model.ckpt-" + str(best_step))
             if os.path.isfile(checkpoint_file + ".index"):

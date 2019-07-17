@@ -55,8 +55,8 @@ def train_with_validation(project_dir,max_steps):
             text_file.write("step " + str(num_steps) + "; precision: " + str(precision) + " recall: " + str(recall) + " mAP: " + str(mAP) + " f1: " + str(f1) + "\n")
         
         
-        if precision+recall-abs(precision-recall) > best_configuration:
-            best_configuration = precision+recall-abs(precision-recall)
+        if mAP > best_configuration:
+            best_configuration = mAP
             best_index = len(precision_recall_list)-1
         else:
             if len(precision_recall_list)-1-best_index >=4:
@@ -71,8 +71,8 @@ def get_best_configuration_from_precision_recall_list(precision_recall_list):
     best_index = 0
         
     for index,(precision,recall,mAP,f1) in enumerate(precision_recall_list):
-        if(precision+recall-abs(precision-recall) > best_configuration):
-            best_configuration = precision+recall-abs(precision-recall)
+        if mAP > best_configuration:
+            best_configuration = mAP
             best_index = index
     return (best_index,best_configuration)
 

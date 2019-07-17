@@ -21,7 +21,7 @@ from utils import constants
 
 
 
-def evaluate(input_folder, output_folder,iou_threshold=constants.iou_threshold):
+def evaluate(input_folder, output_folder,iou_threshold=constants.iou_threshold,generate_visualizations=False,print_confusion_matrix=False):
     
     
     PATH_TO_LABELS = constants.train_dir + "/model_inputs/label_map.pbtxt"
@@ -139,30 +139,29 @@ def evaluate(input_folder, output_folder,iou_threshold=constants.iou_threshold):
             else:
                 gt["label"] = "tp"
 
-
-                                
-        image = Image.open(image_path)
-        
-        for prediction in predictions:
+        if generate_visualizations:            
+            image = Image.open(image_path)
+            
+            for prediction in predictions:
+                for gt in ground_truths:
+                    if prediction["label"] == "fp" and gt["label"] == "fn":
+                        if iou(prediction["bounding_box"], gt["bounding_box"])>iou_threshold:
+                            [top,left,bottom,right] = gt["bounding_box"]
+                            visualization_utils.draw_bounding_box_on_image(image,top,left,bottom,right,display_str_list=["Misclassification", "is: " + gt["name"] , "pred: " + prediction["name"]],thickness=2, color="DarkOrange", use_normalized_coordinates=False)          
+                            ground_truths.remove(gt)
+                            predictions.remove(prediction)
+            
+            
+            for prediction in predictions:
+                [top,left,bottom,right] = prediction["bounding_box"]
+                if prediction["label"] == "fp":
+                    visualization_utils.draw_bounding_box_on_image(image,top,left,bottom,right,display_str_list=["FP", prediction["name"]],thickness=2, color="red", use_normalized_coordinates=False)          
             for gt in ground_truths:
-                if prediction["label"] == "fp" and gt["label"] == "fn":
-                    if iou(prediction["bounding_box"], gt["bounding_box"])>iou_threshold:
-                        [top,left,bottom,right] = gt["bounding_box"]
-                        visualization_utils.draw_bounding_box_on_image(image,top,left,bottom,right,display_str_list=["Misclassification", "is: " + gt["name"] , "pred: " + prediction["name"]],thickness=2, color="DarkOrange", use_normalized_coordinates=False)          
-                        ground_truths.remove(gt)
-                        predictions.remove(prediction)
-        
-        
-        for prediction in predictions:
-            [top,left,bottom,right] = prediction["bounding_box"]
-            if prediction["label"] == "fp":
-                visualization_utils.draw_bounding_box_on_image(image,top,left,bottom,right,display_str_list=["FP", prediction["name"]],thickness=2, color="red", use_normalized_coordinates=False)          
-        for gt in ground_truths:
-            if gt["label"] == "fn":
-                [top,left,bottom,right] = gt["bounding_box"]
-                visualization_utils.draw_bounding_box_on_image(image,top,left,bottom,right,display_str_list=["FN", gt["name"]],thickness=2, color="MediumVioletRed", use_normalized_coordinates=False)          
-        image_output_path = os.path.join(output_folder, os.path.basename(image_path))
-        image.save(image_output_path)
+                if gt["label"] == "fn":
+                    [top,left,bottom,right] = gt["bounding_box"]
+                    visualization_utils.draw_bounding_box_on_image(image,top,left,bottom,right,display_str_list=["FN", gt["name"]],thickness=2, color="MediumVioletRed", use_normalized_coordinates=False)          
+            image_output_path = os.path.join(output_folder, os.path.basename(image_path))
+            image.save(image_output_path)
 
     
     tensorflow_evaluations = object_detection_evaluator.evaluate()
@@ -179,7 +178,8 @@ def evaluate(input_folder, output_folder,iou_threshold=constants.iou_threshold):
 
     print_stats(stat_overall,"Overall")
     
-    display(confusion_matrix,labelmap,iou_threshold)
+    if print_confusion_matrix:
+        display(confusion_matrix,labelmap,iou_threshold)
     
     return stat_overall
 
