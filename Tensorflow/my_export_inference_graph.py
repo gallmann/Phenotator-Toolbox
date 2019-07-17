@@ -159,8 +159,9 @@ def find_best_model(training_directory, look_in_checkpoints_dir = True):
                 
             for line in lines:
                 step =int(line[line.find("step ")+len("step "):line.rfind(": ")])
-                precision = float(line[line.find(": (")+len(": ("):line.rfind(",")])
-                recall = float(line[line.find(",")+len(","):line.rfind(")")])
+                precision = float(line[line.find(": (")+len(": ("):line.find(",")])
+                recall = float(line[line.find(",")+len(","):line.rfind(",")])
+                mAP = float(line[line.rfind(",")+len(","):line.rfind(")")])
                   
                 if(precision+recall-abs(precision-recall) > best_configuration):
                     best_configuration = precision+recall-abs(precision-recall)
