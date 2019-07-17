@@ -44,7 +44,7 @@ from object_detection.protos import pipeline_pb2
 
 
 
-def convert_annotation_folders(input_folders, test_splits, validation_splits, output_dir, tile_size, split_mode, min_flowers):
+def convert_annotation_folders(input_folders, test_splits, validation_splits, output_dir, tile_sizes, split_mode, min_flowers, overlap = 0):
     
     """Converts the contents of a list of input folders into tensorflow readable format ready for training
 
@@ -59,13 +59,15 @@ def convert_annotation_folders(input_folders, test_splits, validation_splits, ou
             inside the corresponding input folder should be used for testing and
             not for training
         output_dir (string): Path of the output directory
-        tile_size (int): Image Tile size to use as Tensorflow input
+        tile_sizes (list): List of ints defining the image tile size to use as Tensorflow input
         split_mode (str): If split_mode is "random", the images are split
             randomly into test and train directory. If split_mode is "deterministic",
             the images will be split in the same way every time this script is 
             executed and therefore making different configurations comparable
         min_flowers (int): Minimum amount of flower needed for including it in the
             training
+        overlap (int): overlap in pixels to use during the image tiling process
+        
     
     Returns:
         A filled output_dir with all necessary inputs for the Tensorflow model training
@@ -96,7 +98,7 @@ def convert_annotation_folders(input_folders, test_splits, validation_splits, ou
         for i in progressbar.progressbar(range(len(image_paths))):
             image_path = image_paths[i]
     
-            tile_image_and_annotations(image_path,train_images_dir, labels, input_folder_index, tile_size)
+            tile_image_and_annotations(image_path,train_images_dir, labels, input_folder_index, tile_sizes, overlap)
         
     
     
@@ -144,7 +146,7 @@ def convert_annotation_folders(input_folders, test_splits, validation_splits, ou
 
 
     
-def tile_image_and_annotations(image_path, output_folder,labels,input_folder_index, tile_size):
+def tile_image_and_annotations(image_path, output_folder,labels,input_folder_index, tile_sizes, overlap):
     
     """Tiles the image and the annotations into square shaped tiles of size tile_size
         Requires the image to have either a tablet annotation file (imagename_annotations.json)
@@ -156,13 +158,12 @@ def tile_image_and_annotations(image_path, output_folder,labels,input_folder_ind
         labels (dict): a dict inside of which the flowers are counted
         input_folder_index (int): the index of the input folder
         tile_size (int): the tile size 
+        overlap (int): overlap in pixels to use during the image tiling process
     
     Returns:
         Fills the output_folder with all tiles (and annotation files in xml format)
         that contain any flowers.
     """
-
-    tile_sizes=[450,300,225,600,300,225,450,225,300,225]
     
     image = Image.open(image_path)
     image_name = os.path.basename(image_path)
@@ -176,7 +177,7 @@ def tile_image_and_annotations(image_path, output_folder,labels,input_folder_ind
             filtered_annotations = get_flowers_within_bounds(image_path, currentx,currenty,tile_size)
             if len(filtered_annotations) == 0:
                 #Ignore image tiles without any annotations
-                currentx += tile_size
+                currentx += tile_size-overlap
                 continue
             tile = image.crop((currentx,currenty,currentx + tile_size,currenty + tile_size))
             output_image_path = os.path.join(output_folder, image_name + "_subtile_" + "x" + str(currentx) + "y" + str(currenty) + "_inputdir" + str(input_folder_index) + ".png")
@@ -186,8 +187,8 @@ def tile_image_and_annotations(image_path, output_folder,labels,input_folder_ind
             annotations_xml = build_xml_tree(filtered_annotations,output_image_path,labels)
             annotations_xml.write(xml_path)
             
-            currentx += tile_size
-        currenty += tile_size
+            currentx += tile_size-overlap
+        currenty += tile_size-overlap
         currentx = 0
         counter = counter + 1
 

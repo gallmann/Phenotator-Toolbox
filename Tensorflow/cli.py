@@ -34,10 +34,11 @@ def cli():
 @click.option('--test-split', '-t',     default=constants.test_splits, type=click.FloatRange(0, 1),    multiple=True,  help='Float between 0 and 1 indicating what portion should be used for the test set (must be the same number as input folders -> one number for each folder)')
 @click.option('--validation-split', '-v',     default=constants.validation_splits, type=click.FloatRange(0, 1),    multiple=True,  help='Float between 0 and 1 indicating what portion should be used for the validation set (must be the same number as input folders -> one number for each folder)')
 @click.option('--project-folder', default=constants.train_dir,type=click.Path(), help='This project directory will be filled with various subfolders used during the training or evaluation process.',show_default=True)
-@click.option('--tile-size', default=constants.tile_size,type=int, help='Tile size to use as tensorflow input (squared tiles)',show_default=True)
+@click.option('--tile-size', default=constants.tile_sizes,type=int, multiple=True, help='Tile size to use as tensorflow input (squared tiles). Can be more than one!',show_default=True)
 @click.option('--split-mode', default=constants.split_mode, help='Test set / Train set splitting technique. Deterministic mode ensures that an input directory is split the same way if this command is executed multiple times.',show_default=True,type=click.Choice(['random', 'deterministic']))
 @click.option('--min-instances', default=constants.min_flowers, type=int, help='Minimum instances of one class to include it in the training', show_default=True)
-def image_preprocessing(input_folder,test_split,validation_split,project_folder,tile_size,split_mode,min_instances):
+@click.option('--overlap', default=constants.train_overlap, type=int, help='The image tiles are generated with an overlap to better cover flowers on the edges of the tiles. Define the overlap in pixels with this flag.', show_default=True)
+def image_preprocessing(input_folder,test_split,validation_split,project_folder,tile_size,split_mode,min_instances,overlap):
     """
     
     Running this command converts one or multiple input folders containing annotated
@@ -49,7 +50,7 @@ def image_preprocessing(input_folder,test_split,validation_split,project_folder,
     """
     
     import image_preprocessing
-    image_preprocessing.convert_annotation_folders(input_folder, test_split,validation_split, project_folder, tile_size, split_mode, min_instances)
+    image_preprocessing.convert_annotation_folders(input_folder, test_split,validation_split, project_folder, tile_size, split_mode, min_instances, overlap)
     
     
     
@@ -88,7 +89,7 @@ def export_inference_graph(project_dir):
 @click.option('--project-dir', default=constants.train_dir,type=click.Path(), help='Provide the project folder that was used for the training.',show_default=True)
 @click.option('--images-to-predict', default=constants.images_to_predict,type=click.Path(), help='Path to a folder containing images on which the prediction algorithm should be run.',show_default=True)
 @click.option('--predictions-folder', default=constants.predictions_folder,type=click.Path(), help='Path to a folder where the prediction results should be saved to.',show_default=True)
-@click.option('--tile-size', default=constants.tile_size,type=int, help='Image Tile Size that should be used as Tensorflow input.',show_default=True)
+@click.option('--tile-size', default=constants.prediction_tile_size,type=int, help='Image Tile Size that should be used as Tensorflow input.',show_default=True)
 @click.option('--prediction-overlap', default=constants.prediction_overlap,type=int, help='The image tiles are predicted with an overlap to improve the results on the tile edges. Define the overlap in pixels with this flag.',show_default=True)
 def predict(project_dir,images_to_predict,predictions_folder,tile_size,prediction_overlap):
     """
