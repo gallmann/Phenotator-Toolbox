@@ -1,3 +1,11 @@
+"""
+
+This script was largely adapted from the Tensorflow Object Detection repository,
+Only slight adjustions were made to integrate it into the command line tool.
+
+"""
+
+
 # Copyright 2017 The TensorFlow Authors. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -114,6 +122,9 @@ from importlib import reload  # Python 3.4+ only.
 
 
 def main(_):
+  """
+  Main function executing the export. This is directly adapted from the Tensorflow implementation.
+  """
   pipeline_config = pipeline_pb2.TrainEvalPipelineConfig()
   with tf.gfile.GFile(FLAGS.pipeline_config_path, 'r') as f:
     text_format.Merge(f.read(), pipeline_config)
@@ -132,7 +143,21 @@ def main(_):
       write_inference_graph=FLAGS.write_inference_graph)
 
 def find_best_model(training_directory, look_in_checkpoints_dir = True, model_selection_criterion="f1"):
+    """
+    Finds the best model. If look_in_checkpoints_dir is set to True, the model best model is
+    selected based on the score it achieved on the validation set using either the f1 score or
+    mAP. 
+
+    Parameters:
+        training_directory (str): path to the training directory
+        look_in_checkpoints_dir (bool): if True, it was trained with a validation set
+            and the best model accordint to the model_selection_criterion is chosen
+        model_selection_criterion (str): either 'f1' or 'mAP'. 
     
+    Returns:
+        str: path of the best model prefix
+    """
+
     
     if not look_in_checkpoints_dir:
         largest_number = -1
@@ -184,6 +209,19 @@ def find_best_model(training_directory, look_in_checkpoints_dir = True, model_se
 
 
 def run(project_dir,look_in_checkpoints_dir = True, model_selection_criterion="f1"):
+    """
+    Runs the export command.
+    
+    Parameters:
+        project_dir (str): path to the project directory
+        look_in_checkpoints_dir (bool): if True, it was trained with a validation set
+            and the best model accordint to the model_selection_criterion is chosen
+        model_selection_criterion (str): either 'f1' or 'mAP'. 
+    
+    Returns:
+        None
+    """
+
     global FLAGS
 
     train_dir = project_dir
