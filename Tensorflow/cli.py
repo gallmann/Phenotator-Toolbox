@@ -7,6 +7,7 @@ Created on Wed Jul 10 16:04:58 2019
 
 import click
 from utils import constants
+import os
 
 CONTEXT_SETTINGS = dict(help_option_names=['-h', '--help'])
 
@@ -27,8 +28,6 @@ def cli():
     pass
 
 
-
-
 @cli.command(short_help='Prepare a folder with annotated images for Training.')
 @click.option('--input-folder','-i',default=constants.input_folders,        type=click.Path(),   multiple=True,  help='Input Folder Path (can be multiple)')
 @click.option('--test-split', '-t',     default=constants.test_splits, type=click.FloatRange(0, 1),    multiple=True,  help='Float between 0 and 1 indicating what portion should be used for the test set (must be the same number as input folders -> one number for each folder)')
@@ -40,7 +39,6 @@ def cli():
 @click.option('--overlap', default=constants.train_overlap, type=int, help='The image tiles are generated with an overlap to better cover flowers on the edges of the tiles. Define the overlap in pixels with this flag.', show_default=True)
 def image_preprocessing(input_folder,test_split,validation_split,project_folder,tile_size,split_mode,min_instances,overlap):
     """
-    
     Running this command converts one or multiple input folders containing annotated
     images into a format that is readable for the Tensorflow library. The input folders
     must contain images (jpg, png or tif) and along with each image a json file containing the
@@ -48,9 +46,9 @@ def image_preprocessing(input_folder,test_split,validation_split,project_folder,
     or with the AnnotationApp available for Android Tablets.
     
     """
-    
-    import image_preprocessing
-    image_preprocessing.convert_annotation_folders(input_folder, test_split,validation_split, project_folder, tile_size, split_mode, min_instances, overlap)
+    if check_inputs(folders=[input_folder,project_folder]):
+        import image_preprocessing
+        image_preprocessing.convert_annotation_folders(input_folder, test_split,validation_split, project_folder, tile_size, split_mode, min_instances, overlap)
     
     
     
@@ -66,13 +64,13 @@ def train(project_dir, max_steps, with_validation,stopping_criterion):
     from the beginning, make sure that the contents of the <path to project-folder>/training folder
     are all deleted.
     """
-    
-    if with_validation:
-        import train_with_validation
-        train_with_validation.train_with_validation(project_dir,max_steps,stopping_criterion)
-    else:
-        import train
-        train.run(project_dir,max_steps)
+    if check_inputs(folders=[project_dir]):
+        if with_validation:
+            import train_with_validation
+            train_with_validation.train_with_validation(project_dir,max_steps,stopping_criterion)
+        else:
+            import train
+            train.run(project_dir,max_steps)
         
 
 @cli.command(short_help='Export the trained inference graph.')
@@ -82,8 +80,9 @@ def export_inference_graph(project_dir,model_selection_criterion):
     """
         Exports the trained network to a format that can then be used to make predictions.
     """
-    import my_export_inference_graph
-    my_export_inference_graph.run(project_dir,look_in_checkpoints_dir=True,model_selection_criterion=model_selection_criterion)
+    if check_inputs(folders=[project_dir]):
+        import my_export_inference_graph
+        my_export_inference_graph.run(project_dir,look_in_checkpoints_dir=True,model_selection_criterion=model_selection_criterion)
 
 
 
@@ -97,9 +96,10 @@ def predict(project_dir,images_to_predict,predictions_folder,tile_size,predictio
     """
         Runs the prediction algorithm on images (png, jpg and tif) of any size.
     """
-    import predict
-    predict.predict(project_dir,images_to_predict,predictions_folder,tile_size,prediction_overlap)
-
+    if check_inputs(folders=[project_dir,images_to_predict,predictions_folder]):
+        import predict
+        predict.predict(project_dir,images_to_predict,predictions_folder,tile_size,prediction_overlap)
+    
 
 
 @cli.command(short_help='Evaluate Predictions.')
@@ -115,8 +115,9 @@ def evaluate(predictions_folder,evaluations_folder,iou_threshold,generate_visual
         this command will evaluate the performance of the prediction algorithm on these images.
         (Evaluation of Precision and Recall)
     """
-    import custom_evaluations
-    custom_evaluations.evaluate(predictions_folder, evaluations_folder, iou_threshold,generate_visualizations,print_confusion_matrix)
+    if check_inputs(folders=[predictions_folder,evaluations_folder]):
+        import custom_evaluations
+        custom_evaluations.evaluate(predictions_folder, evaluations_folder, iou_threshold,generate_visualizations,print_confusion_matrix)
     
     
 @cli.command(short_help='Visualize Bounding Boxes.')
@@ -130,8 +131,9 @@ def visualize(input_folder,output_folder,with_name_info,clean_output_folder):
         needs to contain images (png, jpg or tif) and annotation files (LabelMe json, AnnotationApp 
         json or Tensorflow xml format)
     """
-    import visualization
-    visualization.draw_bounding_boxes(input_folder,output_folder,with_name_info,clean_output_folder)
+    if check_inputs(folders=[input_folder,output_folder,output_folder]):
+        import visualization
+        visualization.draw_bounding_boxes(input_folder,output_folder,with_name_info,clean_output_folder)
 
 
 
@@ -154,13 +156,13 @@ def copy_annotations(annotated_folder, to_be_annotated_folder, output_folder,one
         With CTRL+C the execution of the script can be interupted. In the one-by-one mode, the execution
         can later be continued.
     """
-    
-    import copy_annotations_to_images
-    
-    if one_by_one:
-        copy_annotations_to_images.copy_annotations_to_images_one_by_one(annotated_folder, to_be_annotated_folder, output_folder)
-    else:
-        copy_annotations_to_images.copy_annotations_to_images(annotated_folder, to_be_annotated_folder, output_folder)
+    if check_inputs(folders=[annotated_folder,to_be_annotated_folder,output_folder]):
+
+        import copy_annotations_to_images
+        if one_by_one:
+            copy_annotations_to_images.copy_annotations_to_images_one_by_one(annotated_folder, to_be_annotated_folder, output_folder)
+        else:
+            copy_annotations_to_images.copy_annotations_to_images(annotated_folder, to_be_annotated_folder, output_folder)
 
 
 @cli.command(short_help='Annotate images or adjust existing annotations.')
@@ -179,11 +181,67 @@ def annotate(input_folder,roi_strip):
         kept in the images. The rest of the pixels are overriden with black.
         
     """
-    
-    import select_region
-    select_region.check_annotations(input_folder,roi_strip)
+    if check_inputs(folders=[input_folder]):
+        import select_region
+        select_region.check_annotations(input_folder,roi_strip)
     
 
+@cli.command(short_help='Annotate images or adjust existing annotations.')
+@click.argument('input-image', type=click.Path())
+@click.argument('output_folder', type=click.Path())
+@click.option('--tile-size', default=constants.prepare_for_tablet_tile_size, type=int, help="Tile size to use for tablet. Too large tile sizes can cause the app to crash.",show_default=True)
+def prepare_for_tablet(input_image,output_folder,tile_size):
+    """
+        Given an input-image (any format) and an output-folder,
+        the command tiles the input-image into tiles of suitable size for an android
+        tablet. If the input image is georeferenced (can be georeferenced tif or other image format with
+        a imagename.imageformat.aux.xml file in the same folder(=>see gdal)), the script generates
+        additional files with geo information that are read and used by the tablet app
+        for displaying the user location. An additional advantage of using a georeferenced image as input
+        is that after annotating on the tablet, all annotations can be copied onto other georeferenced
+        images with the copy-annotations commmand.
+    """
+    if check_inputs(folders=[output_folder],files=[input_image]):
+        import prepare_for_tablet
+        prepare_for_tablet.preprocess(input_image,output_folder,tile_size)
+
+
+@cli.command(short_help='Annotate images or adjust existing annotations.')
+@click.argument('annotation-folder', type=click.Path())
+@click.argument('output-folder', type=click.Path())
+def export_annotations(annotation_folder,output_folder):
+    """
+        Exports all annotations within a folder to shape files.
+    """
+    if check_inputs(folders=[annotation_folder,output_folder]):
+        import export_as_shape_files
+        export_as_shape_files.make_shape_files(annotation_folder, output_folder)
+    
+    
+    
+def check_inputs(folders=[],files=[]):
+    """Checks for all folders and files if they exist.
+
+    Parameters:
+        folders (list): list of strings representing folder paths
+        files (list): list of strings representing file paths
+    
+    Returns:
+        bool: True if all folders and files exist, False otherwise.
+    """
+
+    for folder in folders:
+        if not os.path.isdir(folder):
+            print(str(folder) + " is not a valid folder. Please check the spelling!")
+            return False
+    for file in files:
+        if not os.path.isfile(file):
+            print(str(file) + " is not a valid file. Please check the spelling!")
+            return False
+    return True
+
+    
+    
 
 if __name__ == '__main__':
     cli(prog_name='python cli.py')

@@ -103,8 +103,10 @@ class PreprocessTool(object):
                     #save geoinfo file
                     with open(out_path_json, 'w') as outfile:
                         json.dump(geo_info_curr.__dict__, outfile)
-        
-        
+                
+                if os.path.isfile(out_path_image + ".aux.xml"):
+                    os.remove(out_path_image + ".aux.xml")
+
             #update UI progressbar
             progress = min((i+tile_size_x)/xsize,1.0)
             progress_callback(progress)

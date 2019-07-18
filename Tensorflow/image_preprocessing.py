@@ -7,19 +7,14 @@ Created on Mon Apr  1 11:25:16 2019
 
 
 
-This script takes as input an input_folder which should contain images alongside 
-with annotations made by the Android-Annotation-Tool. 
-Additionally an output folder has to be specified. 
-Optionally a folder containing more ortho photos can be specified. If specified, 
-the script will use these orthophotos for training as well.
+Running this script, namely its main function convert_annotation_folders, converts one or multiple input folders containing annotated
+images into a format that is readable for the Tensorflow library. The input folders
+must contain images (jpg, png or tif) and along with each image a json file containing the
+annotations. These json files can either be created with the widely used LabelMe Application
+or with the AnnotationApp available for Android Tablets.
 
-From this input it generates multiple outputs:
-    
-    1. It will place the correctly tiled images alongside with annotations_xml files into
-    the images/train and images/test folder.
-    2. Other Tensorflow model input files such as labelmap.pbtxt and .record files will be generated
-    and placed into the model_inputs folder.
-    3. The eval, training, trained_inference_graphs and pre-trained-model folders are prepared.
+Output of this string is a folder structure that is used by all subsequent scripts such as
+train, predict, evaluate or export-inference-graph scripts and more.
 """
 
 
@@ -44,7 +39,7 @@ from object_detection.protos import pipeline_pb2
 
 
 
-def convert_annotation_folders(input_folders, test_splits, validation_splits, output_dir, tile_sizes, split_mode, min_flowers, overlap = 0):
+def convert_annotation_folders(input_folders, test_splits, validation_splits, project_dir, tile_sizes, split_mode, min_flowers, overlap = 0):
     
     """Converts the contents of a list of input folders into tensorflow readable format ready for training
 
@@ -58,7 +53,7 @@ def convert_annotation_folders(input_folders, test_splits, validation_splits, ou
             input_folders. Each boolean indicates what portion of the images
             inside the corresponding input folder should be used for testing and
             not for training
-        output_dir (string): Path of the output directory
+        project_dir (string): Path of the output directory
         tile_sizes (list): List of ints defining the image tile size to use as Tensorflow input
         split_mode (str): If split_mode is "random", the images are split
             randomly into test and train directory. If split_mode is "deterministic",
@@ -70,21 +65,21 @@ def convert_annotation_folders(input_folders, test_splits, validation_splits, ou
         
     
     Returns:
-        A filled output_dir with all necessary inputs for the Tensorflow model training
+        A filled project_dir with all necessary inputs for the Tensorflow model training
     """
 
     if len(input_folders) > len(test_splits) or len(input_folders) > len(validation_splits):
         print("Error: Make sure that you provide the same number of input folders and split values")
         return
 
-    make_training_dir_folder_structure(output_dir)
+    make_training_dir_folder_structure(project_dir)
     
     labels = {}
-    train_images_dir = os.path.join(os.path.join(output_dir, "images"),"train")
-    test_images_dir = os.path.join(os.path.join(output_dir, "images"),"test")
-    test_images_dir_full_size = os.path.join(os.path.join(output_dir, "images"),"test_full_size")
-    validation_images_dir = os.path.join(os.path.join(output_dir, "images"),"validation")
-    validation_images_dir_full_size = os.path.join(os.path.join(output_dir, "images"),"validation_full_size")
+    train_images_dir = os.path.join(os.path.join(project_dir, "images"),"train")
+    test_images_dir = os.path.join(os.path.join(project_dir, "images"),"test")
+    test_images_dir_full_size = os.path.join(os.path.join(project_dir, "images"),"test_full_size")
+    validation_images_dir = os.path.join(os.path.join(project_dir, "images"),"validation")
+    validation_images_dir_full_size = os.path.join(os.path.join(project_dir, "images"),"validation_full_size")
 
     for input_folder_index in range(0,len(input_folders)):
         
@@ -108,7 +103,7 @@ def convert_annotation_folders(input_folders, test_splits, validation_splits, ou
     flowers_to_use = filter_labels(labels,min_flowers)
         
     print("Creating Labelmap file...")
-    annotations_dir = os.path.join(output_dir, "model_inputs")
+    annotations_dir = os.path.join(project_dir, "model_inputs")
     write_labels_to_labelmapfile(flowers_to_use,annotations_dir)
     
     print("Splitting train dir into train, test and validation dir...")
@@ -132,7 +127,7 @@ def convert_annotation_folders(input_folders, test_splits, validation_splits, ou
     test_tf_record = os.path.join(annotations_dir, "test.record")
     generate_tfrecord.make_tfrecords(test_csv,test_tf_record,test_images_dir, labels)
     
-    set_num_classes_in_config_file(len(flowers_to_use),output_dir)
+    set_num_classes_in_config_file(len(flowers_to_use),project_dir)
     
     print("tfrecord training files generated from the follwing amount of flowers:")
     print_labels(labels, flowers_to_use)
@@ -496,6 +491,15 @@ def filter_labels(labels, min_instances=50):
 
 
 def set_num_classes_in_config_file(num_classes,project_dir):
+    """Sets the num_classes config parameter in the faster rcnn pipeline.config file
+    
+    Parameters:
+        num_classes (int): an integer indicating how many classes will be trained with
+        project_dir (str): the path of the project directory
+    Returns:
+        list: a list containing all flower names that have more than min_instances instances
+    """
+
     pipeline_config = pipeline_pb2.TrainEvalPipelineConfig()                                                                                                                                                                                                          
     with tf.gfile.GFile(project_dir + "/pre-trained-model/pipeline.config", "r") as f:                                                                                                                                                                                                                     
         proto_str = f.read()                                                                                                                                                                                                                                          
