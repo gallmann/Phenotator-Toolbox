@@ -17,6 +17,24 @@ from utils import constants
 
 
 def train_with_validation(project_dir,max_steps,stopping_criterion="f1"):
+    """
+    Trains a network using a validation set to decide when to stop training. 
+    The prediction and evaluation algorithms are run on the validation set every
+    2500 steps.
+
+    Parameters:
+        project_dir (str): The project directory used during the image-preprocessing
+            command.
+        max_steps (int): Should the stopping_criterion not trigger earlier, the network
+            is trainied at most max_steps steps.
+        stopping_criterion (str): Either 'f1' or 'mAP'. The network is trained as long the
+            respective score improves. The training is not stopped immediately but only after
+            10000 additional steps to check if the decrease in score was just local.
+    
+    Returns:
+        None
+    """
+
     images_folder = os.path.join(project_dir,"images")
     validation_images_folder = os.path.join(images_folder,"validation_full_size")
     validation_folder = os.path.join(project_dir,"validation")
@@ -69,6 +87,17 @@ def train_with_validation(project_dir,max_steps,stopping_criterion="f1"):
     
 
 def get_best_configuration_from_precision_recall_list(precision_recall_list, metric_to_use="f1"):
+    """
+    Helper function returning the index and the score of the best configuration
+    from a list with precision/recall/mAP/f1 scores.
+    
+    Parameters:
+        precision_recall_list (list): List of tuples of the format (precision,recall,mAP,f1).
+        metric_to_use (str): Either 'f1' or 'mAP'.
+    Returns:
+        tuple: (best_index,score_of_best_configuration)
+    """
+
     best_configuration = 0
     best_index = 0
         
@@ -83,7 +112,17 @@ def get_best_configuration_from_precision_recall_list(precision_recall_list, met
 
 
 def get_precision_recall_list_from_file(file_path):
+    """
+    During the training the precision/recall/mAP/f1 scores are saved to a file every
+    2500 steps. Should the user stop training. This function reads the values once the 
+    user wants to resume the training.
     
+    Parameters:
+        file_path (str): path to the file containing the score information
+    Returns:
+        list: list of all scores of each configuration
+    """
+
     precision_recall_list = []
     
     
@@ -102,6 +141,15 @@ def get_precision_recall_list_from_file(file_path):
     return precision_recall_list
         
 def get_max_checkpoint(checkpoints_folder):
+    """
+    Finds the most advanced training checkpoint saved by tensorflow within a folder
+    
+    Parameters:
+        checkpoints_folder (str): path to the folder containing the checkpoints
+    Returns:
+        int: the unique identifier number of the checkpoint file
+    """
+
     largest_number = -1                        
     for file in os.listdir(checkpoints_folder):
         if file.endswith(".index") and file.startswith("model.ckpt-"):
@@ -114,12 +162,35 @@ def get_max_checkpoint(checkpoints_folder):
 
 
 def copy_checkpoint_to_folder(checkpoint,src_dir,dst_dir):
+    """
+    Copies the checkpoint files from one folder to another
+    
+    Parameters:
+        checkpoint (int): unique identifier number for the checkpoint
+        src_dir (str): source folder containing the checkpoint files
+        dst_dir (str): destination folder where the checkpoint files should be copied to
+        
+    Returns:
+        None
+    """
+
     for file in os.listdir(src_dir):
         if "model.ckpt-" + str(checkpoint) in file:
             copyfile(os.path.join(src_dir, file), os.path.join(dst_dir,file))
 
 
 def get_precision_and_recall_from_stat(stat):
+    """
+    Extracts the precision/recall/mAP/f1 scores from the stat dict that is returned
+    by the evaluation script.
+    
+    Parameters:
+        stat (dict): dict returned by the evaluation script
+        
+    Returns:
+        tuple: (precision,recall,mAP,f1)
+    """
+
     print("Evaluation_stats:")
     n = stat["tp"] + stat["fn"]
     print("Overall" + " (n=" + str(n) + "):")
