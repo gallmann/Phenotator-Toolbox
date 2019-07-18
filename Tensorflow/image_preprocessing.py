@@ -191,7 +191,8 @@ def tile_image_and_annotations(image_path, output_folder,labels,input_folder_ind
 
 def get_flowers_within_bounds(image_path, x_offset, y_offset, tile_size):
     
-    """Returns a list of all annotations that are located within the specified bounds of the image
+    """
+    Returns a list of all annotations that are located within the specified bounds of the image
 
     Parameters:
         image_path (str): path of the image file

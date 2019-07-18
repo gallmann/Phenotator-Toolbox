@@ -3,10 +3,12 @@
 Created on Thu Jun 27 13:32:49 2019
 
 @author: johan
+
+This script copies annotations saved in one folder onto images saved in another folder.
+Read the descriptions of the three functions for more information.
 """
 
 print("Loading libraries...")
-from utils import constants
 from utils import apply_annotations
 from utils import file_utils
 import subprocess
@@ -18,15 +20,42 @@ import progressbar
 import signal                         
 terminate = False                            
 
-#copies all annotations from the annotated_folder to all images in the to_be_annotated_folder and saves
-#them into the output_folder
+
 def copy_annotations_to_images(annotated_folder, to_be_annotated_folder, output_folder):
+    """
+    Copies all annotations from the annotated_folder to all images in the to_be_annotated_folder and saves
+    them into the output_folder. Note that the images in the annotated_folder and the
+    to_be_annotated_folder have to be geo referenced. (either georeferenced tifs) or
+    jpg/png with imagename_geoinfo.json files in the same folder
+
+    Parameters:
+        annotated_folder (str): path of the folder containing annotations
+        to_be_annotated_folder (str) path to the folder containing the images that
+            are to be annotated
+        output_folder (str): path to the folder where the annotated images from the 
+            to_be_annotated_folder are saved to
     
+    Returns:
+        None
+    """
+
     apply_annotations.apply_annotations_to_images(annotated_folder, to_be_annotated_folder,output_folder)
     
     
 # lets the user check and adjust all images within a folder.
 def check_images(output_folder):
+    """
+    Lets the user see and edit all annotated images in the output_folder in the LabelMe application
+
+    Parameters:
+        output_folder (str): path of the folder containing annotated images
+    
+    Returns:
+        None
+    """
+
+    
+    
     all_images = file_utils.get_all_images_in_folder(output_folder)
     for image_path in all_images:
         annotations = file_utils.get_annotations(image_path)
@@ -35,15 +64,45 @@ def check_images(output_folder):
     subprocess.call(["labelme", output_folder, "--nodata", "--autosave", "--labels", "roi"])
     
 def has_only_roi_annotations(annotations):
+    """
+    Helper function returning True if all annotations within the annotations list
+    are labelled as 'roi'
+    
+    Parameters:
+        annotations (list): list of annotation dicts
+    
+    Returns:
+        bool: True if all annotations within the input list are labelled as 'roi', False otherwise
+    """
+
+    
     for annotation in annotations:
         if annotation["name"] != "roi":
             return False
     return True
     
-#this function lets the user check all copied annotations one by one. Once one image is checked it is saved to the
-#output_folder. If one image inside the to_be_annotated_folder is already in the output_folder, nothing is done.
-#This allows the user to inerrupt this process and continue on at a later time. 
 def copy_annotations_to_images_one_by_one(annotated_folder, to_be_annotated_folder, output_folder):
+    """
+    This function copies the annotations onto one image at a time. After the copying, 
+    the user is shown the copy results in the LabelMe application, so he can check and adjust
+    them. Once done, the process continues with the next image.
+    If one image inside the to_be_annotated_folder is already in the output_folder, nothing is done.
+    This allows the user to inerrupt this process and continue on at a later time. 
+    
+    Parameters:
+        annotated_folder (str): path of the folder containing annotations
+        to_be_annotated_folder (str) path to the folder containing the images that
+            are to be annotated
+        output_folder (str): path to the folder where the annotated images from the 
+            to_be_annotated_folder are saved to
+    
+    Returns:
+        None
+    """
+
+    
+    
+    
     all_images = file_utils.get_all_images_in_folder(to_be_annotated_folder)
     random.shuffle(all_images)
 

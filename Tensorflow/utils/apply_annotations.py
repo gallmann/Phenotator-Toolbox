@@ -32,11 +32,24 @@ class GeoInformation(object):
 
 
 
-# This function takes all images together with the annotation files in the annotated_folder
-# and based on this annotation data generates the annotation files for all images (.tif) in the
-# images_folder. The newly generated annotated images will be saved to the output_folder
 def apply_annotations_to_images(annotated_folder, images_folder, output_folder):
+    """
+    Copies all annotations from the annotated_folder to all images in the to_be_annotated_folder and saves
+    them into the output_folder. Note that the images in the annotated_folder and the
+    to_be_annotated_folder have to be geo referenced. (either georeferenced tifs) or
+    jpg/png with imagename_geoinfo.json files in the same folder
+
+    Parameters:
+        annotated_folder (str): path of the folder containing annotations
+        to_be_annotated_folder (str) path to the folder containing the images that
+            are to be annotated
+        output_folder (str): path to the folder where the annotated images from the 
+            to_be_annotated_folder are saved to
     
+    Returns:
+        None
+    """
+
     all_ortho_tifs = file_utils.get_all_images_in_folder(images_folder)
     
     print("Adding Annotations to all ortho images:")
@@ -46,7 +59,20 @@ def apply_annotations_to_images(annotated_folder, images_folder, output_folder):
         apply_annotations_to_image(annotated_folder,all_ortho_tifs[i],output_folder)
     
 def apply_annotations_to_image(annotated_folder, image_path, output_folder):
+    """
+    Copies all annotations from the annotated_folder to the image at image_path and saves
+    it into the output_folder.
+
+    Parameters:
+        annotated_folder (str): path of the folder containing annotations
+        image_path (str): path to the image onto which the annotations should be copied
+        output_folder (str): path to the folder where the annotated images from the 
+            to_be_annotated_folder are saved to
     
+    Returns:
+        None
+    """
+
     all_annotated_images = file_utils.get_all_images_in_folder(annotated_folder)
     
     ortho_tif = image_path
@@ -65,18 +91,31 @@ def apply_annotations_to_image(annotated_folder, image_path, output_folder):
     c = get_geo_coordinates(ortho_tif)
     for annotated_image in all_annotated_images:
         d = get_geo_coordinates(annotated_image)
-        annotation_path = annotated_image[:-4] + "_annotations.json"
         intersection = get_intersection(c,d)
         if intersection:
-            copy_annotations(annotated_image,annotation_path, ortho_png, c, d)  
+            copy_annotations(annotated_image, ortho_png, c, d)  
                     
     
-# copies all annotations from the annotated_image to the ortho_png image.
-def copy_annotations(annotated_image_path, annotation_path, ortho_png, ortho_tif_coordinates, annotated_image_coordinates):
+def copy_annotations(annotated_image_path, ortho_png, ortho_tif_coordinates, annotated_image_coordinates):
+    """
+    Copies all annotations from the annotated_image to the ortho_png image and
+    saves them to the ortho_png annotation file.
+
+    Parameters:
+        annotated_image_path (str): path of annotated image
+        ortho_png (str): path to the image onto which the annotations should be copied
+        ortho_tif_coordinates (GeoInformation): GeoInformation object belonging
+            to the ortho_png
+        annotated_image_coordinates (GeoInformation): GeoInformation object belonging
+            to the annotated_image
     
+    Returns:
+        None
+    """
+
     # read the annotation_data
-    annotation_data = file_utils.read_json_file(annotation_path)
-    if(not annotation_data):
+    annotations = file_utils.get_annotations(annotated_image_path)
+    if(not annotations):
         return
     
     #get size information of the annotated_image
@@ -95,9 +134,9 @@ def copy_annotations(annotated_image_path, annotation_path, ortho_png, ortho_tif
     
     
     #loop through all annotations
-    for i in range(len(annotation_data["annotatedFlowers"])-1,-1,-1):
+    for i in range(len(annotations)-1,-1,-1):
         
-        annotation = annotation_data["annotatedFlowers"][i]
+        annotation = annotations[i]
         should_be_added = True
         translated_annotation = translate_annotation(annotation,height,width,annotated_image_coordinates, ortho_tif_coordinates,ortho_height,ortho_width)
 
@@ -133,6 +172,25 @@ def copy_annotations(annotated_image_path, annotation_path, ortho_png, ortho_tif
         
         
 def translate_annotation(annotation,height,width,annotated_image_coordinates, ortho_tif_coordinates,ortho_height,ortho_width):
+    """
+    Translates the pixel coordinates of the from one image to pixel coordinates of another image,
+    given the height, width and geo coordinates of both images.
+
+    Parameters:
+        annotation (dict): annotation dict.
+        height (int): height of annotated image
+        width (int): width of annotated image
+        annotated_image_coordinates (GeoInformation): GeoInformation object of annotated image
+        ortho_tif_coordinates (GeoInformation): GeoInformation object of to_be_annotated image
+        ortho_height (int): height of to_be_annotated image
+        ortho_width (int): width of to_be_annotated image
+    
+    Returns:
+        dict: Annotation dict with translated x and y coordinates
+    """
+
+    
+    
     output_annotation = annotation
     for coord_ind in range(0,len(annotation["polygon"])):
         # get pixel coordinates of annotation
@@ -148,7 +206,21 @@ def translate_annotation(annotation,height,width,annotated_image_coordinates, or
         
         
 def get_intersection_of_polygon_and_image_bounds(image_width,image_height,roi_polygon):
-        
+    
+    """
+    Given an image_height and image_with and a polygon, the function computes the intersection
+    polygon of the image and the polygon and returns the intersection polygon.
+    
+    Parameters:
+        image_height (int): height of annotated image
+        image_width (int): width of annotated image
+        roi_polygon (list): list of coordinates defining the polygon
+    
+    Returns:
+        list: list of coordinates difining the intersection polygon,
+            None if they do not intersect
+    """
+
     image_box = box(0,0,image_width,image_height)
     roi_polygon_array = []
     for coord_ind in range(0,len(roi_polygon)):
@@ -166,28 +238,66 @@ def get_intersection_of_polygon_and_image_bounds(image_width,image_height,roi_po
     return result_polygon
 
     
-def are_coordinates_within_colorful_image(x,y,image,width,height):
-    return not is_pixel_white(x,y,image) and are_coordinates_within_image_bounds(x,y,width,height)
-
 def are_coordinates_within_image_bounds(x,y,width,height):
+    """
+    Given an height and with of an image and x and y coordinates, the function checks
+    if the coordinates lay within the image bounds.
+    
+    Parameters:
+        x (int): x coordinate
+        y (int): y coordinate
+        height (int): height of the image
+        width (int): width of the image
+    
+    Returns:
+        bool: True, if coordinates are within image, False otherwise
+    """
+
     #check if the (x,y) coordinates lay within the image bounds
     if(x < width and y < height and x > 0 and y > 0):
         return True
     return False
         
 def is_pixel_white(x,y,image):
+    """
+    Checks whether the pixel has at (x,y) is white in the image
+    
+    Parameters:
+        x (int): x coordinate
+        y (int): y coordinate
+        image (PIL-image): PIL image to check
+    
+    Returns:
+        bool: True, if pixel at (x,y) coordinate is white, False otherwise
+    """
+
     if not are_coordinates_within_image_bounds(x,y,image.width,image.height):
         return False
     if image.load()[x,y] == (255,255,255):
         return True
     return False
 
-def get_roi_annotation(annotation):
-    return 0
 
     
-# translates the coordinates of an annotation from one geo annotated image to the other
 def translate_pixel_coordinates(x,y,height,width,source_geo_coords,target_geo_coords,height_target,width_target):
+    """
+    Translates one pixel coordinate of the from one image to pixel coordinates of another image,
+    given the height, width and geo coordinates of both images.
+
+    Parameters:
+        x (int): x coordinate
+        y (int): y coordinate
+        height (int): height of annotated image
+        width (int): width of annotated image
+        source_geo_coords (GeoInformation): GeoInformation object of annotated image
+        target_geo_coords (GeoInformation): GeoInformation object of to_be_annotated image
+        height_target (int): height of to_be_annotated image
+        width_target (int): width of to_be_annotated image
+    
+    Returns:
+        tuple: (x,y) translated coordinates
+    """
+
     rel_x = x/width
     rel_y = y/height
     geo_x = (source_geo_coords.lr_lon-source_geo_coords.ul_lon) * rel_x + source_geo_coords.ul_lon
@@ -203,9 +313,22 @@ def translate_pixel_coordinates(x,y,height,width,source_geo_coords,target_geo_co
     
 
 
-#returns geo_coordinates in swiss coordinate system
 def get_geo_coordinates(input_image):
+    """
+    Reads the geo coordinates of the upper-left and lower-right corner of the image and coverts them
+    to the lv95+ format (if not already) and returns it as a GeoInformation object. The input image must
+    be in the jpg or png format with a imagename_geoinfo.json file in the same folder
+    or otherwise can be a georeferenced tif.
+
     
+    Parameters:
+        input_image (str): path to the image
+        
+    Returns:
+        GeoInformation: GeoInformation object containing the upper-left and lower-right geo coordinates
+            in lv95+ coordinate system
+    """
+
     if input_image.endswith(".png") or input_image.endswith(".jpg"):
         #if the input_image is a .png file, there should be a geoinfo.json file in the same folder
         #where the geo information is read from
@@ -245,8 +368,17 @@ def get_geo_coordinates(input_image):
 
         
 
-#returns the intersection rectangle of two GeoInformation objects (defined at top of this file)
 def get_intersection(geo1,geo2):
+    """
+    Returns the intersection rectangle of two GeoInformation objects (defined at top of this file)
+    
+    Parameters:
+        geo1 (GeoInformation): first GeoInformation object
+        geo2 (GeoInformation): second GeoInformation object
+    Returns:
+        GeoInformation: intersection rectangle
+    """
+
 
     leftX   = max( geo1.ul_lon, geo2.ul_lon);
     rightX  = min( geo1.lr_lon, geo2.lr_lon);

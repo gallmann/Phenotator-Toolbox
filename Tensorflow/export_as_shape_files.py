@@ -128,11 +128,10 @@ def convert_pixel_coords_go_swiss_geo_coords(x,y,image_geo_info,height,width):
 
 
 
-#returns geo_coordinates in swiss coordinate system
 def get_geo_coordinates(input_image):
     """
-    Reads the geo coordinates of the upper-left and lower-right corner of the image
-    in the lv95+ format and returns it as a GeoInformation object. The input image must
+    Reads the geo coordinates of the upper-left and lower-right corner of the image and coverts them
+    to the lv95+ format (if not already) and returns it as a GeoInformation object. The input image must
     be in the jpg or png format with a imagename_geoinfo.json file in the same folder
     or otherwise can be a georeferenced tif.
 
@@ -159,16 +158,26 @@ def get_geo_coordinates(input_image):
             return geo_info
     else:
         #if the input_image is a geo-annotated .tif file, read the geo information using gdal
-        inDS = gdal.Open(input_image)
-            
-        ulx, xres, xskew, uly, yskew, yres  = inDS.GetGeoTransform()
-        lrx = ulx + (inDS.RasterXSize * xres)
-        lry = uly + (inDS.RasterYSize * yres)
+        ds = gdal.Open(input_image)
+        inSRS_wkt = ds.GetProjection()  # gives SRS in WKT
+        inSRS_converter = osr.SpatialReference()  # makes an empty spatial ref object
+        inSRS_converter.ImportFromWkt(inSRS_wkt)  # populates the spatial ref object with our WKT SRS
+        inSRS_forPyProj = inSRS_converter.ExportToProj4()  # Exports an SRS ref as a Proj4 string usable by PyProj
+        
+        input_coord_system = pyproj.Proj(inSRS_forPyProj) 
+        swiss = pyproj.Proj("+init=EPSG:2056")
+        
+        ulx, xres, xskew, uly, yskew, yres  = ds.GetGeoTransform()
+        lrx = ulx + (ds.RasterXSize * xres)
+        lry = uly + (ds.RasterYSize * yres)
         geo_info = GeoInformation()
         geo_info.lr_lon = lrx
         geo_info.lr_lat = lry
         geo_info.ul_lon = ulx
         geo_info.ul_lat = uly
+        geo_info.lr_lon,geo_info.lr_lat = pyproj.transform(input_coord_system, swiss, geo_info.lr_lon, geo_info.lr_lat)
+        geo_info.ul_lon,geo_info.ul_lat = pyproj.transform(input_coord_system, swiss, geo_info.ul_lon, geo_info.ul_lat)
+
         return geo_info
 
     
