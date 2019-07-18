@@ -3,6 +3,13 @@
 Created on Mon Mar 18 11:20:35 2019
 
 @author: johan
+
+
+This script tiles a large image that is to be annotated on the tablet. The output
+of the script is a folder that can be copied onto an Android tablet and imported into 
+the Annotation App.
+
+
 """
 
 print("Loading libraries...")
@@ -23,7 +30,25 @@ class GeoInformation(object):
      
     
 def preprocess_internal(in_path, out_path, tile_size = 5120):
-    
+    """
+    Given an input-image (any format) and an output-folder,
+    the command tiles the input-image into tiles of suitable size for an android
+    tablet. If the input image is georeferenced (can be georeferenced tif or other image format with
+    a imagename.imageformat.aux.xml file in the same folder(=>see gdal)), the script generates
+    additional files with geo information that are read and used by the tablet app
+    for displaying the user location. An additional advantage of using a georeferenced image as input
+    is that after annotating on the tablet, all annotations can be copied onto other georeferenced
+    images with the copy-annotations commmand.
+
+    Parameters:
+        in_path (str): path to the input image
+        out_path (str): path of the output folder
+        tile_size (str): the size of the tile (square shaped)
+        
+    Returns:
+        None, a folder that can bi copied onto the android tablet.
+    """
+
     #fixed tile size
     output_filename = 'tile_'
     tile_size_x = tile_size
@@ -91,7 +116,19 @@ def preprocess_internal(in_path, out_path, tile_size = 5120):
         
     
 def preprocess(in_path, out_path,tile_size=5120):
+    """
+    Does some sanity checks on the input parameters before passing them on to
+    the preprocess_internal(...) function
+
+    Parameters:
+        in_path (str): path to the input image
+        out_path (str): path of the output folder
+        tile_size (str): the size of the tile (square shaped)
         
+    Returns:
+        None, a folder that can bi copied onto the android tablet.
+    """
+
     #Some sanity checks
     try:
         fh = open(in_path, 'r')

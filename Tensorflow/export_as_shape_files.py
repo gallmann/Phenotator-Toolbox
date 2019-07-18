@@ -3,6 +3,11 @@
 Created on Fri May 10 11:42:56 2019
 
 @author: johan
+
+Given a folder with annotations (Made with tablet or LabelMe application), the script
+converts the annotations to shape files.
+
+
 """
 
 print("Loading libraries...")
@@ -11,17 +16,11 @@ import json
 import shapefile
 import pyproj
 import gdal
-#from PIL import Image
-import numpy as np
 import cv2
 from utils import file_utils
 from utils import flower_info
 import progressbar
 
-
-
-output_location = "C:/Users/johan/Desktop/coords.shp"
-output_location_poly = "C:/Users/johan/Desktop/poly.shp"
 
 
 class GeoInformation(object):
@@ -36,7 +35,19 @@ class GeoInformation(object):
                 setattr(self, key, dictionary[key])
 
 def make_shape_files(input_folder, output_location):
+    """
+    Given a folder with annotations (Made with tablet or LabelMe application), the script
+    converts the annotations to shape files.
+
     
+    Parameters:
+        input_folder (str): path to the input folder with annotations (images and json files)
+        output_location (str): path of the output folder
+        
+    Returns:
+        None
+    """
+
     #Some sanity checks
     if not os.path.isdir(input_folder):
         print("Input Directory not found!")
@@ -57,11 +68,7 @@ def make_shape_files(input_folder, output_location):
     print("Exporting annotations...")
     for i in progressbar.progressbar(range(len(image_paths))):
         image_path = image_paths[i]
-        annotation_path = image_path[:-4] + "_annotations.json"
-        annotation_data = file_utils.read_json_file(annotation_path)
-        if(not annotation_data):
-            continue
-        annotations = annotation_data["annotatedFlowers"]
+        annotations = file_utils.get_annotations(image_path)
         swiss_coords = get_geo_coordinates(image_path)
         
         #get size information of the annotated_image
@@ -95,6 +102,23 @@ def make_shape_files(input_folder, output_location):
 
 
 def convert_pixel_coords_go_swiss_geo_coords(x,y,image_geo_info,height,width):
+    """
+    Converts pixel coordinates x and y to swiss geo coordinates in the lv95+ coordinate system
+
+    
+    Parameters:
+        x (float or int): x coordinate of pixel
+        y (float or int): y coordinate of pixel
+        image_geo_info (GeoInformation): GeoInformation object of image containing
+            upper-left and lower-right geo coordinates of the image
+        height (int): height of the image
+        width (int): width of the image
+        
+    Returns:
+        list: [x,y] in swiss (lv95+) coordinates
+    """
+
+
     rel_x = x/width
     rel_y = y/height
     geo_x = (image_geo_info.lr_lon-image_geo_info.ul_lon) * rel_x + image_geo_info.ul_lon
@@ -106,8 +130,22 @@ def convert_pixel_coords_go_swiss_geo_coords(x,y,image_geo_info,height,width):
 
 #returns geo_coordinates in swiss coordinate system
 def get_geo_coordinates(input_image):
+    """
+    Reads the geo coordinates of the upper-left and lower-right corner of the image
+    in the lv95+ format and returns it as a GeoInformation object. The input image must
+    be in the jpg or png format with a imagename_geoinfo.json file in the same folder
+    or otherwise can be a georeferenced tif.
+
     
-    if input_image.endswith(".png"):
+    Parameters:
+        input_image (str): path to the image
+        
+    Returns:
+        GeoInformation: GeoInformation object containing the upper-left and lower-right geo coordinates
+            in lv95+ coordinate system
+    """
+
+    if input_image.endswith(".png") or input_image.endswith(".jpg"):
         #if the input_image is a .png file, there should be a geoinfo.json file in the same folder
         #where the geo information is read from
         geo_info_path = input_image[:-4] +  "_geoinfo.json"
