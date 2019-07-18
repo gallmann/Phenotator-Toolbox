@@ -6,7 +6,6 @@ Created on Sun Jul 14 20:42:09 2019
 """
 
 
-print("Loading libraries...")
 from shutil import copyfile
 import train
 import my_export_inference_graph
@@ -45,7 +44,7 @@ def train_with_validation(project_dir,max_steps):
 
         my_export_inference_graph.run(project_dir,look_in_checkpoints_dir=False)
         
-        predict.predict(project_dir,validation_images_folder,validation_folder,constants.tile_size,constants.prediction_overlap)
+        predict.predict(project_dir,validation_images_folder,validation_folder,constants.prediction_tile_size,constants.prediction_overlap)
         
         stats = custom_evaluations.evaluate(validation_folder, evaluation_folder)
         (precision,recall,mAP,f1) = get_precision_and_recall_from_stat(stats)
@@ -131,7 +130,11 @@ def get_precision_and_recall_from_stat(stat):
     print("   recall: " + str(recall))
     print("   TP: " + str(stat["tp"]) + " FP: " + str(stat["fp"]) + " FN: " + str(stat["fn"]))
     
-    return (float(precision),float(recall))
+    f1 = 0
+    if recall != "0" and precision != "0" and ((recall >0) or (precision > 0)):
+        f1 = 2 * (precision*recall)/(precision+recall)
+
+    return (float(precision),float(recall),stat["mAP"],f1)
 
 
 if __name__ == '__main__':
