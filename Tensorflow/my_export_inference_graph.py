@@ -131,7 +131,7 @@ def main(_):
       FLAGS.output_directory, input_shape=input_shape,
       write_inference_graph=FLAGS.write_inference_graph)
 
-def find_best_model(training_directory, look_in_checkpoints_dir = True):
+def find_best_model(training_directory, look_in_checkpoints_dir = True, model_selection_criterion="f1"):
     
     
     if not look_in_checkpoints_dir:
@@ -163,9 +163,12 @@ def find_best_model(training_directory, look_in_checkpoints_dir = True):
                 recall = float(line[line.find(" recall: ")+len(" recall: "):line.rfind(" mAP: ")])
                 mAP = float(line[line.rfind(" mAP: ")+len(" mAP: "):line.rfind(" f1: ")])
                 f1 = 2 * (precision*recall)/(precision+recall)
-                  
-                if f1 > best_configuration:
-                    best_configuration = f1
+                relevant_metric = f1
+                if model_selection_criterion == "mAP":
+                    relevant_metric = mAP
+                    
+                if relevant_metric > best_configuration:
+                    best_configuration = relevant_metric
                     best_step = step
             checkpoint_file = os.path.join(checkpoints_dir,"model.ckpt-" + str(best_step))
             if os.path.isfile(checkpoint_file + ".index"):
@@ -180,14 +183,14 @@ def find_best_model(training_directory, look_in_checkpoints_dir = True):
 
 
 
-def run(project_dir,look_in_checkpoints_dir = True):
+def run(project_dir,look_in_checkpoints_dir = True, model_selection_criterion="f1"):
     global FLAGS
 
     train_dir = project_dir
     output_directory =  train_dir + "/trained_inference_graphs/output_inference_graph_v1.pb"
     pipeline_config_path = train_dir + "/pre-trained-model/pipeline.config"
     training_directory = os.path.join(project_dir,"training")
-    trained_checkpoint_prefix = find_best_model(training_directory,look_in_checkpoints_dir)
+    trained_checkpoint_prefix = find_best_model(training_directory,look_in_checkpoints_dir,model_selection_criterion)
     import time
     
     time.sleep( 5 )

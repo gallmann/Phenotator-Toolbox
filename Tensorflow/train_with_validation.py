@@ -16,7 +16,7 @@ from utils import constants
 
 
 
-def train_with_validation(project_dir,max_steps):
+def train_with_validation(project_dir,max_steps,stopping_criterion="f1"):
     images_folder = os.path.join(project_dir,"images")
     validation_images_folder = os.path.join(images_folder,"validation_full_size")
     validation_folder = os.path.join(project_dir,"validation")
@@ -27,7 +27,7 @@ def train_with_validation(project_dir,max_steps):
     precision_recall_file = os.path.join(checkpoints_folder,"precision_recall_evolution.txt")
     
     precision_recall_list = get_precision_recall_list_from_file(precision_recall_file)
-    (best_index,best_configuration) = get_best_configuration_from_precision_recall_list(precision_recall_list)
+    (best_index,best_configuration) = get_best_configuration_from_precision_recall_list(precision_recall_list,stopping_criterion)
     
     current_step = get_max_checkpoint(checkpoints_folder)
     
@@ -53,9 +53,12 @@ def train_with_validation(project_dir,max_steps):
         with open(precision_recall_file, "a") as text_file:
             text_file.write("step " + str(num_steps) + "; precision: " + str(precision) + " recall: " + str(recall) + " mAP: " + str(mAP) + " f1: " + str(f1) + "\n")
         
-        
-        if f1 > best_configuration:
-            best_configuration = f1
+        relevant_metric = f1
+        if stopping_criterion == "mAP":
+            relevant_metric = mAP
+            
+        if relevant_metric > best_configuration:
+            best_configuration = relevant_metric
             best_index = len(precision_recall_list)-1
         else:
             if len(precision_recall_list)-1-best_index >=4:
@@ -65,13 +68,16 @@ def train_with_validation(project_dir,max_steps):
 
     
 
-def get_best_configuration_from_precision_recall_list(precision_recall_list):
+def get_best_configuration_from_precision_recall_list(precision_recall_list, metric_to_use="f1"):
     best_configuration = 0
     best_index = 0
         
     for index,(precision,recall,mAP,f1) in enumerate(precision_recall_list):
-        if mAP > best_configuration:
-            best_configuration = mAP
+        relevant_metric = f1
+        if metric_to_use == "mAP":
+            relevant_metric = mAP
+        if relevant_metric > best_configuration:
+            best_configuration = relevant_metric
             best_index = index
     return (best_index,best_configuration)
 

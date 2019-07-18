@@ -58,7 +58,8 @@ def image_preprocessing(input_folder,test_split,validation_split,project_folder,
 @click.option('--project-dir', default=constants.train_dir,type=click.Path(), help='Provide the project folder that was also used for the image-preprocessing command.',show_default=True)
 @click.option('--max-steps', default=constants.max_steps,type=int, help='Max Training steps to carry out.',show_default=True)
 @click.option('--with-validation', default=constants.with_validation,type=bool, help='If true, the training process is carried out as long as the validation error decreases. If false, the training is carried out until max-steps is reached.',show_default=True)
-def train(project_dir, max_steps, with_validation):
+@click.option('--stopping-criterion', default=constants.model_selection_criterion,type=click.Choice(['mAP', 'f1']), help="If the train command was executed with the '--with-validation True' flag, the training is stopped once either the mAP or the f1 score stop improving.",show_default=True)
+def train(project_dir, max_steps, with_validation,stopping_criterion):
     """
     Trains a network. Pressing CTRL+C during the training process interrupts the training.
     Running the train command again will resume the training. If you want to start training
@@ -68,7 +69,7 @@ def train(project_dir, max_steps, with_validation):
     
     if with_validation:
         import train_with_validation
-        train_with_validation.train_with_validation(project_dir,max_steps)
+        train_with_validation.train_with_validation(project_dir,max_steps,stopping_criterion)
     else:
         import train
         train.run(project_dir,max_steps)
@@ -76,12 +77,13 @@ def train(project_dir, max_steps, with_validation):
 
 @cli.command(short_help='Export the trained inference graph.')
 @click.option('--project-dir', default=constants.train_dir,type=click.Path(), help='Provide the project folder that was also used for the training.',show_default=True)
-def export_inference_graph(project_dir):
+@click.option('--model-selection-criterion', default=constants.model_selection_criterion,type=click.Choice(['mAP', 'f1']), help="If the train command was executed with the '--with-validation True' flag, the model with the best performance on the validation set is exported (in terms of either mAP or f1 score).",show_default=True)
+def export_inference_graph(project_dir,model_selection_criterion):
     """
         Exports the trained network to a format that can then be used to make predictions.
     """
     import my_export_inference_graph
-    my_export_inference_graph.run(project_dir)
+    my_export_inference_graph.run(project_dir,look_in_checkpoints_dir=True,model_selection_criterion=model_selection_criterion)
 
 
 
@@ -104,14 +106,17 @@ def predict(project_dir,images_to_predict,predictions_folder,tile_size,predictio
 @click.option('--predictions-folder', default=constants.predictions_folder,type=click.Path(), help='The folder where the predictions were saved to.',show_default=True)
 @click.option('--evaluations-folder', default=constants.prediction_evaluation_folder,type=click.Path(), help='The folder where the evaluation results should be saved to.',show_default=True)
 @click.option('--iou-threshold', default=constants.iou_threshold,type=click.FloatRange(0, 1), help='Defines what is the minimum IoU (Intersection over Union) overlap to count a prediction as a True Positive.',show_default=True)
-def evaluate(predictions_folder,evaluations_folder,iou_threshold):
+@click.option('--generate-visualizations', default=False,type=bool, help='If True, the erroneous predictions will be printed onto the images and saved to the evaluations-folder',show_default=True)
+@click.option('--print-confusion-matrix', default=False,type=bool, help='If True, the confusion matrix will be printed to the console in latex table format.',show_default=True)
+
+def evaluate(predictions_folder,evaluations_folder,iou_threshold,generate_visualizations,print_confusion_matrix):
     """
         If the images on which the predictions algorithm was run on had groundtruth information,
         this command will evaluate the performance of the prediction algorithm on these images.
         (Evaluation of Precision and Recall)
     """
     import custom_evaluations
-    custom_evaluations.evaluate(predictions_folder, evaluations_folder, iou_threshold)
+    custom_evaluations.evaluate(predictions_folder, evaluations_folder, iou_threshold,generate_visualizations,print_confusion_matrix)
     
     
 @cli.command(short_help='Visualize Bounding Boxes.')

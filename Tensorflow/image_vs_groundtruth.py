@@ -100,7 +100,8 @@ for key,value in sum_annotations.items():
     if key in sum_ground_truth:
         value_g = sum_ground_truth[key]
         if value_g != 0 or value != 0:
-            print("   " + key + ": "+ str(value) + " vs. " + str(value_g))
+            print(key + "  &  " + str(value_g) + "  &  " + str(value) + "  \\\\ ")
+            #print("   " + key + ": "+ str(value) + " vs. " + str(value_g))
         sum_ground_truth.pop(key)
     else:
         if not value==0:
