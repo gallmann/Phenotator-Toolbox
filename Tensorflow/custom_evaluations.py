@@ -3,6 +3,11 @@
 Created on Fri May 17 18:05:50 2019
 
 @author: johan
+
+
+This script carries out all kinds of evaluations on prediction results. Read the
+description of the main function evaluate(...) for more details.
+
 """
 
 print("Loading libraries...")
@@ -17,14 +22,31 @@ import numpy as np
 from object_detection.utils import object_detection_evaluation
 from object_detection.core import standard_fields
 from object_detection.utils import per_image_evaluation
-from utils import constants
 
 
 
-def evaluate(input_folder, output_folder,iou_threshold=constants.iou_threshold,generate_visualizations=False,print_confusion_matrix=False):
+def evaluate(project_folder, input_folder, output_folder,iou_threshold=constants.iou_threshold,generate_visualizations=False,print_confusion_matrix=False):
+    """
+    Evaluates all predictions within the input_folder. The input folder should contain images
+    alongside with prediction (imagename_prediction.json) and ground truth (imagename_ground_truth.json)
+    files. Prints statistics such as precision, recall, mAP or f1 score for the overall
+    prediction preformance as well as for every class seperate.
+
+    Parameters:
+        project_folder (str): path to the project folder
+        input_folder (str): path of the input folder
+        output_folder (str): path of the output folder. To this folder visualizations
+            are printed.
+        iou_threshold (float): intersection over union threshold to use for the evaluations
+        generate_visualizations (bool): Whether or not the visualizations should be generated
+        print_confusion_matrix (bool): If true, the confusion matrix is printed to the console in
+            a format that can directly be imported into a latex table.
+    Returns:
+        None
+    """
+
     
-    
-    PATH_TO_LABELS = constants.train_dir + "/model_inputs/label_map.pbtxt"
+    PATH_TO_LABELS = project_folder + "/model_inputs/label_map.pbtxt"
     (flower_names,labelmap) = get_flower_names_from_labelmap(PATH_TO_LABELS)
     object_detection_evaluator = object_detection_evaluation.ObjectDetectionEvaluator(labelmap, matching_iou_threshold=iou_threshold,evaluate_precision_recall=True,use_weighted_mean_ap=False)
     confusion_matrix = np.zeros(shape=(len(flower_names) + 1, len(flower_names) + 1))
@@ -179,13 +201,22 @@ def evaluate(input_folder, output_folder,iou_threshold=constants.iou_threshold,g
     print_stats(stat_overall,"Overall")
     
     if print_confusion_matrix:
-        display(confusion_matrix,labelmap,iou_threshold)
+        print_confusion_matrix(confusion_matrix,labelmap)
     
     return stat_overall
 
 
-def display(confusion_matrix, categories, iou_threshold):
+def print_confusion_matrix(confusion_matrix, categories):
+    """
+    Prints the confusion matrix to the console in latex format
     
+    Parameters:
+        confusion_matrix (np.list): numpy matrix representing the confusion matrix
+        categories (dict): list of dicts containing all flowers. Example: [{id:1,name:"flowername"},...]
+    Returns:
+        None
+    """
+
     def short_name(name):
         if " " in name:
             if "faded" in name:
@@ -210,25 +241,18 @@ def display(confusion_matrix, categories, iou_threshold):
         print(line_string)
         
         
-        
-'''
-    for i in range(len(categories)):
-        id = categories[i]["id"] - 1
-        name = categories[i]["name"]
-        
-        total_target = np.sum(confusion_matrix[id,:])
-        total_predicted = np.sum(confusion_matrix[:,id])
-        
-        precision = float(confusion_matrix[id, id] / total_predicted)
-        recall = float(confusion_matrix[id, id] / total_target)
-        
-        print('precision_{}@{}IOU: {:.2f}'.format(name, iou_threshold, precision))
-        print('recall_{}@{}IOU: {:.2f}'.format(name, iou_threshold, recall))
-    '''
-
 
 def print_stats(stat, flower_name):
+    """
+    Prints precision, recall, mAP, f1, TP, FP and FN to the console
     
+    Parameters:
+        stat (dict): dict containing TP, FP, FN and mAP. Example: {"tp": 5, "fp": 10, "fn": 1, "mAP": 0.76}
+        flower_name (str): string of the flower name
+    Returns:
+        None
+    """
+
     n = stat["tp"] + stat["fn"]
     print(flower_name + " (n=" + str(n) + "):")
     if float(stat["fp"]+stat["tp"]) == 0:
@@ -258,13 +282,13 @@ def iou(a, b, epsilon=1e-5):
             x2,y2 represent the lower right corner
         It returns the Intersect of Union score for these two boxes.
 
-    Args:
-        a:          (list of 4 numbers) [x1,y1,x2,y2]
-        b:          (list of 4 numbers) [x1,y1,x2,y2]
-        epsilon:    (float) Small value to prevent division by zero
+    Parameters:
+        a (list): (list of 4 numbers) [x1,y1,x2,y2]
+        b (list): (list of 4 numbers) [x1,y1,x2,y2]
+        epsilon (float): Small value to prevent division by zero
 
     Returns:
-        (float) The Intersect of Union score.
+        (float) The Intersection over Union score.
     """
     # COORDINATES OF THE INTERSECTION BOX
     x1 = max(a[0], b[0])
@@ -290,6 +314,18 @@ def iou(a, b, epsilon=1e-5):
     return iou
 
 def filter_ground_truth(ground_truths, flower_names):
+    """ 
+    Helper function that filters all entries of the ground truth which names are not
+    in the flower_names list.
+    
+    Parameters:
+        ground_truths (list): list of annotation dicts.
+        flower_names (list): list of strings with all names that should be kept
+
+    Returns:
+        list: The list of ground truth annotations whose names are present in the flower_names list
+    """
+
     filtered_ground_truths = []
     for gt in ground_truths:
         if gt["name"] in flower_names:
@@ -298,7 +334,18 @@ def filter_ground_truth(ground_truths, flower_names):
 
                 
 def get_flower_names_from_labelmap(labelmap_path):
+    """ 
+    Helper function that converts a labelmap dict to a flower_names list
     
+    Parameters:
+        labelmap_path (str): path to the tensorflow labelmap file
+
+    Returns:
+        tuple: A tuple (flower_names,categories), where flower names is a list of 
+            strings containing all flower names and categories is a list of dicts 
+            in which each dict contains the id and the name of the flower
+    """
+
     flower_names = []
     categories = []
     category_index = label_map_util.create_category_index_from_labelmap(labelmap_path, use_display_name=True)
@@ -308,6 +355,20 @@ def get_flower_names_from_labelmap(labelmap_path):
     return (flower_names,categories)
           
 def to_numpy_representations(annotations, categories):
+    """ 
+    Helper function that converts a list of annotations into a numpy representation
+    that is required by tensorflow's evaluation classes
+    
+    Parameters:
+        annotations (list): list of annotations
+        categories (list): list of dicts in which each dict contains the id and
+            the name of the flower
+
+    Returns:
+        tuple: numpy arrays of all bounding_boxes, all classes and all scores of the 
+            provided annotations
+    """
+
     bounding_boxes = np.ndarray((len(annotations), 4))
     classes = np.empty((len(annotations)), dtype=int)
     scores = np.empty((len(annotations)), dtype=int)
@@ -320,6 +381,18 @@ def to_numpy_representations(annotations, categories):
     return bounding_boxes,classes, scores
 
 def get_index_for_flower(categories, flower_name):
+    """ 
+    Helper function that returns the id used by tensorflow of a certain flower_name
+    
+    Parameters:
+        categories (list): list of dicts in which each dict contains the id and
+            the name of the flower
+        flower_name (str): string of the flower name
+
+    Returns:
+        int: the tensorflow id of the flower_name
+    """
+
     for flower in categories:
         if flower["name"] == flower_name:
             return flower["id"]
@@ -327,8 +400,9 @@ def get_index_for_flower(categories, flower_name):
 
 
 if __name__ == '__main__':
+    project_folder = constants.project_folder
     input_folder = constants.predictions_folder
     output_folder = constants.prediction_evaluation_folder
     iou_threshold = constants.iou_threshold
-    evaluate(input_folder, output_folder,iou_threshold)
+    evaluate(project_folder,input_folder, output_folder,iou_threshold)
 

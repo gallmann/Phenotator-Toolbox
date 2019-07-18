@@ -103,13 +103,14 @@ def predict(project_dir,images_to_predict,predictions_folder,tile_size,predictio
 
 
 @cli.command(short_help='Evaluate Predictions.')
+@click.option('--project-dir', default=constants.project_folder,type=click.Path(), help='Provide the project folder that was used for the predictions.',show_default=True)
 @click.option('--predictions-folder', default=constants.predictions_folder,type=click.Path(), help='The folder where the predictions were saved to.',show_default=True)
 @click.option('--evaluations-folder', default=constants.prediction_evaluation_folder,type=click.Path(), help='The folder where the evaluation results should be saved to.',show_default=True)
 @click.option('--iou-threshold', default=constants.iou_threshold,type=click.FloatRange(0, 1), help='Defines what is the minimum IoU (Intersection over Union) overlap to count a prediction as a True Positive.',show_default=True)
 @click.option('--generate-visualizations', default=False,type=bool, help='If True, the erroneous predictions will be printed onto the images and saved to the evaluations-folder',show_default=True)
 @click.option('--print-confusion-matrix', default=False,type=bool, help='If True, the confusion matrix will be printed to the console in latex table format.',show_default=True)
 
-def evaluate(predictions_folder,evaluations_folder,iou_threshold,generate_visualizations,print_confusion_matrix):
+def evaluate(project_dir,predictions_folder,evaluations_folder,iou_threshold,generate_visualizations,print_confusion_matrix):
     """
         If the images on which the predictions algorithm was run on had groundtruth information,
         this command will evaluate the performance of the prediction algorithm on these images.
@@ -117,7 +118,7 @@ def evaluate(predictions_folder,evaluations_folder,iou_threshold,generate_visual
     """
     if check_inputs(folders=[predictions_folder,evaluations_folder]):
         import custom_evaluations
-        custom_evaluations.evaluate(predictions_folder, evaluations_folder, iou_threshold,generate_visualizations,print_confusion_matrix)
+        custom_evaluations.evaluate(project_dir,predictions_folder, evaluations_folder, iou_threshold,generate_visualizations,print_confusion_matrix)
     
     
 @cli.command(short_help='Visualize Bounding Boxes.')
