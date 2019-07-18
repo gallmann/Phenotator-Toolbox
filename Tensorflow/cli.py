@@ -32,7 +32,7 @@ def cli():
 @click.option('--input-folder','-i',default=constants.input_folders,        type=click.Path(),   multiple=True,  help='Input Folder Path (can be multiple)')
 @click.option('--test-split', '-t',     default=constants.test_splits, type=click.FloatRange(0, 1),    multiple=True,  help='Float between 0 and 1 indicating what portion should be used for the test set (must be the same number as input folders -> one number for each folder)')
 @click.option('--validation-split', '-v',     default=constants.validation_splits, type=click.FloatRange(0, 1),    multiple=True,  help='Float between 0 and 1 indicating what portion should be used for the validation set (must be the same number as input folders -> one number for each folder)')
-@click.option('--project-folder', default=constants.train_dir,type=click.Path(), help='This project directory will be filled with various subfolders used during the training or evaluation process.',show_default=True)
+@click.option('--project-folder', default=constants.project_folder,type=click.Path(), help='This project directory will be filled with various subfolders used during the training or evaluation process.',show_default=True)
 @click.option('--tile-size', default=constants.train_tile_sizes,type=int, multiple=True, help='Tile size to use as tensorflow input (squared tiles). Can be more than one!',show_default=True)
 @click.option('--split-mode', default=constants.split_mode, help='Test set / Train set splitting technique. Deterministic mode ensures that an input directory is split the same way if this command is executed multiple times.',show_default=True,type=click.Choice(['random', 'deterministic']))
 @click.option('--min-instances', default=constants.min_flowers, type=int, help='Minimum instances of one class to include it in the training', show_default=True)
@@ -53,7 +53,7 @@ def image_preprocessing(input_folder,test_split,validation_split,project_folder,
     
     
 @cli.command(short_help='Train a network.')
-@click.option('--project-dir', default=constants.train_dir,type=click.Path(), help='Provide the project folder that was also used for the image-preprocessing command.',show_default=True)
+@click.option('--project-dir', default=constants.project_folder,type=click.Path(), help='Provide the project folder that was also used for the image-preprocessing command.',show_default=True)
 @click.option('--max-steps', default=constants.max_steps,type=int, help='Max Training steps to carry out.',show_default=True)
 @click.option('--with-validation', default=constants.with_validation,type=bool, help='If true, the training process is carried out as long as the validation error decreases. If false, the training is carried out until max-steps is reached.',show_default=True)
 @click.option('--stopping-criterion', default=constants.model_selection_criterion,type=click.Choice(['mAP', 'f1']), help="If the train command was executed with the '--with-validation True' flag, the training is stopped once either the mAP or the f1 score stop improving.",show_default=True)
@@ -74,7 +74,7 @@ def train(project_dir, max_steps, with_validation,stopping_criterion):
         
 
 @cli.command(short_help='Export the trained inference graph.')
-@click.option('--project-dir', default=constants.train_dir,type=click.Path(), help='Provide the project folder that was also used for the training.',show_default=True)
+@click.option('--project-dir', default=constants.project_folder,type=click.Path(), help='Provide the project folder that was also used for the training.',show_default=True)
 @click.option('--model-selection-criterion', default=constants.model_selection_criterion,type=click.Choice(['mAP', 'f1']), help="If the train command was executed with the '--with-validation True' flag, the model with the best performance on the validation set is exported (in terms of either mAP or f1 score).",show_default=True)
 def export_inference_graph(project_dir,model_selection_criterion):
     """
@@ -87,7 +87,7 @@ def export_inference_graph(project_dir,model_selection_criterion):
 
 
 @cli.command(short_help='Run Prediction.')
-@click.option('--project-dir', default=constants.train_dir,type=click.Path(), help='Provide the project folder that was used for the training.',show_default=True)
+@click.option('--project-dir', default=constants.project_folder,type=click.Path(), help='Provide the project folder that was used for the training.',show_default=True)
 @click.option('--images-to-predict', default=constants.images_to_predict,type=click.Path(), help='Path to a folder containing images on which the prediction algorithm should be run.',show_default=True)
 @click.option('--predictions-folder', default=constants.predictions_folder,type=click.Path(), help='Path to a folder where the prediction results should be saved to.',show_default=True)
 @click.option('--tile-size', default=constants.prediction_tile_size,type=int, help='Image Tile Size that should be used as Tensorflow input.',show_default=True)
