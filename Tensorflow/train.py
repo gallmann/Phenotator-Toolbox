@@ -196,7 +196,6 @@ def set_num_steps_in_config_file(num_steps,project_dir):
 
 def run(project_dir,max_steps):
     set_num_steps_in_config_file(max_steps,project_dir)
-    global train_dir
     train_dir = project_dir
     global pipeline_config_path
     pipeline_config_path = train_dir + "/pre-trained-model/pipeline.config"
@@ -211,6 +210,12 @@ def run(project_dir,max_steps):
     del_all_flags(tf.flags.FLAGS)
 
     flags = tf.app.flags
+
+    flags.DEFINE_string('with-validation', 'Default', 'Help output')
+    flags.DEFINE_string('stopping-criterion', 'Default', 'Help output')
+    flags.DEFINE_string('max-steps', 'Default', 'Help output')
+    flags.DEFINE_string('project-dir', 'Default', 'Help output')
+
     flags.DEFINE_string('master', '', 'Name of the TensorFlow master to use.')
     flags.DEFINE_integer('task', 0, 'task id')
     flags.DEFINE_integer('num_clones', 1, 'Number of clones to deploy per worker.')
@@ -244,6 +249,6 @@ def run(project_dir,max_steps):
     #tf.app.run(main)
 
 if __name__ == '__main__':
-    train_dir = constants.project_dir
+    train_dir = "bla"
 
     run(train_dir,130000)
