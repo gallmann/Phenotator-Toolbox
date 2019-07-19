@@ -46,7 +46,10 @@ def image_preprocessing(input_folder,test_split,validation_split,project_folder,
     or with the AnnotationApp available for Android Tablets.
     
     """
-    if check_inputs(folders=[input_folder,project_folder]):
+    folders_to_check = [project_folder]
+    for f in input_folder:
+        folders_to_check.append(f)
+    if check_inputs(folders=folders_to_check):
         import image_preprocessing
         image_preprocessing.convert_annotation_folders(input_folder, test_split,validation_split, project_folder, tile_size, split_mode, min_instances, overlap)
     

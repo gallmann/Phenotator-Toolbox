@@ -33,18 +33,6 @@ from utils import constants
 
 
 
-train_dir = constants.train_dir
-
-
-
-pipeline_config_path = train_dir + "/pre-trained-model/pipeline.config"
-
-
-
-
-
-
-
 r"""Training executable for detection models.
 
 This executable is used to train DetectionModels. There are two ways of
@@ -256,4 +244,6 @@ def run(project_dir,max_steps):
     #tf.app.run(main)
 
 if __name__ == '__main__':
-    run(train_dir)
+    train_dir = constants.project_dir
+
+    run(train_dir,130000)
