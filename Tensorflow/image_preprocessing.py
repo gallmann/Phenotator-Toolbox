@@ -35,6 +35,11 @@ import sys
 import tensorflow as tf
 from google.protobuf import text_format
 from object_detection.protos import pipeline_pb2
+import urllib.request
+import tarfile
+import shutil
+from object_detection.protos import preprocessor_pb2
+
 
 
 
@@ -73,6 +78,8 @@ def convert_annotation_folders(input_folders, test_splits, validation_splits, pr
         return
 
     make_training_dir_folder_structure(project_dir)
+    
+    download_pretrained_model(project_dir)
     
     labels = {}
     train_images_dir = os.path.join(os.path.join(project_dir, "images"),"train")
@@ -127,7 +134,7 @@ def convert_annotation_folders(input_folders, test_splits, validation_splits, pr
     test_tf_record = os.path.join(annotations_dir, "test.record")
     generate_tfrecord.make_tfrecords(test_csv,test_tf_record,test_images_dir, labels)
     
-    set_num_classes_in_config_file(len(flowers_to_use),project_dir)
+    set_config_file_parameters(project_dir,len(flowers_to_use))
     
     print("tfrecord training files generated from the follwing amount of flowers:")
     print_labels(labels, flowers_to_use)
@@ -491,7 +498,7 @@ def filter_labels(labels, min_instances=50):
     return flowers_to_use
 
 
-def set_num_classes_in_config_file(num_classes,project_dir):
+def set_config_file_parameters(project_dir,num_classes):
     """Sets the num_classes config parameter in the faster rcnn pipeline.config file
     
     Parameters:
@@ -506,7 +513,59 @@ def set_num_classes_in_config_file(num_classes,project_dir):
         proto_str = f.read()                                                                                                                                                                                                                                          
         text_format.Merge(proto_str, pipeline_config)                                                                                                                                                                                                                 
 
-    pipeline_config.model.faster_rcnn.num_classes = num_classes                                                                                                                                                                                         
+    pipeline_config.model.faster_rcnn.num_classes = num_classes
+    pipeline_config.model.faster_rcnn.image_resizer.fixed_shape_resizer.height = 300                                                                                                                                                                                       
+    pipeline_config.model.faster_rcnn.image_resizer.fixed_shape_resizer.width = 300  
+    pipeline_config.model.faster_rcnn.feature_extractor.first_stage_features_stride = 8                                                                                                                                                                                 
+    pipeline_config.model.faster_rcnn.first_stage_anchor_generator.grid_anchor_generator.height_stride = 8                                                                                                                                                                                 
+    pipeline_config.model.faster_rcnn.first_stage_anchor_generator.grid_anchor_generator.width_stride = 8                                                                                                                                                                                 
+    pipeline_config.model.faster_rcnn.first_stage_anchor_generator.grid_anchor_generator.height = 256                                                                                                                                                                               
+    pipeline_config.model.faster_rcnn.first_stage_anchor_generator.grid_anchor_generator.width = 256                                                                                                                                                                                 
+    pipeline_config.model.faster_rcnn.second_stage_post_processing.batch_non_max_suppression.max_detections_per_class = 300                                                                                                                                                                                 
+    pipeline_config.model.faster_rcnn.second_stage_post_processing.batch_non_max_suppression.max_total_detections = 300                                                                                                                                                                                 
+
+    pipeline_config.train_config.optimizer.momentum_optimizer.learning_rate.manual_step_learning_rate.schedule[0].step = 20000
+    pipeline_config.train_config.optimizer.momentum_optimizer.learning_rate.manual_step_learning_rate.schedule[1].step = 50000
+    pipeline_config.train_config.optimizer.momentum_optimizer.learning_rate.manual_step_learning_rate.schedule[2].step = 70000
+
+    pre_trained_model_folder = os.path.join(project_dir,"pre-trained-model")
+    pipeline_config.train_config.fine_tune_checkpoint = os.path.join(pre_trained_model_folder,"model.ckpt")
+    
+    model_inputs_folder = os.path.join(project_dir,"model_inputs")
+    pipeline_config.train_input_reader.label_map_path = os.path.join(model_inputs_folder,"label_map.pbtxt")
+    for i in range(len(pipeline_config.train_input_reader.tf_record_input_reader.input_path)):
+        pipeline_config.train_input_reader.tf_record_input_reader.input_path.pop()
+    pipeline_config.train_input_reader.tf_record_input_reader.input_path.append(os.path.join(model_inputs_folder,"train.record"))
+    
+    
+    pipeline_config.eval_input_reader[0].label_map_path = os.path.join(model_inputs_folder,"label_map.pbtxt")
+    for i in range(len(pipeline_config.eval_input_reader[0].tf_record_input_reader.input_path)):
+        pipeline_config.eval_input_reader[0].tf_record_input_reader.input_path.pop()
+    pipeline_config.eval_input_reader[0].tf_record_input_reader.input_path.append(os.path.join(model_inputs_folder,"test.record"))
+
+
+    #set data augmentation options
+    for i in range(len(pipeline_config.train_config.data_augmentation_options)):
+        pipeline_config.train_config.data_augmentation_options.pop()
+    
+    d1 = pipeline_config.train_config.data_augmentation_options.add()
+    d1.random_vertical_flip.CopyFrom(preprocessor_pb2.RandomVerticalFlip()) 
+    
+    d1 = pipeline_config.train_config.data_augmentation_options.add()
+    d1.random_horizontal_flip.CopyFrom(preprocessor_pb2.RandomHorizontalFlip())  
+    
+    d1 = pipeline_config.train_config.data_augmentation_options.add()
+    d1.random_adjust_brightness.CopyFrom(preprocessor_pb2.RandomAdjustBrightness())  
+
+    d1 = pipeline_config.train_config.data_augmentation_options.add()
+    d1.random_adjust_contrast.CopyFrom(preprocessor_pb2.RandomAdjustContrast())  
+    
+    d1 = pipeline_config.train_config.data_augmentation_options.add()
+    d1.random_adjust_saturation.CopyFrom(preprocessor_pb2.RandomAdjustSaturation()) 
+    
+    d1 = pipeline_config.train_config.data_augmentation_options.add()
+    d1.random_jitter_boxes.CopyFrom(preprocessor_pb2.RandomJitterBoxes()) 
+    
 
     config_text = text_format.MessageToString(pipeline_config)                                                                                                                                                                                                        
     with tf.gfile.Open(project_dir + "/pre-trained-model/pipeline.config", "wb") as f:                                                                                                                                                                                                                       
@@ -536,7 +595,48 @@ def print_labels(labels, flowers_to_use):
             print("    " + key + ": " + str(value))
 
 
+pbar = None
 
+def download_pretrained_model(project_folder):
+    
+    
+    
+    pretrained_model_folder = os.path.join(project_folder,"pre-trained-model")
+    
+    destination_file = os.path.join(pretrained_model_folder,"downloaded_model.tar.gz")
+    if not os.path.isfile(destination_file):
+       
+        def show_progress(block_num, block_size, total_size):
+            global pbar
+            if pbar is None:
+                pbar = progressbar.ProgressBar(maxval=total_size)
+        
+            downloaded = block_num * block_size
+            if downloaded < total_size:
+                pbar.update(downloaded)
+            else:
+                pbar.finish()
+                pbar = None
+
+        
+        print("Downloading pretrained model...")
+        # Download the file from `url` and save it locally under `file_name`:
+        urllib.request.urlretrieve(constants.pretrained_model_link, destination_file, show_progress)
+        
+        tf = tarfile.open(destination_file)
+        tf.extractall(pretrained_model_folder)
+        
+        for folder in os.listdir(pretrained_model_folder):
+            folder = os.path.join(pretrained_model_folder,folder)
+            if os.path.isdir(folder):
+                for file_to_move in os.listdir(folder):
+                    file_to_move = os.path.join(folder,file_to_move)
+                    shutil.move(file_to_move, os.path.join(pretrained_model_folder,os.path.basename(file_to_move)))
+                os.rmdir(folder)
+        
+        
+        
+        
 if __name__== "__main__":
     #Annotation Folder with Annotations made with the Android App
     input_folders = constants.input_folders
