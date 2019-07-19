@@ -121,26 +121,30 @@ from importlib import reload  # Python 3.4+ only.
 
 
 
-def main(_):
+def main(pipeline_config_path,trained_checkpoint_prefix,output_directory):
   """
   Main function executing the export. This is directly adapted from the Tensorflow implementation.
   """
+  config_override = ''
+  input_shape = None
+  input_type = 'image_tensor'
+  write_inference_graph_flag = False
   pipeline_config = pipeline_pb2.TrainEvalPipelineConfig()
-  with tf.gfile.GFile(FLAGS.pipeline_config_path, 'r') as f:
+  with tf.gfile.GFile(pipeline_config_path, 'r') as f:
     text_format.Merge(f.read(), pipeline_config)
-  text_format.Merge(FLAGS.config_override, pipeline_config)
-  if FLAGS.input_shape:
+  text_format.Merge(config_override, pipeline_config)
+  if input_shape:
     input_shape = [
         int(dim) if dim != '-1' else None
-        for dim in FLAGS.input_shape.split(',')
+        for dim in input_shape.split(',')
     ]
   else:
     input_shape = None
     reload(exporter)
   exporter.export_inference_graph(
-      FLAGS.input_type, pipeline_config, FLAGS.trained_checkpoint_prefix,
-      FLAGS.output_directory, input_shape=input_shape,
-      write_inference_graph=FLAGS.write_inference_graph)
+      input_type, pipeline_config, trained_checkpoint_prefix,
+      output_directory, input_shape=input_shape,
+      write_inference_graph=write_inference_graph_flag)
 
 def find_best_model(training_directory, look_in_checkpoints_dir = True, model_selection_criterion="f1"):
     """
@@ -222,61 +226,18 @@ def run(project_dir,look_in_checkpoints_dir = True, model_selection_criterion="f
         None
     """
 
-    global FLAGS
-
     train_dir = project_dir
     output_directory =  train_dir + "/trained_inference_graphs/output_inference_graph_v1.pb"
     pipeline_config_path = train_dir + "/pre-trained-model/pipeline.config"
     training_directory = os.path.join(project_dir,"training")
     trained_checkpoint_prefix = find_best_model(training_directory,look_in_checkpoints_dir,model_selection_criterion)
-    import time
-    
-    time.sleep( 5 )
+    print("Exporting " + trained_checkpoint_prefix)
 
     file_utils.delete_folder_contents(output_directory)
     
-    print("Exporting " + trained_checkpoint_prefix)
     
-    def del_all_flags(FLAGS):
-        flags_dict = FLAGS._flags()    
-        keys_list = [keys for keys in flags_dict]    
-        for keys in keys_list:
-            FLAGS.__delattr__(keys)
     
-    del_all_flags(tf.flags.FLAGS)
-    tf.reset_default_graph() 
-    flags = tf.app.flags
-    
-    flags.DEFINE_string('input_type', 'image_tensor', 'Type of input node. Can be '
-                        'one of [`image_tensor`, `encoded_image_string_tensor`, '
-                        '`tf_example`]')
-    flags.DEFINE_string('input_shape', None,
-                        'If input_type is `image_tensor`, this can explicitly set '
-                        'the shape of this input tensor to a fixed size. The '
-                        'dimensions are to be provided as a comma-separated list '
-                        'of integers. A value of -1 can be used for unknown '
-                        'dimensions. If not specified, for an `image_tensor, the '
-                        'default shape will be partially specified as '
-                        '`[None, None, None, 3]`.')
-    flags.DEFINE_string('pipeline_config_path', pipeline_config_path,
-                        'Path to a pipeline_pb2.TrainEvalPipelineConfig config '
-                        'file.')
-    flags.DEFINE_string('trained_checkpoint_prefix', trained_checkpoint_prefix,
-                        'Path to trained checkpoint, typically of the form '
-                        'path/to/model.ckpt')
-    flags.DEFINE_string('output_directory', output_directory, 'Path to write outputs.')
-    flags.DEFINE_string('config_override', '',
-                        'pipeline_pb2.TrainEvalPipelineConfig '
-                        'text proto to override pipeline_config_path.')
-    flags.DEFINE_boolean('write_inference_graph', False,
-                         'If true, writes inference graph to disk.')
-    tf.app.flags.mark_flag_as_required('pipeline_config_path')
-    tf.app.flags.mark_flag_as_required('trained_checkpoint_prefix')
-    tf.app.flags.mark_flag_as_required('output_directory')
-    FLAGS = flags.FLAGS
-
-    
-    main(None)
+    main(pipeline_config_path,trained_checkpoint_prefix,output_directory)
     #tf.app.run(main)
 
 
