@@ -80,26 +80,29 @@ tf.logging.set_verbosity(tf.logging.INFO)
 
 
 @tf.contrib.framework.deprecated(None, 'Use object_detection/model_main.py.')
-def main(_):
-  assert FLAGS.train_dir, '`train_dir` is missing.'
-  if FLAGS.task == 0: tf.gfile.MakeDirs(FLAGS.train_dir)
-  if FLAGS.pipeline_config_path:
-    configs = config_util.get_configs_from_pipeline_file(
-        FLAGS.pipeline_config_path)
-    if FLAGS.task == 0:
-      tf.gfile.Copy(FLAGS.pipeline_config_path,
-                    os.path.join(FLAGS.train_dir, 'pipeline.config'),
-                    overwrite=True)
+def main(train_dir,pipeline_config_path):
+  task = 0
+  model_config_path = ''
+  train_config_path = ''
+  input_config_path = ''
+  num_clones = 1
+  clone_on_cpu = False
+  
+  if task == 0: tf.gfile.MakeDirs(train_dir)
+  if pipeline_config_path:
+    configs = config_util.get_configs_from_pipeline_file(pipeline_config_path)
+    if task == 0:
+      tf.gfile.Copy(pipeline_config_path,os.path.join(train_dir, 'pipeline.config'),overwrite=True)
   else:
     configs = config_util.get_configs_from_multiple_files(
-        model_config_path=FLAGS.model_config_path,
-        train_config_path=FLAGS.train_config_path,
-        train_input_config_path=FLAGS.input_config_path)
-    if FLAGS.task == 0:
-      for name, config in [('model.config', FLAGS.model_config_path),
-                           ('train.config', FLAGS.train_config_path),
-                           ('input.config', FLAGS.input_config_path)]:
-        tf.gfile.Copy(config, os.path.join(FLAGS.train_dir, name),
+        model_config_path=model_config_path,
+        train_config_path=train_config_path,
+        train_input_config_path=input_config_path)
+    if task == 0:
+      for name, config in [('model.config', model_config_path),
+                           ('train.config', train_config_path),
+                           ('input.config', input_config_path)]:
+        tf.gfile.Copy(config, os.path.join(train_dir, name),
                       overwrite=True)
 
   model_config = configs['model']
@@ -165,13 +168,13 @@ def main(_):
       train_config,
       master,
       task,
-      FLAGS.num_clones,
+      num_clones,
       worker_replicas,
-      FLAGS.clone_on_cpu,
+      clone_on_cpu,
       ps_tasks,
       worker_job_name,
       is_chief,
-      FLAGS.train_dir,
+      train_dir,
       graph_hook_fn=graph_rewriter_fn)
 
 def set_num_steps_in_config_file(num_steps,project_dir):
@@ -196,56 +199,14 @@ def set_num_steps_in_config_file(num_steps,project_dir):
 
 def run(project_dir,max_steps):
     set_num_steps_in_config_file(max_steps,project_dir)
-    train_dir = project_dir
     global pipeline_config_path
-    pipeline_config_path = train_dir + "/pre-trained-model/pipeline.config"
-    global FLAGS
+    pipeline_config_path = project_dir + "/pre-trained-model/pipeline.config"
+    
     tf.reset_default_graph() 
-    def del_all_flags(FLAGS):
-        flags_dict = FLAGS._flags()    
-        keys_list = [keys for keys in flags_dict]    
-        for keys in keys_list:
-            FLAGS.__delattr__(keys)
     
-    del_all_flags(tf.flags.FLAGS)
-
-    flags = tf.app.flags
-
-    flags.DEFINE_string('with-validation', 'Default', 'Help output')
-    flags.DEFINE_string('stopping-criterion', 'Default', 'Help output')
-    flags.DEFINE_string('max-steps', 'Default', 'Help output')
-    flags.DEFINE_string('project-dir', 'Default', 'Help output')
-
-    flags.DEFINE_string('master', '', 'Name of the TensorFlow master to use.')
-    flags.DEFINE_integer('task', 0, 'task id')
-    flags.DEFINE_integer('num_clones', 1, 'Number of clones to deploy per worker.')
-    flags.DEFINE_boolean('clone_on_cpu', False,
-                         'Force clones to be deployed on CPU.  Note that even if '
-                         'set to False (allowing ops to run on gpu), some ops may '
-                         'still be run on the CPU if they have no GPU kernel.')
-    flags.DEFINE_integer('worker_replicas', 1, 'Number of worker+trainer '
-                         'replicas.')
-    flags.DEFINE_integer('ps_tasks', 0,
-                         'Number of parameter server tasks. If None, does not use '
-                         'a parameter server.')
-    flags.DEFINE_string('train_dir', train_dir + "/training",
-                        'Directory to save the checkpoints and training summaries.')
     
-    flags.DEFINE_string('pipeline_config_path', pipeline_config_path,
-                        'Path to a pipeline_pb2.TrainEvalPipelineConfig config '
-                        'file. If provided, other configs are ignored')
     
-    flags.DEFINE_string('train_config_path', '',
-                        'Path to a train_pb2.TrainConfig config file.')
-    flags.DEFINE_string('input_config_path', '',
-                        'Path to an input_reader_pb2.InputReader config file.')
-    flags.DEFINE_string('model_config_path', '',
-                        'Path to a model_pb2.DetectionModel config file.')
-    
-    FLAGS = flags.FLAGS
-
-    
-    main(None)
+    main(project_dir,pipeline_config_path)
     #tf.app.run(main)
 
 if __name__ == '__main__':
