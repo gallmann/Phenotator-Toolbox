@@ -44,7 +44,7 @@ from object_detection.protos import preprocessor_pb2
 
 
 
-def convert_annotation_folders(input_folders, test_splits, validation_splits, project_dir, tile_sizes, split_mode, min_flowers, overlap = 0, model_link=constants.pretrained_model_link):
+def convert_annotation_folders(input_folders, test_splits, validation_splits, project_dir, tile_sizes, split_mode, min_flowers, overlap = 0, model_link=constants.pretrained_model_link,tensorflow_tile_size = constants.tensorflow_tile_size):
     
     """Converts the contents of a list of input folders into tensorflow readable format ready for training
 
@@ -134,7 +134,7 @@ def convert_annotation_folders(input_folders, test_splits, validation_splits, pr
     test_tf_record = os.path.join(annotations_dir, "test.record")
     generate_tfrecord.make_tfrecords(test_csv,test_tf_record,test_images_dir, labels)
     
-    set_config_file_parameters(project_dir,len(flowers_to_use))
+    set_config_file_parameters(project_dir,len(flowers_to_use),tensorflow_tile_size)
     
     print("tfrecord training files generated from the follwing amount of flowers:")
     print_labels(labels, flowers_to_use)
@@ -498,7 +498,7 @@ def filter_labels(labels, min_instances=50):
     return flowers_to_use
 
 
-def set_config_file_parameters(project_dir,num_classes):
+def set_config_file_parameters(project_dir,num_classes,tensorflow_tile_size=900):
     """
     Sets a whole bunch of the tensorflow pipeline config parameters (including
     the one that defines with how many classes should be trained)
@@ -516,8 +516,8 @@ def set_config_file_parameters(project_dir,num_classes):
         text_format.Merge(proto_str, pipeline_config)                                                                                                                                                                                                                 
 
     pipeline_config.model.faster_rcnn.num_classes = num_classes
-    pipeline_config.model.faster_rcnn.image_resizer.fixed_shape_resizer.height = 300                                                                                                                                                                                       
-    pipeline_config.model.faster_rcnn.image_resizer.fixed_shape_resizer.width = 300  
+    pipeline_config.model.faster_rcnn.image_resizer.fixed_shape_resizer.height = tensorflow_tile_size                                                                                                                                                                                       
+    pipeline_config.model.faster_rcnn.image_resizer.fixed_shape_resizer.width = tensorflow_tile_size  
     pipeline_config.model.faster_rcnn.feature_extractor.first_stage_features_stride = 8                                                                                                                                                                                 
     pipeline_config.model.faster_rcnn.first_stage_anchor_generator.grid_anchor_generator.height_stride = 8                                                                                                                                                                                 
     pipeline_config.model.faster_rcnn.first_stage_anchor_generator.grid_anchor_generator.width_stride = 8                                                                                                                                                                                 
