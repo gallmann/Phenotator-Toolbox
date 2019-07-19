@@ -37,6 +37,7 @@ def cli():
 @click.option('--split-mode', default=constants.split_mode, help='Test set / Train set splitting technique. Deterministic mode ensures that an input directory is split the same way if this command is executed multiple times.',show_default=True,type=click.Choice(['random', 'deterministic']))
 @click.option('--min-instances', default=constants.min_flowers, type=int, help='Minimum instances of one class to include it in the training', show_default=True)
 @click.option('--overlap', default=constants.train_overlap, type=int, help='The image tiles are generated with an overlap to better cover flowers on the edges of the tiles. Define the overlap in pixels with this flag.', show_default=True)
+@click.option('--model-link', default=constants.pretrained_model_link, type=str, help='The link from where the pretrained model can be downloaded.', show_default=True)
 def image_preprocessing(input_folder,test_split,validation_split,project_folder,tile_size,split_mode,min_instances,overlap):
     """
     Running this command converts one or multiple input folders containing annotated

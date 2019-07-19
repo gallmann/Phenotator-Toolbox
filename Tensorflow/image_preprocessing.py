@@ -44,7 +44,7 @@ from object_detection.protos import preprocessor_pb2
 
 
 
-def convert_annotation_folders(input_folders, test_splits, validation_splits, project_dir, tile_sizes, split_mode, min_flowers, overlap = 0):
+def convert_annotation_folders(input_folders, test_splits, validation_splits, project_dir, tile_sizes, split_mode, min_flowers, overlap = 0, model_link=constants.pretrained_model_link):
     
     """Converts the contents of a list of input folders into tensorflow readable format ready for training
 
@@ -79,7 +79,7 @@ def convert_annotation_folders(input_folders, test_splits, validation_splits, pr
 
     make_training_dir_folder_structure(project_dir)
     
-    download_pretrained_model(project_dir)
+    download_pretrained_model(project_dir,model_link)
     
     labels = {}
     train_images_dir = os.path.join(os.path.join(project_dir, "images"),"train")
@@ -499,13 +499,15 @@ def filter_labels(labels, min_instances=50):
 
 
 def set_config_file_parameters(project_dir,num_classes):
-    """Sets the num_classes config parameter in the faster rcnn pipeline.config file
+    """
+    Sets a whole bunch of the tensorflow pipeline config parameters (including
+    the one that defines with how many classes should be trained)
     
     Parameters:
-        num_classes (int): an integer indicating how many classes will be trained with
-        project_dir (str): the path of the project directory
+        project_dir (str): project folder path
+        num_classes (int): number of classes present in training data
     Returns:
-        list: a list containing all flower names that have more than min_instances instances
+        None
     """
 
     pipeline_config = pipeline_pb2.TrainEvalPipelineConfig()                                                                                                                                                                                                          
@@ -597,8 +599,18 @@ def print_labels(labels, flowers_to_use):
 
 pbar = None
 
-def download_pretrained_model(project_folder):
+def download_pretrained_model(project_folder, link):
+    """
+    Downloads the pretrained model from the provided link and unpacks it into
+    the pre-trained-model folder.
     
+    Parameters:
+        project_folder (str): the project folder path
+        link (str): download link of the model
+    Returns:
+        None
+    """
+
     
     
     pretrained_model_folder = os.path.join(project_folder,"pre-trained-model")
@@ -621,7 +633,7 @@ def download_pretrained_model(project_folder):
         
         print("Downloading pretrained model...")
         # Download the file from `url` and save it locally under `file_name`:
-        urllib.request.urlretrieve(constants.pretrained_model_link, destination_file, show_progress)
+        urllib.request.urlretrieve(link, destination_file, show_progress)
         
         tf = tarfile.open(destination_file)
         tf.extractall(pretrained_model_folder)
