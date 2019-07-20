@@ -199,14 +199,13 @@ def set_num_steps_in_config_file(num_steps,project_dir):
 
 def run(project_dir,max_steps):
     set_num_steps_in_config_file(max_steps,project_dir)
-    global pipeline_config_path
     pipeline_config_path = project_dir + "/pre-trained-model/pipeline.config"
     
     tf.reset_default_graph() 
     
+    training_dir = os.path.join(project_dir,"training")
     
-    
-    main(project_dir,pipeline_config_path)
+    main(training_dir,pipeline_config_path)
     #tf.app.run(main)
 
 if __name__ == '__main__':
