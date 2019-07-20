@@ -21,6 +21,28 @@ import progressbar
 
 
 def draw_bounding_boxes(input_folder, output_folder, with_name_info=True, clean_output_folder=True):
+    """
+    Draws all annotations onto the images in the input_folder and saves them to 
+    the output_folder. The input folder must contain images (jpg, png or tif) 
+    and along with each image a json file containing the annotations. These 
+    json files can either be created with the LabelMe Application
+    or with the AnnotationApp available for Android Tablets. Alternatively they
+    can also be xml files. For example as they are created by the image-preprocessing
+    command (saved to the project_folder/images folder by the image-preprocessing script).
+    
+    Parameters:
+        input_folder (str): path to the input folder containing the images with
+            annotation files
+        output_folder (str): path to the output folder where to images with the
+            visualized bounding boxes should be saved to
+        with_name_info (bool): If True, not only the bounding box is drawn onto the 
+            image but also with each bounding box the class label
+        clean_output_folder (bool): If True, all contents of the output_folder 
+            are deleted before the new images are saved 
+    
+    Returns:
+        None
+    """
     flowers = []
     images = file_utils.get_all_images_in_folder(input_folder)
     print("Drawing bounding boxes on images:")

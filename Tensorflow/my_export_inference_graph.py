@@ -28,90 +28,6 @@ from utils import file_utils
 from utils import constants
 
 
-r"""Tool to export an object detection model for inference.
-
-Prepares an object detection tensorflow graph for inference using model
-configuration and a trained checkpoint. Outputs inference
-graph, associated checkpoint files, a frozen inference graph and a
-SavedModel (https://tensorflow.github.io/serving/serving_basic.html).
-
-The inference graph contains one of three input nodes depending on the user
-specified option.
-  * `image_tensor`: Accepts a uint8 4-D tensor of shape [None, None, None, 3]
-  * `encoded_image_string_tensor`: Accepts a 1-D string tensor of shape [None]
-    containing encoded PNG or JPEG images. Image resolutions are expected to be
-    the same if more than 1 image is provided.
-  * `tf_example`: Accepts a 1-D string tensor of shape [None] containing
-    serialized TFExample protos. Image resolutions are expected to be the same
-    if more than 1 image is provided.
-
-and the following output nodes returned by the model.postprocess(..):
-  * `num_detections`: Outputs float32 tensors of the form [batch]
-      that specifies the number of valid boxes per image in the batch.
-  * `detection_boxes`: Outputs float32 tensors of the form
-      [batch, num_boxes, 4] containing detected boxes.
-  * `detection_scores`: Outputs float32 tensors of the form
-      [batch, num_boxes] containing class scores for the detections.
-  * `detection_classes`: Outputs float32 tensors of the form
-      [batch, num_boxes] containing classes for the detections.
-  * `raw_detection_boxes`: Outputs float32 tensors of the form
-      [batch, raw_num_boxes, 4] containing detection boxes without
-      post-processing.
-  * `raw_detection_scores`: Outputs float32 tensors of the form
-      [batch, raw_num_boxes, num_classes_with_background] containing class score
-      logits for raw detection boxes.
-  * `detection_masks`: Outputs float32 tensors of the form
-      [batch, num_boxes, mask_height, mask_width] containing predicted instance
-      masks for each box if its present in the dictionary of postprocessed
-      tensors returned by the model.
-
-Notes:
- * This tool uses `use_moving_averages` from eval_config to decide which
-   weights to freeze.
-
-Example Usage:
---------------
-python export_inference_graph \
-    --input_type image_tensor \
-    --pipeline_config_path path/to/ssd_inception_v2.config \
-    --trained_checkpoint_prefix path/to/model.ckpt \
-    --output_directory path/to/exported_model_directory
-
-The expected output would be in the directory
-path/to/exported_model_directory (which is created if it does not exist)
-with contents:
- - inference_graph.pbtxt
- - model.ckpt.data-00000-of-00001
- - model.ckpt.info
- - model.ckpt.meta
- - frozen_inference_graph.pb
- + saved_model (a directory)
-
-Config overrides (see the `config_override` flag) are text protobufs
-(also of type pipeline_pb2.TrainEvalPipelineConfig) which are used to override
-certain fields in the provided pipeline_config_path.  These are useful for
-making small changes to the inference graph that differ from the training or
-eval config.
-
-Example Usage (in which we change the second stage post-processing score
-threshold to be 0.5):
-
-python export_inference_graph \
-    --input_type image_tensor \
-    --pipeline_config_path path/to/ssd_inception_v2.config \
-    --trained_checkpoint_prefix path/to/model.ckpt \
-    --output_directory path/to/exported_model_directory \
-    --config_override " \
-            model{ \
-              faster_rcnn { \
-                second_stage_post_processing { \
-                  batch_non_max_suppression { \
-                    score_threshold: 0.5 \
-                  } \
-                } \
-              } \
-            }"
-"""
 import tensorflow as tf
 from google.protobuf import text_format
 from object_detection import exporter
@@ -242,5 +158,4 @@ def run(project_dir,look_in_checkpoints_dir = True, model_selection_criterion="f
 
 
 if __name__ == '__main__':
-    project_dir = constants.train_dir
-    run(project_dir)
+    print("Please use the export-inference-graph command in the cli.py script to execute this script.")

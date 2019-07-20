@@ -3,6 +3,9 @@
 Created on Mon May 27 18:33:31 2019
 
 @author: johan
+
+This script lets the user edit annotations inside the LabelMe application.
+
 """
 
 print("Loading libraries...")
@@ -17,6 +20,21 @@ from utils import constants
 
 
 def check_annotations(folder, roi_strip = True):
+    """
+    First lets the user create or edit annotations of all images in the folder with the
+    LabelMe application. Then optionally turns all image pixels black which are
+    not within a roi polygon annotation.
+    
+    Parameters:
+        folder (str): path of the folder containing the images for which the 
+            annotations should be created or checked
+        roi_strip (bool): If true, strips the image after the user closes the 
+            LabelMe application. Stripping means turning all pixels black that
+            are not within a roi labelled polygon annotation.
+    
+    Returns:
+        None
+    """
     select_roi_in_images(folder)
     
     images = file_utils.get_all_images_in_folder(folder)
@@ -33,7 +51,19 @@ def check_annotations(folder, roi_strip = True):
 
 
 def select_roi_in_images(folder):
+    """
+    First makes sure that all annotations are converted into the LabelMe specific
+    json format. Then starts the LabelMe application with the images in the folder
+    preloaded.
     
+    Parameters:
+        folder (str): path of the folder containing the images for which the 
+            annotations should be created or checked
+    
+    Returns:
+        None
+    """
+
     #create labelme annotation file that displays all annotations to the user
     image_paths = file_utils.get_all_images_in_folder(folder)
     for image_path in image_paths:
@@ -51,6 +81,18 @@ def select_roi_in_images(folder):
     
     
 def copy_labelme_annotations_to_tablet_annotation_file(image_path):
+    """
+    Copies annotations from the LabelMe json files to the tablet app annotation
+    file format and saves it.
+    
+    Parameters:
+        image_path (str): path of the image whose annotations should be converted
+            to the tablet annotation json format
+    
+    Returns:
+        None
+    """
+
     annotations = file_utils.get_annotations_from_labelme_file(image_path[:-4] + ".json")
     file_utils.save_json_file(annotations, image_path[:-4] + "_annotations.json")
 

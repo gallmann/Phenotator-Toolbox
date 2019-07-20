@@ -3,6 +3,10 @@
 Created on Fri Apr  5 15:50:29 2019
 
 @author: johan
+
+
+
+This script makes predictions on images of any size.
 """
 
 
@@ -22,7 +26,6 @@ import progressbar
 
 from distutils.version import StrictVersion
 from PIL import Image
-import matplotlib
 # This is needed since the notebook is stored in the object_detection folder.
 sys.path.append("..")
 from object_detection.utils import ops as utils_ops
@@ -31,12 +34,36 @@ if StrictVersion(tf.__version__) < StrictVersion('1.9.0'):
 from object_detection.utils import label_map_util
 
 
-def predict(train_dir,images_to_predict,output_folder,tile_size,prediction_overlap):
+def predict(project_dir,images_to_predict,output_folder,tile_size,prediction_overlap):
+  """
+  Makes predictions on all images in the images_to_predict folder and saves them to the
+  output_folder with the prediction bounding boxes drawn onto the images. Additionally
+  for each image a json file is saved to the output folder with all the prediction results.
+  The images can be of any size and of png, jpg or tif format. If the images
+  in the images_to_predict folder have annotation files stored in the same folder,
+  these annotation files are also copied to the output folder. This allows the 
+  evaluate command to compare the predictions to the groundtruth annotations.
+  
+  Parameters:
+      project_dir (str): path of the project directory, in which the exported
+          inference graph is looked for.
+      images_to_predict (str): path of the folder containing the images on which
+          to run the predictions on.
+      output_folder (str): path of the output folder
+      tile_size (int): tile_size to use to make predictions on. Should be the same
+          as it was trained on.
+      prediction_overlap (int): the size of the overlap of the tiles to run the
+          prediction algorithm on in pixels
+
+  Returns:
+      None
+  
+  """
     
-  MODEL_NAME = train_dir + "/trained_inference_graphs/output_inference_graph_v1.pb"
+  MODEL_NAME = project_dir + "/trained_inference_graphs/output_inference_graph_v1.pb"
   # Path to frozen detection graph. This is the actual model that is used for the object detection.
   PATH_TO_FROZEN_GRAPH = MODEL_NAME + '/frozen_inference_graph.pb'
-  PATH_TO_LABELS = train_dir + "/model_inputs/label_map.pbtxt"
+  PATH_TO_LABELS = project_dir + "/model_inputs/label_map.pbtxt"
 
     
   detection_graph = get_detection_graph(PATH_TO_FROZEN_GRAPH)
@@ -106,7 +133,7 @@ def predict(train_dir,images_to_predict,output_folder,tile_size,prediction_overl
         
         
         for detection in detections:
-            col = get_color_for_name(detection["name"], category_index)
+            col = flower_info.get_color_for_flower(detection["name"])
             [top,left,bottom,right] = detection["bounding_box"]
             score_string = str('{0:.2f}'.format(detection["score"]))
             visualization_utils.draw_bounding_box_on_image(image,top,left,bottom,right,display_str_list=[score_string,detection["name"]],thickness=1, color=col, use_normalized_coordinates=False)          
@@ -119,24 +146,37 @@ def predict(train_dir,images_to_predict,output_folder,tile_size,prediction_overl
         
         
 def get_ground_truth_annotations(image_path):
-    ground_truth = None
-    ground_truth_in_path_xml = image_path[:-4] + ".xml"
-    if ground_truth_in_path_xml and os.path.isfile(ground_truth_in_path_xml):
-        ground_truth = file_utils.get_annotations_from_xml(ground_truth_in_path_xml)
-    ground_truth_in_path_json = image_path[:-4] + "_annotations.json"
-    if ground_truth_in_path_json and os.path.isfile(ground_truth_in_path_json):
-        annotated_flowers = file_utils.read_json_file(ground_truth_in_path_json)["annotatedFlowers"]
-        ground_truth = []
-        for fl in annotated_flowers:
-            flower = {}
-            flower["name"] = flower_info.clean_string(fl["name"])
-            flower["bounding_box"] = flower_info.get_bbox(fl)
-            ground_truth.append(flower)
-                        
+    """Reads the ground_thruth information from either the tablet annotations (imagename_annotations.json),
+        the LabelMe annotations (imagename.json) or tensorflow xml format annotations (imagename.xml)
+
+    Parameters:
+        image_path (str): path to the image of which the annotations should be read
+    
+    Returns:
+        list: a list containing all annotations corresponding to that image.
+            Returns the None if no annotation file is present
+    """
+    ground_truth = file_utils.get_annotations(image_path)
+    for fl in ground_truth:
+        fl["name"] = flower_info.clean_string(fl["name"])
+        fl["bounding_box"] = flower_info.get_bbox(fl)
+    
+    if len(ground_truth) == 0:                     
+        return None
     return ground_truth
         
 
 def get_detection_graph(PATH_TO_FROZEN_GRAPH):
+    """
+    Reads the frozen detection graph into memory.
+    
+    Parameters:
+        PATH_TO_FROZEN_GRAPH (str): path to the directory containing the frozen
+            graph files.
+    
+    Returns:
+        A tensorflow graph instance with which the prediction algorithm can be run.
+    """
     detection_graph = tf.Graph()
     with detection_graph.as_default():
       od_graph_def = tf.GraphDef()
@@ -146,18 +186,16 @@ def get_detection_graph(PATH_TO_FROZEN_GRAPH):
         tf.import_graph_def(od_graph_def, name='')
     return detection_graph
 
-def get_color_for_name(name,category_index):
-    for i in category_index:
-        if category_index[i]["name"] == name:
-            label = list(matplotlib.colors.cnames.keys())[category_index[i]["id"]]
-            return label
-    
-def get_color_for_index(index):
-    label = list(matplotlib.colors.cnames.keys())[index]
-    return label
-
-
 def load_image_into_numpy_array(image):
+  """
+  Helper function that loads an image into a numpy array.
+  
+  Parameters:
+      image (PIL image): a PIL image
+      
+  Returns:
+      np.array: a numpy array representing the image
+  """
   (im_width, im_height) = image.size
   return np.array(image.getdata()).reshape(
       (im_height, im_width, 3)).astype(np.uint8)
@@ -173,6 +211,18 @@ def clean_output_dict(output_dict):
     return output_dict
 
 def get_tensor_dict(tile_size):
+  """
+  Helper function that returns a tensor_dict dictionary that is needed for the 
+  prediction algorithm.
+  
+  Parameters:
+      tile_size (int): The size of the tiles on which the prediction algorithm is
+          run on.
+
+  Returns:
+      dict: The tensor dictionary
+  
+  """
       # Get handles to input and output tensors
   ops = tf.get_default_graph().get_operations()
   all_tensor_names = {output.name for op in ops for output in op.outputs}

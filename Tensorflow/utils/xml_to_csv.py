@@ -58,4 +58,4 @@ def xml_to_csv(input_folder, output_path, flowers_to_use=None):
 
 
 if __name__ == '__main__':
-    print("Please use the command line interface to run this script")
+    print("Please use the command line interface and run the image-preprocessing command.")

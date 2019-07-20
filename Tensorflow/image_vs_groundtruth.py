@@ -3,6 +3,9 @@
 Created on Wed Jun 12 12:47:43 2019
 
 @author: johan
+
+This script compares the groundtruth annotations to the groundtruth hand counted
+results.
 """
 
 import csv
@@ -14,18 +17,6 @@ from utils import constants
 
 input_folders = constants.input_folders
 
-'''
-csv_file = 'C:/Users/johan/Desktop/MasterThesis/Data/May_23/AnnotationData/tile_row0_col0_groundtruth1.csv'
-
-folder = 'C:/Users/johan/Desktop/MasterThesis/Data/June_06/AnnotationData'
-
-
-images = file_utils.get_all_images_in_folder(folder)
-for image in images:
-    csv_file_dest = image[:-4] + "_groundtruth.csv"
-    copyfile(csv_file, csv_file_dest)
-'''
-
 
 #small helper function to keep track of how many flowers of each species have been annotated 
 def add_label_to_labelcount(flower_name, label_count, times_to_add=1):
@@ -36,8 +27,9 @@ def add_label_to_labelcount(flower_name, label_count, times_to_add=1):
         else:
             label_count[flower_name] = label_count[flower_name] + times_to_add
 
-
+#counts the annotations within the annotations_file and returns a map containing the counts
 def count_annotations(annotations_file):
+    
     labels = {}
     annotation_data = file_utils.read_json_file(annotations_file)
     if(not annotation_data):
@@ -49,7 +41,7 @@ def count_annotations(annotations_file):
     
     return labels
 
-
+#counts the annotations within the groud_truth_file and returns a map containing the counts
 def get_ground_truth(ground_truth_file):
     ground_truth = {}
     with open(ground_truth_file,encoding='utf-8-sig') as csv_file:
@@ -62,12 +54,12 @@ def get_ground_truth(ground_truth_file):
 sum_ground_truth = {}
 sum_annotations = {}
 
+#loop through all folders inside the input_folders list and count the annotations
+#and ground truths in each of them and add the to sum_ground_truth and sum_annotations
 for folder in input_folders:
     images = file_utils.get_all_images_in_folder(folder)
     
     for image in images:
-        #print("")
-        #print(image)
         ground_truth_file = image[:-4] + "_groundtruth.csv"
         annotation_file = image[:-4] + "_annotations.json"
         annotations = count_annotations(annotation_file)
@@ -79,23 +71,8 @@ for folder in input_folders:
             add_label_to_labelcount(key,sum_ground_truth,value)
     
      
-        '''
-        for key,value in annotations.items():
-            if key in ground_truth:
-                value_g = ground_truth[key]
-                if value_g != 0 or value != 0:
-                    print("   " + key + ": "+ str(value) + " vs. " + str(value_g))
-                ground_truth.pop(key)
-            else:
-                if not value==0:
-                    print("   " + key + ": "+ str(value) + " vs. 0")
-                
-        for key,value in ground_truth.items():
-            if value != 0:
-                print("   " + key + ": 0 vs. "+ str(value))
-    
-        '''
-    
+#print the summed up statistics to the console in a format that can directly
+#be imported into a latex table
 for key,value in sum_annotations.items():
     if key in sum_ground_truth:
         value_g = sum_ground_truth[key]
