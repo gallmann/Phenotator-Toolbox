@@ -15,51 +15,12 @@
 
 
 '''
-This script trains a model. To run it define the train_dir and ensure it has the following strucure:
-    
-train_dir
-    images
-    model_inputs
-    pre-trained-model
-    training
-    
-Inside the pre-trained-model the pipeline.config file must be properly configured.
-The train.py script will write all outputs to the training directory.
-    
+This script trains a model. 
 '''
 
 
-from utils import constants
 
 
-
-r"""Training executable for detection models.
-
-This executable is used to train DetectionModels. There are two ways of
-configuring the training job:
-
-1) A single pipeline_pb2.TrainEvalPipelineConfig configuration file
-can be specified by --pipeline_config_path.
-
-Example usage:
-    ./train \
-        --logtostderr \
-        --train_dir=path/to/train_dir \
-        --pipeline_config_path=pipeline_config.pbtxt
-
-2) Three configuration files can be provided: a model_pb2.DetectionModel
-configuration file to define what type of DetectionModel is being trained, an
-input_reader_pb2.InputReader file to specify what training data will be used and
-a train_pb2.TrainConfig file to configure training parameters.
-
-Example usage:
-    ./train \
-        --logtostderr \
-        --train_dir=path/to/train_dir \
-        --model_config_path=model_config.pbtxt \
-        --train_config_path=train_config.pbtxt \
-        --input_config_path=train_input_config.pbtxt
-"""
 print("Loading libraries...")
 import functools
 import json
@@ -81,6 +42,20 @@ tf.logging.set_verbosity(tf.logging.INFO)
 
 @tf.contrib.framework.deprecated(None, 'Use object_detection/model_main.py.')
 def main(train_dir,pipeline_config_path):
+  """
+  Main function directly adapted from the tensorflow object detection repository.
+  Trains a network. Saves checkpoints and other files within the train_dir and
+  trains according to the parameters given in the config file located at the
+  pipeline_config_path.
+  
+  Paramters:
+      train_dir (str): path of the directory where the checkpoints should be saved to
+      pipeline_config_path (str): path to the pipeline.config file
+      
+  Returns:
+      None
+  
+  """
   task = 0
   model_config_path = ''
   train_config_path = ''
@@ -178,6 +153,18 @@ def main(train_dir,pipeline_config_path):
       graph_hook_fn=graph_rewriter_fn)
 
 def set_num_steps_in_config_file(num_steps,project_dir):
+    """
+    Saves the num_steps value to the config file that is used by the training process.
+
+    Parameters:
+        num_steps (int): number of steps to train the network
+        project_dir (str): the project folder path created with the image-preprocessing
+            script.
+    
+    Returns:
+        None
+    """
+
     
     #edit config file in pre_trained_model_folder
     pipeline_config = pipeline_pb2.TrainEvalPipelineConfig()                                                                                                                                                                                                          
@@ -198,6 +185,19 @@ def set_num_steps_in_config_file(num_steps,project_dir):
                                                                                                                                                                                                                                        
 
 def run(project_dir,max_steps):
+    """
+    Runs the train command for at most max_steps steps.
+
+    Parameters:
+        project_dir (str): the project folder path created with the image-preprocessing
+            script.
+        max_steps (int): max number of steps to train the network
+    
+    Returns:
+        None
+    """
+    
+    
     set_num_steps_in_config_file(max_steps,project_dir)
     pipeline_config_path = project_dir + "/pre-trained-model/pipeline.config"
     

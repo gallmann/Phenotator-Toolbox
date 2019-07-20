@@ -58,9 +58,30 @@ flower_bounding_box_size = {
 from matplotlib import colors
 
 def get_bbox_size(flower_name):
+    """
+    Reads the bounding box size from the flower_bounding_box_size dictionary.
+        
+    Parameters:
+        flower_name (str): name of the flower
+    
+    Returns:
+        int: the standard radius of the particular flower
+    """
     return flower_bounding_box_size[flower_name]
 
-def get_bbox(flower):        
+def get_bbox(flower): 
+    """
+    Given a flower dictionary, returns the bounding box of that flower annotation.
+    It does not matter if the flower is defined as a polygon or as a point.
+        
+    Parameters:
+        flower (dict): annotation dict of the flower. Example: 
+            {"name":flowername, "isPolygon":False, "polygon":["x":5,"y":10]}
+    
+    Returns:
+        list: [top,left,bottom,right] bounds of the bounding box
+    """
+       
     if(flower["isPolygon"]):
         [top,left,bottom,right] = polygon_to_bounding_box(flower)
         return [top,left,bottom,right]
@@ -69,6 +90,17 @@ def get_bbox(flower):
         return [top,left,bottom,right]
     
 def coords_to_bounding_box(flower):
+    """
+    Converts a point annotation to a bounding box.
+        
+    Parameters:
+        flower (dict): annotation dict of the flower. Example: 
+            {"name":flowername, "isPolygon":False, "polygon":[{"x":5,"y":10}]}
+    
+    Returns:
+        list: [top,left,bottom,right] bounds of the bounding box
+    """
+
     flower_name = clean_string(flower["name"])
     x = round(flower["polygon"][0]["x"])
     y = round(flower["polygon"][0]["y"])
@@ -81,6 +113,17 @@ def coords_to_bounding_box(flower):
 
     
 def polygon_to_bounding_box(flower):
+    """
+    Converts a polygon annotation to a bounding box.
+        
+    Parameters:
+        flower (dict): annotation dict of the flower. Example: 
+            {"name":flowername, "isPolygon":True, "polygon":[{"x":5,"y":10},{"x":10,"y":14}]}
+    
+    Returns:
+        list: [top,left,bottom,right] bounds of the bounding box
+    """
+
     if not flower["isPolygon"]:
         raise ValueError('flower passed to polygon_to_bounding_box must be a polygon')
     left = flower["polygon"][0]["x"]
@@ -130,6 +173,19 @@ STANDARD_COLORS = [
 
 
 def get_color_for_flower(flower_name, get_rgb_value=False):
+    """
+    Helper function that returns a color, given a flower_name.
+        
+    Parameters:
+        flower_name (str): name of the flower
+        get_rgb_value (bool): If True, returns a list containing the rgba values.
+            If False, returns a string with the color name.
+    
+    Returns:
+        list or str: Depending on the get_rgb_value parameter returns a string or 
+            an rgba list representation of the color
+    """
+
     flower_name = correct_spelling_errors(flower_name)
     return_color = STANDARD_COLORS[40]
     for i,name in enumerate(flower_bounding_box_size):
@@ -147,6 +203,19 @@ def get_color_for_flower(flower_name, get_rgb_value=False):
     
     
 def correct_spelling_errors(s):
+    """
+    Should some names be misspelled in the annotation data, a flower_name can be
+    passed to this function to be checked and corrected if necessary. Inside this
+    function for example ä, ö and ü are replaced, uppercase letters are all changed to
+    lower case...
+        
+    Parameters:
+        s (str): name of the flower
+    
+    Returns:
+        str: The corrected version of the input string
+    """
+
     #get rid of ä, ö, ü, upper case letters or trailing whitespaces
     s = s.encode(encoding='iso-8859-1').decode(encoding='utf-8').replace('ö','oe').replace('ä','ae').replace('ü','ue').lower().rstrip(" ,.:")
     
@@ -162,7 +231,18 @@ def correct_spelling_errors(s):
     
     
 def clean_string(s):
+    """
+    Corrects spelling errors, and changes the names of some flowers to match the name
+    of another flower. This is done if the two flowers should be treated as the same
+    flower during the training.
+        
+    Parameters:
+        s (str): name of the flower
     
+    Returns:
+        str: The corrected version of the input string
+    """
+
     s = correct_spelling_errors(s)    
     
     #different types of ranunculus cannot be distinguished from the image alone, therefore 

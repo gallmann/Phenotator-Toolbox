@@ -219,7 +219,7 @@ def run(project_dir,look_in_checkpoints_dir = True, model_selection_criterion="f
     Parameters:
         project_dir (str): path to the project directory
         look_in_checkpoints_dir (bool): if True, it was trained with a validation set
-            and the best model accordint to the model_selection_criterion is chosen
+            and the best model according to the model_selection_criterion is chosen
         model_selection_criterion (str): either 'f1' or 'mAP'. 
     
     Returns:

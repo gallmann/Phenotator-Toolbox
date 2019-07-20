@@ -96,16 +96,16 @@ def apply_annotations_to_image(annotated_folder, image_path, output_folder):
             copy_annotations(annotated_image, ortho_png, c, d)  
                     
     
-def copy_annotations(annotated_image_path, ortho_png, ortho_tif_coordinates, annotated_image_coordinates):
+def copy_annotations(annotated_image_path, to_be_annotated_image, to_be_annotated_image_coordinates, annotated_image_coordinates):
     """
-    Copies all annotations from the annotated_image to the ortho_png image and
-    saves them to the ortho_png annotation file.
+    Copies all annotations from the annotated_image to the to_be_annotated_image image and
+    saves them to the to_be_annotated_image annotation file.
 
     Parameters:
         annotated_image_path (str): path of annotated image
-        ortho_png (str): path to the image onto which the annotations should be copied
-        ortho_tif_coordinates (GeoInformation): GeoInformation object belonging
-            to the ortho_png
+        to_be_annotated_image (str): path to the image onto which the annotations should be copied
+        to_be_annotated_image_coordinates (GeoInformation): GeoInformation object belonging
+            to the to_be_annotated_image
         annotated_image_coordinates (GeoInformation): GeoInformation object belonging
             to the annotated_image
     
@@ -123,13 +123,13 @@ def copy_annotations(annotated_image_path, ortho_png, ortho_tif_coordinates, ann
     width = image.size[0]
     height = image.size[1]
     
-    #get size information of the ortho_png image
-    orthoTif = Image.open(ortho_png)
+    #get size information of the to_be_annotated_image image
+    orthoTif = Image.open(to_be_annotated_image)
     ortho_width = orthoTif.size[0]
     ortho_height = orthoTif.size[1]
     
     #read the output_annotations_file (it could already contain annotation information)
-    output_annotations_path = ortho_png[:-4] + "_annotations.json"
+    output_annotations_path = to_be_annotated_image[:-4] + "_annotations.json"
     output_annotations = file_utils.read_json_file(output_annotations_path)
     
     
@@ -138,7 +138,7 @@ def copy_annotations(annotated_image_path, ortho_png, ortho_tif_coordinates, ann
         
         annotation = annotations[i]
         should_be_added = True
-        translated_annotation = translate_annotation(annotation,height,width,annotated_image_coordinates, ortho_tif_coordinates,ortho_height,ortho_width)
+        translated_annotation = translate_annotation(annotation,height,width,annotated_image_coordinates, to_be_annotated_image_coordinates,ortho_height,ortho_width)
 
         if annotation["name"] == "roi":
             
@@ -173,7 +173,7 @@ def copy_annotations(annotated_image_path, ortho_png, ortho_tif_coordinates, ann
         
 def translate_annotation(annotation,height,width,annotated_image_coordinates, ortho_tif_coordinates,ortho_height,ortho_width):
     """
-    Translates the pixel coordinates of the from one image to pixel coordinates of another image,
+    Translates annotations from one image to annotations of another image,
     given the height, width and geo coordinates of both images.
 
     Parameters:

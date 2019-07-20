@@ -3,6 +3,10 @@
 Created on Mon Apr  1 16:13:06 2019
 
 @author: johan
+
+This script converts csv input annotations to tfrecord files that are used by 
+Tensorflow for the training.
+
 """
 
 from __future__ import division
@@ -26,6 +30,17 @@ def class_text_to_int(row_label, labels):
     return index
 
 def class_text_to_weight(row_label, labels):
+    """
+    Calculates the weight of a class label.
+    
+    Parameters:
+        row_label (str): label of the class
+        labels (map): the labels map mapping from each class label to an int
+            describing how many instances of that class the training data contains
+    
+    Returns:
+        float: The class weight used to write to the tfrecord file
+    """
     total_flower_count = 0
     for key, value in labels.items():
         total_flower_count += value
@@ -42,6 +57,10 @@ def split(df, group):
 
 
 def create_tf_example(group, path, labels):
+    """
+    Creates the tfrecord file. This function is largely adapted from the Tesorflow
+    utilities.
+    """
     with tf.gfile.GFile(os.path.join(path, '{}'.format(group.filename)), 'rb') as fid:
         encoded_jpg = fid.read()
     encoded_jpg_io = io.BytesIO(encoded_jpg)
@@ -90,6 +109,23 @@ def create_tf_example(group, path, labels):
 
 
 def make_tfrecords(input_csv, output_tf_record, images_folder, labels):
+    """
+    This is the main command of the script that converts the input csv to a
+    tf record file.
+    
+    Parameters:
+        input_csv (str): path to the input csv file
+        output_tf_record (str): path to the output tf record file
+        images_folder (str): the folder containing the training images
+        labels (map): A map containing for each class name an integer that
+            defines how many instances of that class are in the training data.
+            This is used to weigh the classes according to the number of instances
+            there are.
+    
+    Returns:
+        None
+    
+    """
     writer = tf.python_io.TFRecordWriter(output_tf_record)
     examples = pd.read_csv(input_csv)
     grouped = split(examples, 'filename')
