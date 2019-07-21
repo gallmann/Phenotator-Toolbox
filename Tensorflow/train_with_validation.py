@@ -51,7 +51,7 @@ def train_with_validation(project_dir,max_steps,stopping_criterion="f1"):
     
     for num_steps in range(max(2500,current_step+2500),max_steps,2500):
         try:
-            print("Train 5000 steps...")
+            print("Train 2500 steps...")
             train.run(project_dir,num_steps)
         except:
             print("An exception occured in the train script. Continue anyways")
@@ -79,7 +79,7 @@ def train_with_validation(project_dir,max_steps,stopping_criterion="f1"):
             best_configuration = relevant_metric
             best_index = len(precision_recall_list)-1
         else:
-            if len(precision_recall_list)-1-best_index >=8:
+            if len(precision_recall_list)-1-best_index >=20:
                 break
    
     
