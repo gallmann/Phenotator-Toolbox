@@ -25,8 +25,13 @@ import androidx.recyclerview.widget.DividerItemDecoration
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.davemorrissey.labs.subscaleview.SubsamplingScaleImageView
+import com.peterlaurence.mapview.MapView
+import com.peterlaurence.mapview.MapViewConfiguration
+import com.peterlaurence.mapview.core.TileStreamProvider
 import com.simplecityapps.recyclerview_fastscroll.views.FastScrollRecyclerView
 import ru.dimorinny.floatingtextbutton.FloatingTextButton
+import java.io.FileInputStream
+import java.io.InputStream
 import java.lang.Exception
 
 
@@ -100,6 +105,47 @@ class MainFragment : Fragment(), FlowerListAdapter.ItemClickListener, View.OnTou
         bottomButton.setOnClickListener(object : View.OnClickListener { override fun onClick(view: View) {loadNextTile(R.id.floating_button_bottom)} })
         topButton.setOnClickListener(object : View.OnClickListener { override fun onClick(view: View) {loadNextTile(R.id.floating_button_top)} })
 */
+
+        /**
+         * The [MapView] is a subclass of [ZoomPanLayout], specialized for displaying
+         * [deepzoom](https://geoservices.ign.fr/documentation/geoservices/wmts.html) maps.
+         *
+         * Typical usage consists in 3 steps:
+         * 1. Creation of the [MapView]
+         * 2. Creation of a [TileStreamProvider]
+         * 3. Configuration of the [MapView]
+         *
+         * Example:
+         * ```
+         * val mapView = MapView(context)
+         * val tileStreamProvider = object : TileStreamProvider {
+         *   override fun getTileStream(row: Int, col: Int, zoomLvl: Int): InputStream? {
+         *     return FileInputStream(File("path_of_tile")) // or it can be a remote http fetch
+         *   }
+         * }
+         *
+         * val config = MapViewConfiguration(levelCount = 7, fullWidth = 25000, fullHeight = 12500,
+         *   tileSize = 256, tileStreamProvider = tileStreamProvider).setMaxScale(2f)
+         *
+         * /* Configuration */
+         * mapView.configure(config)
+         * ```
+         *
+         * @author peterLaurence on 31/05/2019
+         */
+
+        val imageViewContainer: RelativeLayout = fragmentView.findViewById<RelativeLayout>(R.id.imageViewContainer)
+        val mapView = MapView(context!!)
+        val tileStreamProvider = object : TileStreamProvider {
+            override fun getTileStream(row: Int, col: Int, zoomLvl: Int): InputStream? {
+                 return FileInputStream(File("path_of_tile")) // or it can be a remote http fetch
+               }
+            }
+        val config = MapViewConfiguration(levelCount = 7, fullWidth = 25000, fullHeight = 12500,tileSize = 256, tileStreamProvider = tileStreamProvider).setMaxScale(2f)
+        mapView.configure(config)
+
+        //imageViewContainer.addView(mapView)
+
 
         return fragmentView
     }
