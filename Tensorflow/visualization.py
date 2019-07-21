@@ -16,6 +16,10 @@ from utils import file_utils
 from utils import flower_info
 import os
 import progressbar
+import numpy as np
+from object_detection.core import preprocessor
+from matplotlib import pyplot as plt
+import tensorflow as tf
 
 
 
@@ -51,7 +55,7 @@ def draw_bounding_boxes(input_folder, output_folder, with_name_info=True, clean_
     for i in progressbar.progressbar(range(len(images))):
         image_path = images[i]
         image = Image.open(image_path)
-        
+        '''
         annotations = file_utils.get_annotations(image_path)
         for flower in annotations:
             flower_name = flower_info.clean_string(flower["name"])
@@ -65,9 +69,58 @@ def draw_bounding_boxes(input_folder, output_folder, with_name_info=True, clean_
                 visualization_utils.draw_bounding_box_on_image(image,top,left,bottom,right,display_str_list=[], color=col, use_normalized_coordinates=False, thickness=1)
         
         image_name = os.path.basename(image_path)
-        image.save(os.path.join(output_folder,image_name))
+        #image.save(os.path.join(output_folder,image_name))
+        '''
+        with tf.Session() as sess:
+
+            image_name = os.path.basename(image_path)
+            
+            numpy_image = load_image_into_numpy_array(image)
+            adjusted_image = preprocessor.random_adjust_saturation(numpy_image,min_delta=5,max_delta=5)
+            
+            #final_image = np.squeeze(tf.convert_to_tensor(adjusted_image).eval(session=sess))
+            final_image = adjusted_image.eval(session=sess).astype(np.uint8)
+            print(final_image.shape)
+
+            new_im = Image.fromarray(final_image)
+            new_im.save(os.path.join(output_folder,"sat_" + image_name))
+
+        '''
+        print(type(adjusted_image))
+        print(adjusted_image)
+
+        plt.imshow(final_image)
+        plt.savefig(os.path.join(output_folder,"sat_" + image_name))
+        '''
+        #new_im = Image.fromarray(adjusted_image)
+
+        # Visualization of the results of a detection.
+        #plt.figure(figsize=(5000,5000))
+        #plt.imshow(adjusted_image)
+
+        
+        
+
+        
+        
     print("Done!")
     
+    
+def load_image_into_numpy_array(image):
+  """
+  Helper function that loads an image into a numpy array.
+  
+  Parameters:
+      image (PIL image): a PIL image
+      
+  Returns:
+      np.array: a numpy array representing the image
+  """
+  (im_width, im_height) = image.size
+  return np.array(image.getdata()).reshape(
+      (im_height, im_width, 3)).astype(np.uint8)
+
+
 def get_color_for_index(index):
     return STANDARD_COLORS[index]
     #label = list(matplotlib.colors.cnames.keys())[index]
@@ -101,8 +154,8 @@ STANDARD_COLORS = [
 
 if __name__ == '__main__':
     
-    input_folder = constants.train_dir + "/images/train"
-    output_folder = constants.vis_im
+    input_folder = "C:/Users/johan/Desktop/test"
+    output_folder = "C:/Users/johan/Desktop/test2"
     
-    draw_bounding_boxes(input_folder,output_folder)
+    draw_bounding_boxes(input_folder,output_folder,clean_output_folder=False)
     
