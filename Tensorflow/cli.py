@@ -21,8 +21,6 @@ def cli():
     Note that for most options a default value can be set in the constants.py
     file. 
     
-    
-
     """
 
     pass
@@ -96,13 +94,14 @@ def export_inference_graph(project_dir,model_selection_criterion):
 @click.option('--predictions-folder', default=constants.predictions_folder,type=click.Path(), help='Path to a folder where the prediction results should be saved to.',show_default=True)
 @click.option('--tile-size', default=constants.prediction_tile_size,type=int, help='Image Tile Size that should be used as Tensorflow input.',show_default=True)
 @click.option('--prediction-overlap', default=constants.prediction_overlap,type=int, help='The image tiles are predicted with an overlap to improve the results on the tile edges. Define the overlap in pixels with this flag.',show_default=True)
-def predict(project_dir,images_to_predict,predictions_folder,tile_size,prediction_overlap):
+@click.option('--min-confidence', default=constants.min_confidence_score,type=float, help='Float between 0 and 1 indicating the minimum confidence a prediction must have to be considered.',show_default=True)
+def predict(project_dir,images_to_predict,predictions_folder,tile_size,prediction_overlap,min_confidence):
     """
         Runs the prediction algorithm on images (png, jpg and tif) of any size.
     """
     if check_inputs(folders=[project_dir,images_to_predict,predictions_folder]):
         import predict
-        predict.predict(project_dir,images_to_predict,predictions_folder,tile_size,prediction_overlap)
+        predict.predict(project_dir,images_to_predict,predictions_folder,tile_size,prediction_overlap,min_confidence)
     
 
 

@@ -34,7 +34,7 @@ if StrictVersion(tf.__version__) < StrictVersion('1.9.0'):
 from object_detection.utils import label_map_util
 
 
-def predict(project_dir,images_to_predict,output_folder,tile_size,prediction_overlap):
+def predict(project_dir,images_to_predict,output_folder,tile_size,prediction_overlap,min_confidence_score=0.5):
   """
   Makes predictions on all images in the images_to_predict folder and saves them to the
   output_folder with the prediction bounding boxes drawn onto the images. Additionally
@@ -107,7 +107,7 @@ def predict(project_dir,images_to_predict,output_folder,tile_size,prediction_ove
                 for i,score in enumerate(output_dict['detection_scores']):
                     center_x = (output_dict['detection_boxes'][i][3]+output_dict['detection_boxes'][i][1])/2*tile_size
                     center_y = (output_dict['detection_boxes'][i][2]+output_dict['detection_boxes'][i][0])/2*tile_size
-                    if score > 0.5 and center_x >= prediction_overlap and center_y >= prediction_overlap and center_x < tile_size-prediction_overlap and center_y < tile_size-prediction_overlap:
+                    if score >= min_confidence_score and center_x >= prediction_overlap and center_y >= prediction_overlap and center_x < tile_size-prediction_overlap and center_y < tile_size-prediction_overlap:
                         count += 1
                         top = round(output_dict['detection_boxes'][i][0] * tile_size + y_start)
                         left = round(output_dict['detection_boxes'][i][1] * tile_size + x_start)
