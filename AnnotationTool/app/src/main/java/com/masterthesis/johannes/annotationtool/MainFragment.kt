@@ -34,13 +34,11 @@ class MainFragment : Fragment(), FlowerListAdapter.ItemClickListener, View.OnTou
     private lateinit var flowerListView: FastScrollRecyclerView
     private lateinit var polygonSwitch: Switch
     private lateinit var annotationState: AnnotationState
-    private lateinit var imageView: MyImageView
     private lateinit var rightButton: FloatingTextButton
     private lateinit var leftButton: FloatingTextButton
     private lateinit var topButton: FloatingTextButton
     private lateinit var bottomButton: FloatingTextButton
 
-    var restoredImageViewState: ImageViewState? = null
     private var currentEditIndex: Int = 0
     lateinit private var undoButton: MenuItem
 
@@ -64,11 +62,10 @@ class MainFragment : Fragment(), FlowerListAdapter.ItemClickListener, View.OnTou
             override fun onLocationResult(locationResult: LocationResult?) {
                 locationResult ?: return
                 for (location in locationResult.locations){
-                    imageView.updateLocation(location)
+                    //imageView.updateLocation(location)
                 }
             }
         }
-
     }
 
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View? {
@@ -97,21 +94,14 @@ class MainFragment : Fragment(), FlowerListAdapter.ItemClickListener, View.OnTou
         leftButton = fragmentView.findViewById<FloatingTextButton>(R.id.floating_button_left)
         topButton = fragmentView.findViewById<FloatingTextButton>(R.id.floating_button_top)
         bottomButton = fragmentView.findViewById<FloatingTextButton>(R.id.floating_button_bottom)
+        /*
         rightButton.setOnClickListener(object : View.OnClickListener { override fun onClick(view: View) {loadNextTile(R.id.floating_button_right)} })
         leftButton.setOnClickListener(object : View.OnClickListener { override fun onClick(view: View) {loadNextTile(R.id.floating_button_left)} })
         bottomButton.setOnClickListener(object : View.OnClickListener { override fun onClick(view: View) {loadNextTile(R.id.floating_button_bottom)} })
         topButton.setOnClickListener(object : View.OnClickListener { override fun onClick(view: View) {loadNextTile(R.id.floating_button_top)} })
-
+*/
 
         return fragmentView
-    }
-
-    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
-        super.onViewCreated(view, savedInstanceState)
-        if(savedInstanceState != null && savedInstanceState.containsKey(IMAGE_VIEW_STATE_KEY)) {
-            restoredImageViewState = savedInstanceState.getSerializable(IMAGE_VIEW_STATE_KEY) as ImageViewState
-        }
-
     }
 
 
@@ -140,30 +130,6 @@ class MainFragment : Fragment(), FlowerListAdapter.ItemClickListener, View.OnTou
         stopLocationUpdates()
     }
 
-    override fun onSaveInstanceState(outState: Bundle) {
-        if(::imageView.isInitialized) {
-            val state = imageView.state
-            if (state != null) {
-                outState.putSerializable(IMAGE_VIEW_STATE_KEY, imageView.state)
-            }
-            imageView.recycle()
-        }
-    }
-
-    override fun onDestroyView() {
-        if(::imageView.isInitialized) {
-            val imageViewContainer: RelativeLayout = view!!.findViewById<RelativeLayout>(R.id.imageViewContainer)
-            imageViewContainer.removeView(imageView)
-        }
-        super.onDestroyView()
-    }
-
-    override fun onDestroy() {
-        super.onDestroy()
-        if(::imageView.isInitialized) {
-            imageView.recycle()
-        }
-    }
 
 
     /** OPTIONS MENU FUNCTIONS **/
@@ -184,7 +150,7 @@ class MainFragment : Fragment(), FlowerListAdapter.ItemClickListener, View.OnTou
                 return false
             }
             R.id.action_undo -> {
-                removeCurrentPolygonPoint()
+                //removeCurrentPolygonPoint()
                 return false
             }
             else -> return super.onOptionsItemSelected(item)
@@ -209,7 +175,7 @@ class MainFragment : Fragment(), FlowerListAdapter.ItemClickListener, View.OnTou
     override fun onItemClick(view: View, position: Int) {
         //TODO
         (flowerListView.adapter as FlowerListAdapter).selectedIndex(position)
-        imageView.invalidate()
+        //imageView.invalidate()
     }
 
     override fun onClick(view: View) {
@@ -221,14 +187,14 @@ class MainFragment : Fragment(), FlowerListAdapter.ItemClickListener, View.OnTou
                 else{
                     annotationState.permanentlyAddCurrentFlower()
                     updateControlView()
-                    imageView.invalidate()
+                    //imageView.invalidate()
                     polygonSwitch.isChecked = false
                 }
             }
             R.id.cancel_button -> {
                 annotationState.cancelCurrentFlower()
                 updateControlView()
-                imageView.invalidate()
+                //imageView.invalidate()
             }
             R.id.upButton, R.id.downButton, R.id.leftButton, R.id.rightButton -> {
                 moveCurrentMark(view.id)
@@ -241,7 +207,7 @@ class MainFragment : Fragment(), FlowerListAdapter.ItemClickListener, View.OnTou
             R.id.polygonSwitch ->{
                 if(annotationState.currentFlower != null){
                     annotationState.currentFlower!!.isPolygon = checked
-                    imageView.invalidate()
+                    //imageView.invalidate()
                 }
             }
         }
@@ -266,7 +232,7 @@ class MainFragment : Fragment(), FlowerListAdapter.ItemClickListener, View.OnTou
             }
         }
     }
-
+/*
 
     /** IMAGE VIEW FUNCTIONS **/
     fun loadNextTile(id:Int){
@@ -333,10 +299,10 @@ class MainFragment : Fragment(), FlowerListAdapter.ItemClickListener, View.OnTou
             }
         }
     }
-
+*/
     fun initImageView(){
 
-
+        /*
         if(!isExternalStorageWritable()){
             Snackbar.make(view!!, R.string.could_not_load_image, Snackbar.LENGTH_LONG).show();
             val editor = context!!.getSharedPreferences(SHARED_PREFERENCES_KEY, MODE_PRIVATE).edit()
@@ -375,6 +341,8 @@ class MainFragment : Fragment(), FlowerListAdapter.ItemClickListener, View.OnTou
         if(annotationState.hasLocationInformation()){
             startLocationUpdates()
         }
+
+        */
     }
 
     private fun stopLocationUpdates() {
@@ -430,7 +398,7 @@ class MainFragment : Fragment(), FlowerListAdapter.ItemClickListener, View.OnTou
                 annotationState.currentFlower!!.incrementYPos(currentEditIndex)
             }
         }
-        imageView.invalidate()
+        //imageView.invalidate()
     }
 
 
@@ -492,7 +460,7 @@ class MainFragment : Fragment(), FlowerListAdapter.ItemClickListener, View.OnTou
                 context!!.contentResolver.takePersistableUriPermission(uri, takeFlags)
                 projectDirectory = uri
                 currImageUri = getFirstImageTile(uri,context!!)
-                restoredImageViewState = null
+                //restoredImageViewState = null
                 initImageView()
             }
         }
@@ -514,6 +482,7 @@ class MainFragment : Fragment(), FlowerListAdapter.ItemClickListener, View.OnTou
                 val endY = event.y
                 val endTime = System.currentTimeMillis()
                 if (isAClick(startX, endX, startY, endY, startTime, endTime, context!!)) {
+                    /*
                     if(imageView.isEditable()){
                         val editFlower = imageView.clickedOnExistingMark(endX,endY);
                         if(editFlower != null){
@@ -523,12 +492,13 @@ class MainFragment : Fragment(), FlowerListAdapter.ItemClickListener, View.OnTou
                             clickedOnNewPosition(event)
                         }
                     }
+                    */
                 }
             }
         }
         return false
     }
-
+/*
     private fun clickedOnNewPosition(event: MotionEvent){
         if(annotationState.currentFlower != null && annotationState.currentFlower!!.isPolygon){
             var sourcecoord: PointF = imageView.viewToSourceCoord(PointF(event.x, event.y))!!
@@ -582,7 +552,7 @@ class MainFragment : Fragment(), FlowerListAdapter.ItemClickListener, View.OnTou
         imageView.currentEditIndex = index
     }
 
-
+*/
 
 
     /** UNUSED STUBS **/

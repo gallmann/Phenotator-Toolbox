@@ -43,5 +43,6 @@ dependencies {
     implementation 'com.google.android.gms:play-services-location:16.0.0'
     implementation 'com.github.dimorinny:floating-text-button:0.0.4'
     implementation 'com.simplecityapps:recyclerview-fastscroll:2.0.0'
+    implementation 'com.moagrius:tileview:4.0.7'
 
 }
