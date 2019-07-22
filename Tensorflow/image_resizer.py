@@ -6,27 +6,32 @@ Created on Wed May 29 18:47:24 2019
 """
 import os
 from PIL import Image
-
-input_folder = "C:/Users/johan/Desktop/Agisoft"
-output_folder = "C:/Users/johan/Desktop/vis_im"
-basewidth = 2000
+from utils import file_utils
 Image.MAX_IMAGE_PIXELS = None
-
-def get_all_tifs_in_folder(folder_path):
-    images = []
-    for file in os.listdir(folder_path):
-        if file.endswith(".tif"):
-            images.append(os.path.join(folder_path, file))
-    return images
+from tensorflow import image as tf_im
 
 
 
-images = get_all_tifs_in_folder(input_folder)
-for image_path in images:
-    image = Image.open(image_path)
-    wpercent = (basewidth/float(image.size[0]))
-    hsize = int((float(image.size[1])*float(wpercent)))
-    image = image.resize((basewidth,hsize), Image.ANTIALIAS)
+
+def change_resolution(input_folder,output_folder,scale_factor,keep_image_size=True):
+    all_images = file_utils.get_all_images_in_folder(input_folder)
+    for image_path in all_images:
+        print(image_path)
+        image = Image.open(image_path)
+        
+        image = change_pil_image_resolution(image,scale_factor)
+        if keep_image_size:
+            image = change_pil_image_resolution(image,1/scale_factor)
+            
+        
+        image.save(os.path.join(output_folder,os.path.basename(image_path))[:-4] + ".png", format="png")
+
+
+def change_pil_image_resolution(image,scale_factor):
+    new_width = int((float(image.size[0])*float(scale_factor)))
+    new_height = int((float(image.size[1])*float(scale_factor)))
+    
+    image = image.resize((new_width,new_height), Image.ANTIALIAS)
     image = image.convert("RGBA")
     datas = image.getdata()
     
@@ -38,6 +43,13 @@ for image_path in images:
             newData.append(item)
     
     image.putdata(newData)
+    return image
 
+
+if __name__ == '__main__':
+    input_folder = "C:/Users/johan/Desktop/MaskedAnnotationData"
+    output_folder = "C:/Users/johan/Desktop/test"
+    scale_factor = 0.1
     
-    image.save(os.path.join(output_folder,os.path.basename(image_path))[:-4] + ".png", format="png")
+
+    change_resolution(input_folder,output_folder,scale_factor)
