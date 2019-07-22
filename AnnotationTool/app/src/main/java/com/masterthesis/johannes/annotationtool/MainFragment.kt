@@ -25,12 +25,14 @@ import androidx.recyclerview.widget.DividerItemDecoration
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.davemorrissey.labs.subscaleview.SubsamplingScaleImageView
+import com.moagrius.tileview.TileView
+import com.moagrius.tileview.plugins.MarkerPlugin
 import com.simplecityapps.recyclerview_fastscroll.views.FastScrollRecyclerView
 import ru.dimorinny.floatingtextbutton.FloatingTextButton
 import java.lang.Exception
 
 
-class MainFragment : Fragment(), FlowerListAdapter.ItemClickListener, View.OnTouchListener, View.OnClickListener, SubsamplingScaleImageView.OnImageEventListener, CompoundButton.OnCheckedChangeListener {
+class MainFragment : Fragment(), TileView.ReadyListener, FlowerListAdapter.ItemClickListener, View.OnTouchListener, View.OnClickListener, SubsamplingScaleImageView.OnImageEventListener, CompoundButton.OnCheckedChangeListener {
     private lateinit var flowerListView: FastScrollRecyclerView
     private lateinit var polygonSwitch: Switch
     private lateinit var annotationState: AnnotationState
@@ -101,9 +103,34 @@ class MainFragment : Fragment(), FlowerListAdapter.ItemClickListener, View.OnTou
         topButton.setOnClickListener(object : View.OnClickListener { override fun onClick(view: View) {loadNextTile(R.id.floating_button_top)} })
 */
 
+        var tileView:TileView = TileView(context)
+        var tileViewBuilder:TileView.Builder = TileView.Builder(tileView).setSize(2560, 2560).defineZoomLevel("Tiled/phi-125000-0_1.jpg")
+        tileViewBuilder.installPlugin(MarkerPlugin(context!!))
+        tileViewBuilder.addReadyListener(this)
+        tileViewBuilder.build()
+        tileView.setMaximumScale(100f)
+        fragmentView.findViewById<RelativeLayout>(R.id.imageViewContainer).addView(tileView)
+        tileView.layoutParams = RelativeLayout.LayoutParams(RelativeLayout.LayoutParams(RelativeLayout.LayoutParams.MATCH_PARENT,RelativeLayout.LayoutParams.MATCH_PARENT))
+        val markerPlugin = tileView.getPlugin(MarkerPlugin::class.java)
+        for (i in 0..1000){
+            var marker:ImageView = ImageView(context)
+            marker.setTag("bla");
+            marker.setImageResource(R.drawable.my_location);
+            markerPlugin.addMarker(marker, 1000, 1000, 0f, 0f, 0f, 0f);
+        }
+
+
+        markerPlugin.refreshPositions();
+
+
+
         return fragmentView
     }
 
+    override fun onReady(tileView: TileView) {
+        println("onReady ...............")
+
+    }
 
     override fun onResume() {
         super.onResume()
