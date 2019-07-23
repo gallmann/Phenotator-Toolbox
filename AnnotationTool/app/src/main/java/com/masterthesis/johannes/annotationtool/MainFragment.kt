@@ -11,6 +11,7 @@ import android.content.pm.PackageManager
 import android.widget.LinearLayout
 import android.content.Context.MODE_PRIVATE
 import android.content.IntentSender
+import android.graphics.Bitmap
 import com.google.android.material.snackbar.Snackbar
 import androidx.core.content.ContextCompat
 import com.google.android.gms.common.api.ResolvableApiException
@@ -103,7 +104,7 @@ class MainFragment : Fragment(), TileView.ReadyListener, FlowerListAdapter.ItemC
         topButton.setOnClickListener(object : View.OnClickListener { override fun onClick(view: View) {loadNextTile(R.id.floating_button_top)} })
 */
 
-        var tileView:TileView = TileView(context)
+        var tileView:MyTileView = MyTileView(context!!)
         var tileViewBuilder:TileView.Builder = TileView.Builder(tileView).setSize(2560, 2560).defineZoomLevel("Tiled/phi-125000-0_1.jpg")
         tileViewBuilder.installPlugin(MarkerPlugin(context!!))
         tileViewBuilder.addReadyListener(this)
@@ -111,6 +112,16 @@ class MainFragment : Fragment(), TileView.ReadyListener, FlowerListAdapter.ItemC
         tileView.setMaximumScale(100f)
         fragmentView.findViewById<RelativeLayout>(R.id.imageViewContainer).addView(tileView)
         tileView.layoutParams = RelativeLayout.LayoutParams(RelativeLayout.LayoutParams(RelativeLayout.LayoutParams.MATCH_PARENT,RelativeLayout.LayoutParams.MATCH_PARENT))
+
+        val density = resources.displayMetrics.densityDpi.toFloat()
+        var locationPin = getBitmapFromVectorDrawable(context!!,R.drawable.my_location)
+        var w = density / 200f * locationPin.width
+        var h = density / 200f * locationPin.height
+        locationPin = Bitmap.createScaledBitmap(locationPin, w.toInt(), h.toInt(), true)
+        for (i in 0..10000) {
+            tileView.addMarker(locationPin, 1000f, 1000f)
+        }
+        /*
         val markerPlugin = tileView.getPlugin(MarkerPlugin::class.java)
         for (i in 0..1000){
             var marker:ImageView = ImageView(context)
@@ -121,7 +132,7 @@ class MainFragment : Fragment(), TileView.ReadyListener, FlowerListAdapter.ItemC
 
 
         markerPlugin.refreshPositions();
-
+*/
 
 
         return fragmentView
