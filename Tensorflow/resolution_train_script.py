@@ -16,7 +16,7 @@ input_folder_suffixes = ["May_23/MaskedAnnotationData",
                  "June_14/MaskedAnnotatedSingleOrthoPhotos",
                  "June_14/MaskedAnnotatedAdditionalRegions",
                  "June_14/MaskedAnnotationData",
-                 "June_29/flight2/MaskedAnnotationData",
+                 "June_29/MaskedAnnotationData",
                  "July_03/MaskedAnnotatedSingleOrthoPhotos",
                  "July_03/MaskedAnnotationData"
                  ]
@@ -34,9 +34,8 @@ for i in range(len(resolutions)):
     for folder_suffix in input_folder_suffixes:
         full_folder = folder_prefix + folder_suffix
         input_folders.append(full_folder)
-    '''
     for input_folder in input_folders:
         image_resizer.change_resolution(input_folder,input_folder,resolution,keep_image_size=True)
-    '''
+    
     image_preprocessing.convert_annotation_folders(input_folders, constants.test_splits,constants.validation_splits, project_folder, constants.train_tile_sizes, "deterministic", constants.min_flowers, constants.train_overlap,constants.pretrained_model_link)
     train_with_validation.train_with_validation(project_folder,constants.max_steps,constants.model_selection_criterion)

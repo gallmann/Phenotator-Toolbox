@@ -32,17 +32,7 @@ def change_pil_image_resolution(image,scale_factor):
     new_height = int((float(image.size[1])*float(scale_factor)))
     
     image = image.resize((new_width,new_height), Image.ANTIALIAS)
-    image = image.convert("RGBA")
-    datas = image.getdata()
-    
-    newData = []
-    for item in datas:
-        if item[0] == 255 and item[1] == 255 and item[2] == 255:
-            newData.append((255, 255, 255, 0))
-        else:
-            newData.append(item)
-    
-    image.putdata(newData)
+    image = image.convert("RGB")    
     return image
 
 

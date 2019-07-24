@@ -114,7 +114,7 @@ def predict(project_dir,images_to_predict,output_folder,tile_size,prediction_ove
                     cropped_array = np.pad(cropped_array,((0,pad_x),(0,pad_y),(0,0)), mode='constant', constant_values=0)
                     cropped_im = Image.fromarray(cropped_array)
                 
-
+                cropped_im = cropped_im.convert("RGB")
                 #check if image consists of only one color.
                 extrema = cropped_im.convert("L").getextrema()
                 if extrema[0] == extrema[1]:
