@@ -112,8 +112,8 @@ def predict(project_dir,images_to_predict,predictions_folder,tile_size,predictio
 @click.option('--iou-threshold', default=constants.iou_threshold,type=click.FloatRange(0, 1), help='Defines what is the minimum IoU (Intersection over Union) overlap to count a prediction as a True Positive.',show_default=True)
 @click.option('--generate-visualizations', default=False,type=bool, help='If True, the erroneous predictions will be printed onto the images and saved to the evaluations-folder',show_default=True)
 @click.option('--print-confusion-matrix', default=False,type=bool, help='If True, the confusion matrix will be printed to the console in latex table format.',show_default=True)
-
-def evaluate(project_dir,predictions_folder,evaluations_folder,iou_threshold,generate_visualizations,print_confusion_matrix):
+@click.option('--min-score', default=constants.min_confidence_score,type=float, help='The minimum score a prediction must have to be included in the evaluation',show_default=True)
+def evaluate(project_dir,predictions_folder,evaluations_folder,iou_threshold,generate_visualizations,print_confusion_matrix,min_score):
     """
         If the images on which the predictions algorithm was run on had groundtruth information,
         this command will evaluate the performance of the prediction algorithm on these images.
@@ -121,7 +121,7 @@ def evaluate(project_dir,predictions_folder,evaluations_folder,iou_threshold,gen
     """
     if check_inputs(folders=[predictions_folder,evaluations_folder]):
         import custom_evaluations
-        custom_evaluations.evaluate(project_dir,predictions_folder, evaluations_folder, iou_threshold,generate_visualizations,print_confusion_matrix)
+        custom_evaluations.evaluate(project_dir,predictions_folder, evaluations_folder, iou_threshold,generate_visualizations,print_confusion_matrix,min_score)
     
     
 @cli.command(short_help='Visualize Bounding Boxes.')

@@ -25,7 +25,7 @@ from object_detection.utils import per_image_evaluation
 
 
 
-def evaluate(project_folder, input_folder, output_folder,iou_threshold=constants.iou_threshold,generate_visualizations=False,print_confusion_matrix=False):
+def evaluate(project_folder, input_folder, output_folder,iou_threshold=constants.iou_threshold,generate_visualizations=False,print_confusion_matrix=False,min_score=0.5):
     """
     Evaluates all predictions within the input_folder. The input folder should contain images
     alongside with prediction (imagename_prediction.json) and ground truth (imagename_ground_truth.json)
@@ -41,6 +41,8 @@ def evaluate(project_folder, input_folder, output_folder,iou_threshold=constants
         generate_visualizations (bool): Whether or not the visualizations should be generated
         print_confusion_matrix (bool): If true, the confusion matrix is printed to the console in
             a format that can directly be imported into a latex table.
+        min_score (float): The minimum score a prediction must have to be 
+            included in the evaluation
     Returns:
         None
     """
@@ -69,7 +71,7 @@ def evaluate(project_folder, input_folder, output_folder,iou_threshold=constants
             continue
 
         ground_truths = filter_ground_truth(ground_truths,flower_names)
-        
+        predictions = filter_predictions(predictions,min_score)
         
         
         for gt in ground_truths:
@@ -331,6 +333,27 @@ def filter_ground_truth(ground_truths, flower_names):
         if gt["name"] in flower_names:
             filtered_ground_truths.append(gt)
     return filtered_ground_truths
+
+
+def filter_predictions(predictions, min_score):
+    """ 
+    Helper function that that removes all predictions from the predictions list
+    that have a score of less than min_score
+    
+    Parameters:
+        predictions (list): list of annotation dicts.
+        min_score (float): minimum score to be kept in the list
+
+    Returns:
+        list: The list of predictions whose score is >= min_score
+    """
+
+    filtered_predictions = []
+    for prediction in predictions:
+        if prediction["score"] >= min_score:
+            filtered_predictions.append(prediction)
+    return filtered_predictions
+
 
                 
 def get_flower_names_from_labelmap(labelmap_path):
