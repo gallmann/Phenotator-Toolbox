@@ -8,15 +8,15 @@ import os
 from PIL import Image
 from utils import file_utils
 Image.MAX_IMAGE_PIXELS = None
-from tensorflow import image as tf_im
-
+import progressbar
 
 
 
 def change_resolution(input_folder,output_folder,scale_factor,keep_image_size=True):
     all_images = file_utils.get_all_images_in_folder(input_folder)
-    for image_path in all_images:
-        print(image_path)
+    print("Changing resolution for all images in " + input_folder + "...")
+    for i in progressbar.progressbar(range(len(all_images))):
+        image_path = all_images[i]
         image = Image.open(image_path)
         
         image = change_pil_image_resolution(image,scale_factor)

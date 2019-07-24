@@ -92,20 +92,16 @@ def predict(project_dir,images_to_predict,output_folder,tile_size,prediction_ove
             image_array = ds.ReadAsArray().astype(np.uint8)
             image_array = np.swapaxes(image_array,0,1)
             image_array = np.swapaxes(image_array,1,2)
-
-                
-        print("Making Predictions for " + os.path.basename(image_path))
+            print("Please note that the image is very large. The prediction algorithm will work as usual but no information will be drawn onto the bounding boxes.")
+            
+        print("Making Predictions for " + os.path.basename(image_path) + "...")
         
         detections = []
-        
+
         #create appropriate tiles from image
         for x_start in progressbar.progressbar(range(0, width-2,tile_size-prediction_overlap)):
             for y_start in range(0,height-2,tile_size-prediction_overlap):
                 
-                if x_start < 10000:
-                    continue
-                if x_start >10400:
-                    continue
                 try:
                     crop_rectangle = (x_start, y_start, x_start+tile_size, y_start + tile_size)
                     cropped_im = image.crop(crop_rectangle)
@@ -160,12 +156,11 @@ def predict(project_dir,images_to_predict,output_folder,tile_size,prediction_ove
                 try:
                     visualization_utils.draw_bounding_box_on_image(image,top,left,bottom,right,display_str_list=(),thickness=1, color=col, use_normalized_coordinates=False)          
                 except UnboundLocalError:
-                    visualization_utils.draw_bounding_box_on_image_array(image_array,top,left,bottom,right,display_str_list=(),thickness=1, color=col, use_normalized_coordinates=False)          
+                    draw_bounding_box_onto_array(image_array,top,left,bottom,right)
 
             ground_truth_out_path = os.path.join(output_folder, os.path.basename(image_path)[:-4] + "_ground_truth.json")
             file_utils.save_json_file(ground_truth,ground_truth_out_path)
         
-        cropped_array = np.pad(cropped_array,((0,0),(0,0),(0,1)), mode='constant', constant_values=0)
 
         for detection in detections:
             col = flower_info.get_color_for_flower(detection["name"])
@@ -174,8 +169,9 @@ def predict(project_dir,images_to_predict,output_folder,tile_size,prediction_ove
             try:
                 visualization_utils.draw_bounding_box_on_image(image,top,left,bottom,right,display_str_list=[score_string,detection["name"]],thickness=1, color=col, use_normalized_coordinates=False)          
             except UnboundLocalError:
-                visualization_utils.draw_bounding_box_on_image_array(image_array,top,left,bottom,right,display_str_list=[score_string,detection["name"]],thickness=1, color=col, use_normalized_coordinates=False)          
-
+                col = flower_info.get_color_for_flower(detection["name"],get_rgb_value=True)[0:3]
+                draw_bounding_box_onto_array(image_array,top,left,bottom,right,color=col)
+        
         image_output_path = os.path.join(output_folder, os.path.basename(image_path))
         try:
             image.save(image_output_path)
@@ -190,6 +186,28 @@ def predict(project_dir,images_to_predict,output_folder,tile_size,prediction_ove
 
 
 
+def draw_bounding_box_onto_array(array,top,left,bottom,right,color=[0,0,0]):
+    """
+
+    Parameters:
+        image_path (str): path to the image of which the annotations should be read
+    
+    Returns:
+        list: a list containing all annotations corresponding to that image.
+            Returns the None if no annotation file is present
+    """
+
+    color = np.array(color).astype(np.uint8)
+    top = max(0,int(top))
+    left = max(0,int(left))
+    bottom = min(array.shape[1]-1,int(bottom))
+    right = min(array.shape[0]-1,int(right))
+    for i in range(top,bottom+1,1):
+        array[left,i] = color
+        array[right,i] = color
+    for i in range(left,right+1):
+        array[i,top] = color
+        array[i,bottom] = color
 
 
         
