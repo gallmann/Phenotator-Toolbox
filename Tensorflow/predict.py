@@ -22,6 +22,7 @@ import sys
 import tensorflow as tf
 from object_detection.utils import visualization_utils
 import progressbar
+import gdal
 
 
 from distutils.version import StrictVersion
@@ -79,24 +80,43 @@ def predict(project_dir,images_to_predict,output_folder,tile_size,prediction_ove
     all_images = file_utils.get_all_images_in_folder(images_to_predict)
     
     for image_path in all_images:
-        image = Image.open(image_path)
-        width, height = image.size
+        
+        try:
+            image = Image.open(image_path)
+            width, height = image.size
+        except Image.DecompressionBombError:
+            ds = gdal.Open(image_path)
+            band = ds.GetRasterBand(1)
+            width = band.XSize
+            height = band.YSize
+            image_array = ds.ReadAsArray().astype(np.uint8)
+            image_array = np.swapaxes(image_array,0,1)
+            image_array = np.swapaxes(image_array,1,2)
+
                 
         print("Making Predictions for " + os.path.basename(image_path))
         
         detections = []
         
         #create appropriate tiles from image
-        for x_start in progressbar.progressbar(range(-prediction_overlap, width-1,tile_size-2*prediction_overlap)):
-            for y_start in range(-prediction_overlap,height-1,tile_size-2*prediction_overlap):
-                crop_rectangle = (x_start, y_start, x_start+tile_size, y_start + tile_size)
-                cropped_im = image.crop(crop_rectangle)
+        for x_start in progressbar.progressbar(range(0, width-2,tile_size-prediction_overlap)):
+            for y_start in range(0,height-2,tile_size-prediction_overlap):
                 
+                try:
+                    crop_rectangle = (x_start, y_start, x_start+tile_size, y_start + tile_size)
+                    cropped_im = image.crop(crop_rectangle)
+                except (Image.DecompressionBombError, UnboundLocalError):
+                    #crop the image using gdal if it is too large for PIL
+                    cropped_array = image_array[x_start:x_start+tile_size,y_start:y_start+tile_size,:]
+                    cropped_im = Image.fromarray(cropped_array)
+                
+                
+
                 #check if image consists of only one color.
                 extrema = cropped_im.convert("L").getextrema()
                 if extrema[0] == extrema[1]:
                     continue
-                
+
                 image_np = load_image_into_numpy_array(cropped_im)
                 output_dict = sess.run(tensor_dict,feed_dict={image_tensor: np.expand_dims(image_np, 0)})
                 output_dict = clean_output_dict(output_dict)
@@ -116,10 +136,13 @@ def predict(project_dir,images_to_predict,output_folder,tile_size,prediction_ove
                         detection_class = output_dict['detection_classes'][i]
                         detections.append({"bounding_box": [top,left,bottom,right], "score": float(score), "name": category_index[detection_class]["name"]})
 
-        
+
 
         print(str(len(detections)) + " flowers detected")
         
+        predictions_out_path = os.path.join(output_folder, os.path.basename(image_path)[:-4] + "_predictions.json")
+        file_utils.save_json_file(detections,predictions_out_path)
+
         #copy the ground truth annotations to the output folder if there is any ground truth
         ground_truth = get_ground_truth_annotations(image_path)
         if ground_truth:
@@ -127,7 +150,11 @@ def predict(project_dir,images_to_predict,output_folder,tile_size,prediction_ove
             for detection in ground_truth:
                 [top,left,bottom,right] = detection["bounding_box"]
                 col = "black"
-                visualization_utils.draw_bounding_box_on_image(image,top,left,bottom,right,display_str_list=(),thickness=1, color=col, use_normalized_coordinates=False)          
+                try:
+                    visualization_utils.draw_bounding_box_on_image(image,top,left,bottom,right,display_str_list=(),thickness=1, color=col, use_normalized_coordinates=False)          
+                except UnboundLocalError:
+                    visualization_utils.draw_bounding_box_on_image_array(image_array,top,left,bottom,right,display_str_list=(),thickness=1, color=col, use_normalized_coordinates=False)          
+
             ground_truth_out_path = os.path.join(output_folder, os.path.basename(image_path)[:-4] + "_ground_truth.json")
             file_utils.save_json_file(ground_truth,ground_truth_out_path)
         
@@ -136,14 +163,27 @@ def predict(project_dir,images_to_predict,output_folder,tile_size,prediction_ove
             col = flower_info.get_color_for_flower(detection["name"])
             [top,left,bottom,right] = detection["bounding_box"]
             score_string = str('{0:.2f}'.format(detection["score"]))
-            visualization_utils.draw_bounding_box_on_image(image,top,left,bottom,right,display_str_list=[score_string,detection["name"]],thickness=1, color=col, use_normalized_coordinates=False)          
-        predictions_out_path = os.path.join(output_folder, os.path.basename(image_path)[:-4] + "_predictions.json")
-        file_utils.save_json_file(detections,predictions_out_path)
-        
-        
-        image_output_path = os.path.join(output_folder, os.path.basename(image_path))
-        image.save(image_output_path)
-        
+            try:
+                visualization_utils.draw_bounding_box_on_image(image,top,left,bottom,right,display_str_list=[score_string,detection["name"]],thickness=1, color=col, use_normalized_coordinates=False)          
+            except UnboundLocalError:
+                visualization_utils.draw_bounding_box_on_image_array(image_array,top,left,bottom,right,display_str_list=[score_string,detection["name"]],thickness=1, color=col, use_normalized_coordinates=False)          
+
+            image_output_path = os.path.join(output_folder, os.path.basename(image_path))
+        try:
+            image.save(image_output_path)
+        except UnboundLocalError:
+            image_array = np.swapaxes(image_array,2,1)
+            image_array = np.swapaxes(image_array,1,0)
+            ds.GetRasterBand(1).WriteArray(image_array[0], 0, 0)
+            ds.GetRasterBand(2).WriteArray(image_array[1], 0, 0)
+            ds.GetRasterBand(3).WriteArray(image_array[2], 0, 0)
+            gdal.Translate(image_output_path,ds, options=gdal.TranslateOptions(bandList=[1,2,3]))
+
+
+
+
+
+
         
 def get_ground_truth_annotations(image_path):
     """Reads the ground_thruth information from either the tablet annotations (imagename_annotations.json),
