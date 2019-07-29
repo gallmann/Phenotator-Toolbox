@@ -88,10 +88,10 @@ def train_with_validation(project_dir,max_steps,stopping_criterion="f1"):
             if learning_rate == 0.0003 and use_next_learning_rate(precision_recall_list,stopping_criterion):
                 learning_rate = 0.00003
                 set_learning_rate_in_config_file(num_steps,learning_rate,project_dir)
-            if learning_rate == 0.00003 and use_next_learning_rate(precision_recall_list,stopping_criterion):
+            elif learning_rate == 0.00003 and use_next_learning_rate(precision_recall_list,stopping_criterion):
                 learning_rate = 0.000003
                 set_learning_rate_in_config_file(num_steps,learning_rate,project_dir)
-            if learning_rate == 0.000003 and use_next_learning_rate(precision_recall_list,stopping_criterion):
+            elif learning_rate == 0.000003 and use_next_learning_rate(precision_recall_list,stopping_criterion):
                 break
    
 def use_next_learning_rate(precision_recall_list,stopping_criterion):

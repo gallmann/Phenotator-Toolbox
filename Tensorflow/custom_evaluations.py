@@ -67,8 +67,11 @@ def evaluate(project_folder, input_folder, output_folder,iou_threshold=constants
         
         predictions = file_utils.read_json_file(predictions_path)
         ground_truths = file_utils.read_json_file(ground_truth_path)
-        if not predictions or not ground_truths:
-            continue
+        
+        if predictions == None:
+            predictions = []
+        if ground_truths == None:
+            ground_truths = []
 
         ground_truths = filter_ground_truth(ground_truths,flower_names)
         predictions = filter_predictions(predictions,min_score)

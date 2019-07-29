@@ -155,6 +155,7 @@ def run(project_dir,look_in_checkpoints_dir = True, model_selection_criterion="f
     
     main(pipeline_config_path,trained_checkpoint_prefix,output_directory)
     #tf.app.run(main)
+    print("Done exporting " + trained_checkpoint_prefix)
 
 
 if __name__ == '__main__':
