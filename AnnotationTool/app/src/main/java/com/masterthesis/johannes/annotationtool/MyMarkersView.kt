@@ -8,15 +8,20 @@ import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.Canvas
 import android.view.View
+import com.moagrius.tileview.TileView
 
 
-class MyMarkersView(context: Context) : View(context) {
+class MyMarkersView(context: Context, tileView:MyTileView) : View(context) {
+
+
+
 
     private var scale = 1f
     private val markers = HashSet<MyMarker>()
     private var locationPin:Bitmap
-
+    private val MARKER_SIZE = 20
     init {
+        tileView.addListener(this)
         val density = resources.displayMetrics.densityDpi.toFloat()
         locationPin = getBitmapFromVectorDrawable(context,R.drawable.my_location)
         var w = density / 200f * locationPin.width
@@ -26,19 +31,21 @@ class MyMarkersView(context: Context) : View(context) {
     }
 
     override protected fun onDraw(canvas: Canvas) {
+
+        println(scale)
         for (marker in markers) {
 
             // use the translator to translate and scale to the correct position on the TileView's coordinate system
-            val adaptedX = marker.x
-            val adaptedY = marker.y
-            val left = adaptedX - MARKER_SIZE * scale
-            val top = adaptedY - MARKER_SIZE * scale
-            val right = adaptedX + MARKER_SIZE * scale
-            val bottom = adaptedY + MARKER_SIZE * scale
+            val adaptedX = marker.x * scale
+            val adaptedY = marker.y * scale
+            val left = adaptedX - MARKER_SIZE
+            val top = adaptedY - MARKER_SIZE
+            val right = adaptedX + MARKER_SIZE
+            val bottom = adaptedY + MARKER_SIZE
             val markerBounds = RectF(left, top, right, bottom)
 
             // don't draw if outside the current display viewport
-            if (!canvas.quickReject(markerBounds, Canvas.EdgeType.BW) && scale>3) {
+            if (!canvas.quickReject(markerBounds, Canvas.EdgeType.BW)) {
                 // draw the marker bitmap
                 canvas.drawBitmap(marker.bitmap, null, markerBounds, null)
             }
@@ -55,10 +62,5 @@ class MyMarkersView(context: Context) : View(context) {
         invalidate()
     }
 
-
-    companion object {
-
-        private val MARKER_SIZE = 20
-    }
 
 }

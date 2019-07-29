@@ -118,8 +118,8 @@ class MainFragment : Fragment(), TileView.ReadyListener, FlowerListAdapter.ItemC
         var w = density / 200f * locationPin.width
         var h = density / 200f * locationPin.height
         locationPin = Bitmap.createScaledBitmap(locationPin, w.toInt(), h.toInt(), true)
-        for (i in 0..10000) {
-            tileView.addMarker(locationPin, 1000f, 1000f)
+        for (i in 0..1000) {
+            tileView.addMarker(locationPin, i.toFloat(), 500f)
         }
         /*
         val markerPlugin = tileView.getPlugin(MarkerPlugin::class.java)

@@ -7,6 +7,8 @@ import android.graphics.Bitmap
 import android.util.AttributeSet
 import com.moagrius.tileview.TileView
 import com.moagrius.tileview.plugins.CoordinatePlugin
+import com.moagrius.tileview.plugins.MarkerPlugin
+import com.moagrius.widget.ScalingScrollView
 
 
 class MyTileView : TileView {
@@ -22,9 +24,10 @@ class MyTileView : TileView {
     }
 
     private fun init() {
-        markersView = MyMarkersView(context)
+        markersView = MyMarkersView(context,this)
         addView(markersView) // added before the callout view
         var c:CoordinatePlugin = CoordinatePlugin(10.0,10.0,10.0,10.0)
+        var d:MarkerPlugin = MarkerPlugin(context)
 
 
 
@@ -39,9 +42,4 @@ class MyTileView : TileView {
         markersView!!.addMarker(marker)
     }
 
-    // pass the current scale to the markers view
-    fun onScaleChanged(scale: Float, previous: Float) {
-        super.onScaleChanged(this,scale, previous)
-        markersView!!.onScale(scale)
-    }
 }
