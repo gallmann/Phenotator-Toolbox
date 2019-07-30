@@ -8,6 +8,9 @@ Created on Wed Jul 10 16:04:58 2019
 import click
 from utils import constants
 import os
+import sys
+sys.path.append("slim")
+
 
 CONTEXT_SETTINGS = dict(help_option_names=['-h', '--help'])
 
