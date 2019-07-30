@@ -38,6 +38,7 @@ def train_with_validation(project_dir,max_steps,stopping_criterion="f1"):
         None
     """
 
+
     images_folder = os.path.join(project_dir,"images")
     validation_images_folder = os.path.join(images_folder,"validation_full_size")
     validation_folder = os.path.join(project_dir,"validation")
@@ -56,11 +57,9 @@ def train_with_validation(project_dir,max_steps,stopping_criterion="f1"):
     current_step = get_max_checkpoint(checkpoints_folder)
     
     for num_steps in range(max(2500,current_step+2500),max_steps,2500):
-        try:
-            print("Train 2500 steps...")
-            train.run(project_dir,num_steps)
-        except:
-            print("An exception occured in the train script. Continue anyways")
+        print("Train 2500 steps...")
+        train.run(project_dir,num_steps)
+        #print("An exception occured in the train script. Continue anyways")
         
         print("Export inference graph...")
         
@@ -139,11 +138,14 @@ def set_learning_rate_in_config_file(step,learning_rate,project_dir):
     pipeline_config = pipeline_pb2.TrainEvalPipelineConfig()                                                                                                                                                                                                          
     with tf.gfile.GFile(project_dir + "/pre-trained-model/pipeline.config", "r") as f:                                                                                                                                                                                                                     
         proto_str = f.read()                                                                                                                                                                                                                                          
-        text_format.Merge(proto_str, pipeline_config)                                                                                                                                                                                                                 
-    pipeline_config.train_config.optimizer.momentum_optimizer.learning_rate.manual_step_learning_rate.schedule[0].step = 5000
-    pipeline_config.train_config.optimizer.momentum_optimizer.learning_rate.manual_step_learning_rate.schedule[1].step = 5000
-    pipeline_config.train_config.optimizer.momentum_optimizer.learning_rate.manual_step_learning_rate.schedule[2].step = step
-    pipeline_config.train_config.optimizer.momentum_optimizer.learning_rate.manual_step_learning_rate.schedule[2].learning_rate = learning_rate
+        text_format.Merge(proto_str, pipeline_config)  
+    
+
+    for i in range(len(pipeline_config.train_config.optimizer.momentum_optimizer.learning_rate.manual_step_learning_rate.schedule)-1):
+        pipeline_config.train_config.optimizer.momentum_optimizer.learning_rate.manual_step_learning_rate.schedule.pop()
+    
+    pipeline_config.train_config.optimizer.momentum_optimizer.learning_rate.manual_step_learning_rate.schedule[0].step = step
+    pipeline_config.train_config.optimizer.momentum_optimizer.learning_rate.manual_step_learning_rate.schedule[0].learning_rate = learning_rate
 
     config_text = text_format.MessageToString(pipeline_config)                                                                                                                                                                                                        
     with tf.gfile.Open(project_dir + "/pre-trained-model/pipeline.config", "wb") as f:                                                                                                                                                                                                                       

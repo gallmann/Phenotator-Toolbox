@@ -99,8 +99,8 @@ def predict(project_dir,images_to_predict,output_folder,tile_size,prediction_ove
         detections = []
 
         #create appropriate tiles from image
-        for x_start in progressbar.progressbar(range(0, width-2,tile_size-prediction_overlap)):
-            for y_start in range(0,height-2,tile_size-prediction_overlap):
+        for x_start in progressbar.progressbar(range(-prediction_overlap, width-1,tile_size-2*prediction_overlap)):
+            for y_start in range(-prediction_overlap,height-1,tile_size-2*prediction_overlap):
                 
                 try:
                     crop_rectangle = (x_start, y_start, x_start+tile_size, y_start + tile_size)
