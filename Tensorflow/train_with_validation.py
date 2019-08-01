@@ -53,7 +53,8 @@ def train_with_validation(project_dir,max_steps,stopping_criterion="f1"):
     learning_rate = 0.0003
     if len(precision_recall_list)>0:
         learning_rate = precision_recall_list[len(precision_recall_list)-1][4]
-    
+    set_learning_rate_in_config_file(1,learning_rate,project_dir)
+
     current_step = get_max_checkpoint(checkpoints_folder)
     
     for num_steps in range(max(2500,current_step+2500),max_steps,2500):

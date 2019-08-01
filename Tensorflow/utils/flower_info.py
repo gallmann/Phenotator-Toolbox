@@ -251,14 +251,12 @@ def clean_string(s):
         return "ranunculus"
     if "lathyrus pratensis" in s:
         return "lotus corniculatus"
-    if "carum carvi" in s:
+    if "carum carvi" in s or "achillea millefolium" in s or "daucus carota" in s:
         return "galium mollugo"
     if "leontodon hispidus" in s or "tragopogon pratensis" in s or "picris hieracioides" in s :
         return "crepis biennis"
     if "lychnis flos cuculi" in s:
         return "centaurea jacea"
-    if "achillea millefolium" in s:
-        return "daucus carota"
     else:
         return s
 
