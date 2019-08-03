@@ -81,6 +81,7 @@ def predict(project_dir,images_to_predict,output_folder,tile_size,prediction_ove
     
     for image_path in all_images:
         
+        large_image = False
         try:
             image = Image.open(image_path)
             width, height = image.size
@@ -92,8 +93,9 @@ def predict(project_dir,images_to_predict,output_folder,tile_size,prediction_ove
             image_array = ds.ReadAsArray().astype(np.uint8)
             image_array = np.swapaxes(image_array,0,1)
             image_array = np.swapaxes(image_array,1,2)
+            large_image = True
             print("Please note that the image is very large. The prediction algorithm will work as usual but no information will be drawn onto the bounding boxes.")
-            
+
         print("Making Predictions for " + os.path.basename(image_path) + "...")
         
         detections = []
@@ -101,10 +103,10 @@ def predict(project_dir,images_to_predict,output_folder,tile_size,prediction_ove
         for x_start in progressbar.progressbar(range(-prediction_overlap, width-1,tile_size-2*prediction_overlap)):
             for y_start in range(-prediction_overlap,height-1,tile_size-2*prediction_overlap):
                 
-                try:
+                if not large_image:
                     crop_rectangle = (x_start, y_start, x_start+tile_size, y_start + tile_size)
                     cropped_im = image.crop(crop_rectangle)
-                except (Image.DecompressionBombError, UnboundLocalError):
+                else:
                     #crop the image using gdal if it is too large for PIL
                     pad_front_x = max(0,-x_start)
                     pad_front_y = max(0,-y_start)
@@ -155,9 +157,9 @@ def predict(project_dir,images_to_predict,output_folder,tile_size,prediction_ove
             for detection in ground_truth:
                 [top,left,bottom,right] = detection["bounding_box"]
                 col = "black"
-                try:
+                if not large_image:
                     visualization_utils.draw_bounding_box_on_image(image,top,left,bottom,right,display_str_list=(),thickness=1, color=col, use_normalized_coordinates=False)          
-                except UnboundLocalError:
+                else:
                     draw_bounding_box_onto_array(image_array,top,left,bottom,right)
 
             ground_truth_out_path = os.path.join(output_folder, os.path.basename(image_path)[:-4] + "_ground_truth.json")
@@ -168,35 +170,18 @@ def predict(project_dir,images_to_predict,output_folder,tile_size,prediction_ove
             col = flower_info.get_color_for_flower(detection["name"])
             [top,left,bottom,right] = detection["bounding_box"]
             score_string = str('{0:.2f}'.format(detection["score"]))
-            try:
+            if not large_image:
                 visualization_utils.draw_bounding_box_on_image(image,top,left,bottom,right,display_str_list=[score_string,detection["name"]],thickness=1, color=col, use_normalized_coordinates=False)          
-            except UnboundLocalError:
+            else:
                 col = flower_info.get_color_for_flower(detection["name"],get_rgb_value=True)[0:3]
                 draw_bounding_box_onto_array(image_array,top,left,bottom,right,color=col)
         
         image_output_path = os.path.join(output_folder, os.path.basename(image_path))
-        try:
+        if not large_image:
             image.save(image_output_path)
-        except UnboundLocalError:
-            image_array = np.swapaxes(image_array,2,1)
-            image_array = np.swapaxes(image_array,1,0)
-            ds.GetRasterBand(1).WriteArray(image_array[0], 0, 0)
-            ds.GetRasterBand(2).WriteArray(image_array[1], 0, 0)
-            ds.GetRasterBand(3).WriteArray(image_array[2], 0, 0)
-            band = ds.GetRasterBand(1)
-            xsize = band.XSize
-            ysize = band.YSize
-            tile_size = 10000
-            #gdal.Translate(image_output_path[:-4] + ".png",ds, options=gdal.TranslateOptions(bandList=[1,2,3],format="png"))
-            for i in progressbar.progressbar(range(0, xsize, tile_size)):
-                for j in range(0, ysize, tile_size):
-                    
-                    #define paths of image tile and the corresponding json file containing the geo information
-                    out_path_image = image_output_path[:-4] + "row" + str(int(j/tile_size)) + "_col" + str(int(i/tile_size)) + ".png"
-                    
-                    #tile image with gdal (copy bands 1, 2 and 3)
-                    gdal.Translate(out_path_image,ds, options=gdal.TranslateOptions(srcWin=[i,j,tile_size,tile_size], bandList=[1,2,3], format='png'))
-        
+        else:
+            print("Saving image. This might take a while...")
+            file_utils.save_array_as_image(image_output_path[:-4] + ".png" ,image_array,tile_size=5000)
 
 
 

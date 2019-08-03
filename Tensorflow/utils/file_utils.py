@@ -16,7 +16,9 @@ import xml.etree.cElementTree as ET
 from PIL import Image, ImageDraw
 from utils import flower_info
 import numpy
-
+import gdal
+import numpy as np
+import matplotlib.pyplot as plt
 
 def read_json_file(file_path):
     """Reads a json file into a dict
@@ -68,8 +70,10 @@ def get_all_images_in_folder(folder_path):
     Returns:
         list: a list of image_paths (strings)
     """
-
+    
     images = []
+    if not os.path.isdir(folder_path):
+        return images
     for file in os.listdir(folder_path):
         if file.endswith(".png") or file.endswith(".jpg") or file.endswith(".tif"):
             images.append(os.path.join(folder_path, file))
@@ -172,9 +176,12 @@ def annotations_to_labelme_file(annotations,output_path,image_path):
     Returns:
         None
     """
-
+    max_pixels = Image.MAX_IMAGE_PIXELS
+    Image.MAX_IMAGE_PIXELS = 5000000000
     image = Image.open(image_path)    
     width, height = image.size
+    Image.MAX_IMAGE_PIXELS = max_pixels
+
     label_me_dict_template = {"version":"3.15.2","flags":{},"shapes":[],"lineColor":[0,255,0,64],"fillColor":[255,0,0,64],"imagePath":os.path.basename(image_path), "imageData":None,"imageHeight":height,"imageWidth":width}
     if annotations:
         for flower in annotations:
@@ -236,6 +243,56 @@ def check_all_json_files_in_folder(folder_path):
     print("if no errors were printed, everything is fine")
     
     
+def get_image_array(image_path):
+    try:
+        image = Image.open(image_path)
+        width, height = image.size
+        img = Image.open(image_path).convert("RGB")
+        img_array = numpy.asarray(img)
+        return img_array
+    except Image.DecompressionBombError:
+        ds = gdal.Open(image_path)
+        image_array = ds.ReadAsArray().astype(np.uint8)
+        image_array = np.swapaxes(image_array,0,1)
+        image_array = np.swapaxes(image_array,1,2)
+        return image_array
+  
+
+
+def save_array_as_image(image_path,image_array, tile_size = None):
+
+    if not image_path.endswith(".png") and not image_path.endswith(".jpg") and not image_path.endswith(".tif"):
+        print("Error! image_path has to end with .png, .jpg or .tif")
+    height = image_array.shape[0]
+    width = image_array.shape[1]
+    if height*width < Image.MAX_IMAGE_PIXELS:
+        newIm = Image.fromarray(image_array, "RGB")
+        newIm.save(image_path)
+    
+    else:
+        gdal.AllRegister()
+        driver = gdal.GetDriverByName( 'MEM' )
+        ds1 = driver.Create( '', width, height, 3, gdal.GDT_Byte)
+        ds = driver.CreateCopy(image_path, ds1, 0)
+            
+        image_array = np.swapaxes(image_array,2,1)
+        image_array = np.swapaxes(image_array,1,0)
+        ds.GetRasterBand(1).WriteArray(image_array[0], 0, 0)
+        ds.GetRasterBand(2).WriteArray(image_array[1], 0, 0)
+        ds.GetRasterBand(3).WriteArray(image_array[2], 0, 0)
+
+        if not tile_size:
+            gdal.Translate(image_path,ds, options=gdal.TranslateOptions(bandList=[1,2,3], format="png"))
+
+        else:
+            for i in range(0, width, tile_size):
+                for j in range(0, height, tile_size):
+                    #define paths of image tile and the corresponding json file containing the geo information
+                    out_path_image = image_path[:-4] + "row" + str(int(j/tile_size)) + "_col" + str(int(i/tile_size)) + ".png"
+                    #tile image with gdal (copy bands 1, 2 and 3)
+                    gdal.Translate(out_path_image,ds, options=gdal.TranslateOptions(srcWin=[i,j,tile_size,tile_size], bandList=[1,2,3]))
+                    
+    
 def strip_image(input_image_path, roi_file, output_image_path):
     """Turns all pixels that are not within a roi polygon black
 
@@ -249,7 +306,6 @@ def strip_image(input_image_path, roi_file, output_image_path):
         None
     """
 
-    
     polygons_json = read_json_file(roi_file)["shapes"]
     polygons = []
     
@@ -261,11 +317,7 @@ def strip_image(input_image_path, roi_file, output_image_path):
             polygons.append(polygon)
 
     # read image as RGB (without alpha)
-    img = Image.open(input_image_path).convert("RGB")
-    
-    # convert to numpy (for convenience)
-    img_array = numpy.asarray(img)
-    
+    img_array = get_image_array(input_image_path)
     # create new image ("1-bit pixels, black and white", (width, height), "default color")
     mask_img = Image.new('1', (img_array.shape[1], img_array.shape[0]), 0)
     
@@ -273,6 +325,8 @@ def strip_image(input_image_path, roi_file, output_image_path):
         ImageDraw.Draw(mask_img).polygon(polygon, outline=1, fill=1)
 
     mask = numpy.array(mask_img)
+    
+    
     
     # assemble new image (uint8: 0-255)
     new_img_array = numpy.empty(img_array.shape, dtype='uint8')
@@ -285,7 +339,12 @@ def strip_image(input_image_path, roi_file, output_image_path):
     new_img_array[:,:,1] = new_img_array[:,:,1] * mask
     new_img_array[:,:,2] = new_img_array[:,:,2] * mask
     
-    # back to Image from numpy
-    newIm = Image.fromarray(new_img_array, "RGB")
-    newIm.save(output_image_path, format="png")
-
+    save_array_as_image(input_image_path[:-4] + ".png", new_img_array)
+    
+    
+    
+    print("Fraction of area inside polygons: " + str( np.count_nonzero(mask) / (img_array.shape[1]* img_array.shape[0])) )
+    print("Pixels inside polygons: "+ str( np.count_nonzero(mask)))
+    
+    
+    
