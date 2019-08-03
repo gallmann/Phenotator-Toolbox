@@ -211,16 +211,20 @@ def evaluate(project_folder, input_folder, output_folder,iou_threshold=constants
     return stat_overall
 
 
-def print_confusion_matrix(confusion_matrix, categories):
+def print_confusion_matrix(confusion_matrix, categories, percentage=True):
     """
     Prints the confusion matrix to the console in latex format
     
     Parameters:
         confusion_matrix (np.list): numpy matrix representing the confusion matrix
         categories (dict): list of dicts containing all flowers. Example: [{id:1,name:"flowername"},...]
+        precentage (bool): If the matrix entries should be printed in percentage or absolute values
     Returns:
         None
     """
+    
+    
+    
 
     def short_name(name):
         if " " in name:
@@ -231,20 +235,60 @@ def print_confusion_matrix(confusion_matrix, categories):
             return name
     
     print("\nConfusion Matrix:")
-    
+    categories = sorted(categories, key = lambda i: i['name'])
     categories.append({"id":0, "name":"background"})
+    print(categories)
     top_line = ""
     for category in categories:
-        top_line += " & \\rotatebox[origin=c]{90}{" + short_name(category["name"]) + "}"
+        top_line += " & \\rotatebox[origin=c]{90}{\\textbf{" + short_name(category["name"]) + "}}"
     print(top_line + "\\\\")
     print("\\hline")
-    for i,line in enumerate(confusion_matrix):
-        line_string = short_name(categories[i]["name"])
-        for number in line:
-            line_string += " & " + str(int(number))
+    
+    
+    for category_side in categories:
+        line_string = "\\textbf{" + short_name(category_side["name"]) + "}"
+        for category_top in categories:
+            
+            id_top = category_top["id"] -1
+            id_side = category_side["id"] -1
+            value = confusion_matrix[id_side][id_top]
+            percentage_value = 0
+            for c in categories:
+                percentage_value += confusion_matrix[id_side][c["id"]]
+            if percentage_value != 0:
+                percentage_value = value/percentage_value
+            
+            color = "Black"
+            
+            if id_top == id_side and value != 0:
+                color = "ForestGreen"
+            elif id_top == -1 and value != 0:
+                color = "Orange"
+            elif id_side == -1 and value != 0:
+                color = "Red"
+            elif value != 0:
+                color = "Brown"
+               
+            if color == "Black":
+                cell_string = " & -"
+            else:
+                if percentage:
+                    cell_string = " & \\color{" + color + "}\\textbf{" + '{:.1f}'.format(round(percentage_value*100,ndigits=1)) + "}"
+                else:
+                    cell_string = " & \\color{" + color + "}\\textbf{" + str(int(value)) + "}"
+            
+            
+            line_string += cell_string
+                
+                
+            
+            
         line_string += " \\\\"
         print(line_string)
-        
+
+    
+
+
         
 
 def print_stats(stat, flower_name, print_latex_format = False):

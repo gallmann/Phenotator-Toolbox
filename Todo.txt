@@ -1,3 +1,11 @@
 Fix GPS position code on App
 Show tile preview of images on App
 Enable single image annotations in App
+
+
+Fix pyproj installation error
+Make Tensorflow run natively
+Finish resolution experiment
+Make confusion matrix colorful
+make density distribution script
+fix prediction on large images visualization bug
