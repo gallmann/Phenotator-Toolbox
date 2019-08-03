@@ -97,22 +97,25 @@ def predict(project_dir,images_to_predict,output_folder,tile_size,prediction_ove
         print("Making Predictions for " + os.path.basename(image_path) + "...")
         
         detections = []
-
         #create appropriate tiles from image
-        for x_start in progressbar.progressbar(range(0, width-2,tile_size-prediction_overlap)):
-            for y_start in range(0,height-2,tile_size-prediction_overlap):
+        for x_start in progressbar.progressbar(range(-prediction_overlap, width-1,tile_size-2*prediction_overlap)):
+            for y_start in range(-prediction_overlap,height-1,tile_size-2*prediction_overlap):
                 
                 try:
                     crop_rectangle = (x_start, y_start, x_start+tile_size, y_start + tile_size)
                     cropped_im = image.crop(crop_rectangle)
                 except (Image.DecompressionBombError, UnboundLocalError):
                     #crop the image using gdal if it is too large for PIL
-                    cropped_array = image_array[x_start:x_start+tile_size,y_start:y_start+tile_size,:]
-                    pad_x = tile_size - cropped_array.shape[0]
-                    pad_y = tile_size - cropped_array.shape[1]
-
-                    cropped_array = np.pad(cropped_array,((0,pad_x),(0,pad_y),(0,0)), mode='constant', constant_values=0)
+                    pad_front_x = max(0,-x_start)
+                    pad_front_y = max(0,-y_start)
+                    
+                    cropped_array = image_array[y_start+pad_front_y:y_start+tile_size,x_start+pad_front_x:x_start+tile_size,:]
+                    
+                    pad_end_x = tile_size - cropped_array.shape[1] - pad_front_x
+                    pad_end_y = tile_size - cropped_array.shape[0] - pad_front_y
+                    cropped_array = np.pad(cropped_array,((pad_front_y,pad_end_y),(pad_front_x,pad_end_x),(0,0)), mode='constant', constant_values=0)
                     cropped_im = Image.fromarray(cropped_array)
+                
                 
                 cropped_im = cropped_im.convert("RGB")
                 #check if image consists of only one color.
@@ -142,7 +145,6 @@ def predict(project_dir,images_to_predict,output_folder,tile_size,prediction_ove
 
 
         print(str(len(detections)) + " flowers detected")
-        
         predictions_out_path = os.path.join(output_folder, os.path.basename(image_path)[:-4] + "_predictions.json")
         file_utils.save_json_file(detections,predictions_out_path)
 
@@ -181,8 +183,20 @@ def predict(project_dir,images_to_predict,output_folder,tile_size,prediction_ove
             ds.GetRasterBand(1).WriteArray(image_array[0], 0, 0)
             ds.GetRasterBand(2).WriteArray(image_array[1], 0, 0)
             ds.GetRasterBand(3).WriteArray(image_array[2], 0, 0)
-            gdal.Translate(image_output_path,ds, options=gdal.TranslateOptions(bandList=[1,2,3]))
-
+            band = ds.GetRasterBand(1)
+            xsize = band.XSize
+            ysize = band.YSize
+            tile_size = 10000
+            #gdal.Translate(image_output_path[:-4] + ".png",ds, options=gdal.TranslateOptions(bandList=[1,2,3],format="png"))
+            for i in progressbar.progressbar(range(0, xsize, tile_size)):
+                for j in range(0, ysize, tile_size):
+                    
+                    #define paths of image tile and the corresponding json file containing the geo information
+                    out_path_image = image_output_path[:-4] + "row" + str(int(j/tile_size)) + "_col" + str(int(i/tile_size)) + ".png"
+                    
+                    #tile image with gdal (copy bands 1, 2 and 3)
+                    gdal.Translate(out_path_image,ds, options=gdal.TranslateOptions(srcWin=[i,j,tile_size,tile_size], bandList=[1,2,3], format='png'))
+        
 
 
 
@@ -197,17 +211,21 @@ def draw_bounding_box_onto_array(array,top,left,bottom,right,color=[0,0,0]):
             Returns the None if no annotation file is present
     """
 
-    color = np.array(color).astype(np.uint8)
-    top = max(0,int(top))
-    left = max(0,int(left))
-    bottom = min(array.shape[1]-1,int(bottom))
-    right = min(array.shape[0]-1,int(right))
-    for i in range(top,bottom+1,1):
-        array[left,i] = color
-        array[right,i] = color
-    for i in range(left,right+1):
-        array[i,top] = color
-        array[i,bottom] = color
+    try:
+        color = np.array(color).astype(np.uint8)
+        top = max(0,int(top))
+        left = max(0,int(left))
+        bottom = min(array.shape[1]-1,int(bottom))
+        right = min(array.shape[0]-1,int(right))
+        for i in range(top,bottom+1,1):
+            array[i,left] = color
+            array[i,right] = color
+        for i in range(left,right+1):
+            array[top,i] = color
+            array[bottom,i] = color
+
+    except IndexError:
+        print("Index error: " + str((top, left, bottom, right)))
 
 
         

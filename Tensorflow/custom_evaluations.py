@@ -25,7 +25,7 @@ from object_detection.utils import per_image_evaluation
 
 
 
-def evaluate(project_folder, input_folder, output_folder,iou_threshold=constants.iou_threshold,generate_visualizations=False,print_confusion_matrix=False,min_score=0.5):
+def evaluate(project_folder, input_folder, output_folder,iou_threshold=constants.iou_threshold,generate_visualizations=False,should_print_confusion_matrix=False,min_score=0.5):
     """
     Evaluates all predictions within the input_folder. The input folder should contain images
     alongside with prediction (imagename_prediction.json) and ground truth (imagename_ground_truth.json)
@@ -39,7 +39,7 @@ def evaluate(project_folder, input_folder, output_folder,iou_threshold=constants
             are printed.
         iou_threshold (float): intersection over union threshold to use for the evaluations
         generate_visualizations (bool): Whether or not the visualizations should be generated
-        print_confusion_matrix (bool): If true, the confusion matrix is printed to the console in
+        should_print_confusion_matrix (bool): If true, the confusion matrix is printed to the console in
             a format that can directly be imported into a latex table.
         min_score (float): The minimum score a prediction must have to be 
             included in the evaluation
@@ -205,7 +205,7 @@ def evaluate(project_folder, input_folder, output_folder,iou_threshold=constants
 
     print_stats(stat_overall,"Overall")
     
-    if print_confusion_matrix:
+    if should_print_confusion_matrix:
         print_confusion_matrix(confusion_matrix,labelmap)
     
     return stat_overall
@@ -247,7 +247,7 @@ def print_confusion_matrix(confusion_matrix, categories):
         
         
 
-def print_stats(stat, flower_name):
+def print_stats(stat, flower_name, print_latex_format = False):
     """
     Prints precision, recall, mAP, f1, TP, FP and FN to the console
     
@@ -259,7 +259,6 @@ def print_stats(stat, flower_name):
     """
 
     n = stat["tp"] + stat["fn"]
-    print(flower_name + " (n=" + str(n) + "):")
     if float(stat["fp"]+stat["tp"]) == 0:
         precision = "-"
     else:
@@ -272,11 +271,30 @@ def print_stats(stat, flower_name):
     f1 = "-"
     if recall != "-" and precision != "-" and ((recall >0) or (precision > 0)):
         f1 = 2 * (precision*recall)/(precision+recall)
-    print("   precision: " + str(precision))
-    print("   recall: " + str(recall))
-    print("   mAP: " + str(stat["mAP"]))
-    print("   f1: " + str(f1))
-    print("   TP: " + str(stat["tp"]) + " FP: " + str(stat["fp"]) + " FN: " + str(stat["fn"]))
+    
+    if print_latex_format:
+        def short_name(name):
+            if " " in name:
+                if "faded" in name:
+                    return "centaurea j. f."
+                return name[0:name.find(" ") + 2] + "."
+            else:
+                return name
+
+        if recall == "-":
+            recall = 0
+        if precision == "-":
+            precision = 0
+        if f1 == "-":
+            f1 = 0
+        print(short_name(flower_name) + " & " + str(n) + " & " + str(round(precision*100,1)) + " \\% & " + str(round(recall*100,1)) + " \\% & " + str(round(stat["mAP"],3)) + " & " + str(round(f1,3)) + " \\\\" )
+    else:
+        print(flower_name + " (n=" + str(n) + "):")
+        print("   precision: " + str(precision))
+        print("   recall: " + str(recall))
+        print("   mAP: " + str(stat["mAP"]))
+        print("   f1: " + str(f1))
+        print("   TP: " + str(stat["tp"]) + " FP: " + str(stat["fp"]) + " FN: " + str(stat["fn"]))
 
         
 def iou(a, b, epsilon=1e-5):
