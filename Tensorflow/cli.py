@@ -190,7 +190,7 @@ def annotate(input_folder,roi_strip):
         select_region.check_annotations(input_folder,roi_strip)
     
 
-@cli.command(short_help='Annotate images or adjust existing annotations.')
+@cli.command(short_help='Prepare an image for the Android Annotation App.')
 @click.argument('input-image', type=click.Path())
 @click.argument('output_folder', type=click.Path())
 @click.option('--tile-size', default=constants.prepare_for_tablet_tile_size, type=int, help="Tile size to use for tablet. Too large tile sizes can cause the app to crash.",show_default=True)
@@ -210,7 +210,7 @@ def prepare_for_tablet(input_image,output_folder,tile_size):
         prepare_for_tablet.preprocess(input_image,output_folder,tile_size)
 
 
-@cli.command(short_help='Annotate images or adjust existing annotations.')
+@cli.command(short_help='Export annotations to shape files.')
 @click.argument('annotation-folder', type=click.Path())
 @click.argument('output-folder', type=click.Path())
 def export_annotations(annotation_folder,output_folder):
