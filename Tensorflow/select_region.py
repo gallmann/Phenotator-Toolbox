@@ -115,7 +115,7 @@ def scale_annotation_file(image_path,scale):
     file_utils.annotations_to_labelme_file(annotations,image_path[:-4]+ ".json",image_path)
     copy_labelme_annotations_to_tablet_annotation_file(image_path)
 
-def scale_image_down(image_path, dest_folder):
+def scale_image_down(image_path, dest_folder, max_side=7000):
     
     image_output_path = os.path.join(dest_folder,os.path.basename(image_path))
     ds = gdal.Open(image_path)
@@ -123,10 +123,10 @@ def scale_image_down(image_path, dest_folder):
     width = band.XSize
     height = band.YSize
     if width > height:
-        new_width = 7000
+        new_width = max_side
         new_height = new_width/width*height
     else:
-        new_height = 7000
+        new_height = max_side
         new_width = new_height/height*width
     
     gdal.Translate(image_output_path,ds, options=gdal.TranslateOptions(width=int(new_width),height=int(new_height), bandList=[1,2,3]))

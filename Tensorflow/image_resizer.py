@@ -27,11 +27,11 @@ def change_resolution(input_folder,output_folder,scale_factor,keep_image_size=Tr
         image.save(os.path.join(output_folder,os.path.basename(image_path))[:-4] + ".png", format="png")
 
 
-def change_pil_image_resolution(image,scale_factor):
+def change_pil_image_resolution(image,scale_factor,scaling_technique=Image.ANTIALIAS):
     new_width = int((float(image.size[0])*float(scale_factor)))
     new_height = int((float(image.size[1])*float(scale_factor)))
     
-    image = image.resize((new_width,new_height), Image.ANTIALIAS)
+    image = image.resize((new_width,new_height), scaling_technique)
     image = image.convert("RGB")    
     return image
 

@@ -261,6 +261,7 @@ def get_image_array(image_path):
 
 def save_array_as_image(image_path,image_array, tile_size = None):
 
+    image_array = image_array.astype(np.uint8)
     if not image_path.endswith(".png") and not image_path.endswith(".jpg") and not image_path.endswith(".tif"):
         print("Error! image_path has to end with .png, .jpg or .tif")
     height = image_array.shape[0]

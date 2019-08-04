@@ -8,6 +8,7 @@ Created on Tue Jul 30 23:23:33 2019
 import os
 from utils import file_utils
 from utils import constants
+from utils import flower_info
 
 
 def search_for_term_in_all_files(root_dir,keyword):
@@ -43,6 +44,42 @@ def count_all_annotations_in_folder(folder):
     return counter
         
              
+def get_all_annotations_in_folders(folders):
+    annotations = []
+    for folder in folders:
+        all_images = file_utils.get_all_images_in_folder(folder)
+        for image_path in all_images:
+            curr_annotations = file_utils.get_annotations(image_path)
+            for annotation in curr_annotations:
+                annotations.append(flower_info.clean_string(annotation["name"]))
+    from collections import Counter
+    return(Counter(annotations))
+    
+    
+    
+    
+    
+    
+    
+    
+all_counter = get_all_annotations_in_folders(constants.input_folders)
+test_counter = get_all_annotations_in_folders(["E:/025/output/images/test_full_size"])
+validation_counter = get_all_annotations_in_folders(["E:/025/output/images/validation_full_size"])
+all_names = sorted(all_counter)
+for x in all_names:
+    all_i = all_counter[x]
+    test_i = test_counter[x]
+    validation_i = validation_counter[x]
+    
+    print(x + ": ")
+    print(str(all_i-test_i-validation_i) + " & ")
+    #print(test_i)
+    
+
+
+
+'''
 for folder in constants.input_folders:
     print(folder)
     count_all_annotations_in_folder(folder)
+'''
