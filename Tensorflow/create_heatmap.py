@@ -5,49 +5,177 @@ Created on Sun Aug  4 00:53:01 2019
 @author: johan
 """
 
+print("Loading libraries...")
+import sys
+sys.stdout.flush()
 from utils import file_utils
 import numpy as np
 import math
 from PIL import Image
 import os
 import gdal
+from utils import apply_annotations
+import progressbar
 
 
-
-def create_heatmap_from_multiple(predictions_folder, background_image, output_folder, stride=250, max_val=None ,flower_list=None, min_score=0.5, overlay=True, output_image_width=1000):
-    
-    #get height and width of image
+def get_height_width_of_image(image_path):
     max_pixels = Image.MAX_IMAGE_PIXELS
     Image.MAX_IMAGE_PIXELS = 5000000000
-    image = Image.open(background_image)    
+    image = Image.open(image_path)    
     width, height = image.size
     Image.MAX_IMAGE_PIXELS = max_pixels
+    return (height,width)
+
+
+
+
+def create_heatmap_from_multiple(predictions_folder, background_image, output_folder, stride=500, max_val=None ,flower_list=None, min_score=0.5, overlay=True, output_image_width=1000):
+    """
+    Creates heatmaps for the background_image using all georeferenced images in the
+    predictions_folder and saves them to the output_folder. The input images must
+    be in the jpg or png format with a imagename_geoinfo.json file in the same folder
+    or otherwise can be a georeferenced tif.
     
+    Paramters:
+        predictions_folder (str): Path to the folder containing the georeferenced
+            images with the prediction json files
+        background_image (str): Path of the background image onto which the heatmaps
+            should be painted.
+        output_folder (str): Path to the folder where the heatmaps should be saved to
+        stride (int): The size of one heatmap entry in pixels. If set to 200, all flowers
+            within this 200x200 pixel square will be added to this heatmap pixel
+        max_val (int): If defined, it denotes the maximum value of the heatmap,
+            meaning that all values in the heatmap array that are larger than
+            this max_val will be painted as red.
+        flower_list (list): list of flowers for which the heatmaps should be 
+            generated. If None, only the overall heatmap is generated.
+        min_score (float): Minimum prediction score to include a prediction in 
+            the heatmap.
+        overlay (bool): If true, the heatmap is painted onto the image
+        output_image_width (int): The width of the output image, the height is
+            resizes such that the width/height ratio is preserved
+            
+    Returns:
+        None
+    
+    """
+    #get height and width of image
+    (background_height,background_width) = get_height_width_of_image(background_image)
     
     #initialize the overall heatmap
-    heatmap_size_y = int(math.ceil(height/stride))
-    heatmap_size_x = int(math.ceil(width/stride))
+    heatmap_size_y = int(math.ceil(background_height/stride))
+    heatmap_size_x = int(math.ceil(background_width/stride))
     heatmaps = {}
     heatmaps["overall"] = np.zeros((heatmap_size_y,heatmap_size_x))
+    coverage_counter = np.zeros((heatmap_size_y,heatmap_size_x))
+    
+    
+    background_image_coords = apply_annotations.get_geo_coordinates(background_image)
+
     
 
+    #loop through all images in the input folder
+    all_images = file_utils.get_all_images_in_folder(predictions_folder)
+    for i in progressbar.progressbar(range(len(all_images))):
+        
+        image_path = all_images[i]
+        (height,width) = get_height_width_of_image(image_path)
+        image_coords = apply_annotations.get_geo_coordinates(image_path)
+        image_array = file_utils.get_image_array(image_path)
+        
+        #update coverage counter
+        for x in range(heatmap_size_x):
+            for y in range(heatmap_size_y):
+                (target_x,target_y)=apply_annotations.translate_pixel_coordinates(x,y,heatmap_size_y,heatmap_size_x,background_image_coords,image_coords,height,width)
+                target_x = int(target_x)
+                target_y = int(target_y)
+                if is_within_image(target_x,target_y,image_array):
+                    coverage_counter[y][x] += 1
+        
+        
+        predictions = file_utils.read_json_file(image_path[:-4] + "_predictions.json")
+        if predictions == None:
+            continue
+        
+        for prediction in predictions:
+            score = prediction["score"]
+            if score < min_score:
+                continue
+            name = prediction["name"]
+            [top,left,bottom,right]  = prediction["bounding_box"]
+            center_x = int((left+right)/2)
+            center_y = int((top+bottom)/2)
+            
+            if not name in heatmaps:
+                heatmaps[name] = np.zeros((heatmap_size_y,heatmap_size_x))
+            
+            (center_x,center_y)=apply_annotations.translate_pixel_coordinates(center_x,center_y,height,width,image_coords,background_image_coords,background_height,background_width)
+            
+            heatmap_y = int(math.ceil(center_y/stride))-1
+            heatmap_x = int(math.ceil(center_x/stride))-1
+            heatmaps[name][heatmap_y][heatmap_x] += 1
+            heatmaps["overall"][heatmap_y][heatmap_x] += 1
+            
+            
+            
+            
+            
+            
+    background = None
+    
+    output_image = os.path.join(output_folder,os.path.basename(background_image))
+    
+    if overlay:
+        print("Scaling background image...")
+        background = scale_image(background_image,output_image[:-4] + "_scaled.png",output_image_width)
 
 
+    coverage_out_path = output_image[:-4] + "_coverage.png"
+    save_heatmap_as_image(coverage_counter,coverage_out_path,background, output_image_width,None)
 
 
-
-
-
-
-
+    for heatmap_name in heatmaps:
+        if flower_list != None and not heatmap_name in flower_list and not heatmap_name == "overall":
+            continue
+        out_path = output_image[:-4] + "_heatmap_" + heatmap_name + ".png"
+        
+        heatmap = heatmaps[heatmap_name]
+        coverage_counter[coverage_counter==0] = 100
+        heatmap = np.divide(heatmap,coverage_counter)
+        save_heatmap_as_image(heatmap,out_path,background, output_image_width,max_val)
 
 
 def create_heatmap(predictions_folder, output_folder, stride=250, max_val=None ,flower_list=None, min_score=0.5, overlay=True, output_image_width=1000):
+    """
+    Creates heatmaps for all images in the predictions_folder and saves them to
+    the output_folder.
     
+    Paramters:
+        predictions_folder (str): Path to the folder containing the images with
+            the predictino json files
+        output_folder (str): Path to the folder where the heatmaps should be saved to
+        stride (int): The size of one heatmap entry in pixels. If set to 200, all flowers
+            within this 200x200 pixel square will be added to this heatmap pixel
+        max_val (int): If defined, it denotes the maximum value of the heatmap,
+            meaning that all values in the heatmap array that are larger than
+            this max_val will be painted as red.
+        flower_list (list): list of flowers for which the heatmaps should be 
+            generated. If None, only the overall heatmap is generated.
+        min_score (float): Minimum prediction score to include a prediction in 
+            the heatmap.
+        overlay (bool): If true, the heatmap is painted onto the image
+        output_image_width (int): The width of the output image, the height is
+            resizes such that the width/height ratio is preserved
+            
+    Returns:
+        None
+    
+    """
     
     
     #loop through all images in the input folder
     all_images = file_utils.get_all_images_in_folder(predictions_folder)
+    print("Going through all images and adding the annotations to the heatmaps...")
     for image_path in all_images:
         
         #get height and width of image
@@ -91,15 +219,6 @@ def create_heatmap(predictions_folder, output_folder, stride=250, max_val=None ,
             
         background = None
         
-        
-        
-        
-        
-        
-        
-        
-        
-        
         output_image = os.path.join(output_folder,os.path.basename(image_path))
         
         if overlay:
@@ -116,6 +235,27 @@ def create_heatmap(predictions_folder, output_folder, stride=250, max_val=None ,
 
 
 def save_heatmap_as_image(heatmap,output_path,background_image=None, output_image_width=1000, max_val=None):
+    """
+    Saves a heatmap numpy array as an image.
+    
+    Parameters:
+        heatmap (np.array): Numpy array of shape (h,w,1) representing the heatmap
+        output_path (str): Image path where the heatmap image should be saved to
+        background_image (PIL.Image): An image representing the background onto
+            which the heatmap should be pasted
+        output_image_width (int): The width of the ouput heatmap image. If a 
+            background_image is provided, this parameter is ignored and the 
+            heatmap is scaled to the size of the background image.
+        max_val (int): If defined, it denotes the maximum value of the heatmap,
+            meaning that all values in the heatmap array that are larger than
+            this max_val will be painted as red.
+        
+    Returns:
+        None
+    
+    """
+    
+    
     height = heatmap.shape[0]
     width = heatmap.shape[1]
     image_array = np.zeros((height,width,4), dtype=np.uint8)
@@ -141,7 +281,7 @@ def save_heatmap_as_image(heatmap,output_path,background_image=None, output_imag
         
     newIm.save(output_path)
     
-    newIm.show()
+    #newIm.show()
 
     #file_utils.save_array_as_image(output_path,image_array)
  
@@ -149,6 +289,18 @@ def save_heatmap_as_image(heatmap,output_path,background_image=None, output_imag
     
 
 def scale_image(image_to_scale, image_output_path, new_width=10000):
+    """
+    Scales the image_to_scale such that its new width is new_width.
+    
+    Parameters:
+        image_to_scale (str): Path to the image to scale
+        image_output_path (str): Path where the image should be saved to
+        new_width (int): the new width of the scaled image
+        
+    Returns:
+        PIL.Image: A scaled PIL Image
+    
+    """
     
     ds = gdal.Open(image_to_scale)
     band = ds.GetRasterBand(1)
@@ -163,7 +315,18 @@ def scale_image(image_to_scale, image_output_path, new_width=10000):
     
 
 def overlay_images(background,overlay):
-   
+    """
+    Pastes the overlay image onto the background image. Make sure the alpha 
+    values are set correctly in the overlay image.
+    
+    Parameters:
+        background (PIL.Image): Background image
+        overlay (PIL.Image): Overlay image
+    
+    Returns:
+        PIL.Image: The resulting PIL image
+    
+    """
     background = background.convert("RGBA")
     overlay = overlay.convert("RGBA")
     background.paste(overlay, (0, 0), overlay)
@@ -171,19 +334,33 @@ def overlay_images(background,overlay):
     
     
 
-def is_within_image(x,y,image_array,radius=5):
+def is_within_image(x,y,image_array,radius=3):
+    """
+    Given an x,y pixel coordinate checks if the coordinates are within the image
+    and if so checks whether all pixels within a given radius
+    are completely white or completely black.
     
+    Parameters:
+        x (int): x coordinate
+        y (int): y coordinate
+        image_array (np.array): numpy array of shape (h,w,3)
+        radius (int): the radius of the area around the x,y position that should
+            be checked if it is completely white or completely black
+    
+    Returns:
+        Boolean: True, if the x,y coordinate is within the actual image, False otherwise
+    
+    """
     height = image_array.shape[0]
     width = image_array.shape[1]
-    
-    
+        
     for x in range(max(0,x-radius),min(width,x+radius)):
         for y in range(max(0,y-radius),min(height,y+radius)):
             [r,g,b] = image_array[y][x]
             if not((r == 0 and g == 0 and b == 0) or (r == 255 and g == 255 and b == 255)):
                 return True
-    else:
-        return False
+    
+    return False
 
     
     
@@ -217,9 +394,22 @@ color_ramp = [
 ]
  
     
+
+
     
-    
-    
-    
-#create_heatmap("G:/Johannes/Experiments/025/ortho_tif/ortho_tif_14_june","G:/Johannes/Experiments/025/ortho_tif/heatmaps",stride=400, overlay=True,flower_list=["leucanthemum vulgare","lotus corniculatus","knautia arvensis"],output_image_width=3000,max_val=10)
-    
+create_heatmap("G:/Johannes/Experiments/025/ortho_tif/ortho_tif_14_june",
+               "G:/Johannes/Experiments/025/ortho_tif/heatmaps",
+               stride=400, 
+               overlay=True,
+               flower_list=["leucanthemum vulgare","lotus corniculatus","knautia arvensis"],
+               output_image_width=5000,
+               max_val=15)
+
+create_heatmap_from_multiple("G:/Johannes/Experiments/025/ortho_tif/single_images_14_june",
+               "G:/Johannes/Experiments/025/ortho_tif/ortho_tif_14_june/Linn_190613_3b.tif",               
+               "G:/Johannes/Experiments/025/ortho_tif/heatmaps",
+               stride=400, 
+               overlay=True,
+               flower_list=["leucanthemum vulgare","lotus corniculatus","knautia arvensis"],
+               output_image_width=5000,
+               max_val=15)
