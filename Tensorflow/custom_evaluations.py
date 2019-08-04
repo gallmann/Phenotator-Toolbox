@@ -211,7 +211,7 @@ def evaluate(project_folder, input_folder, output_folder,iou_threshold=constants
     return stat_overall
 
 
-def print_confusion_matrix(confusion_matrix, categories, percentage=True):
+def print_confusion_matrix(confusion_matrix, categories, percentage=False):
     """
     Prints the confusion matrix to the console in latex format
     
@@ -237,7 +237,13 @@ def print_confusion_matrix(confusion_matrix, categories, percentage=True):
     print("\nConfusion Matrix:")
     categories = sorted(categories, key = lambda i: i['name'])
     categories.append({"id":0, "name":"background"})
-    print(categories)
+    
+    '''
+    for category in categories:
+        if category["id"] == 15 or category["id"] == 16:
+            categories.remove(category)
+    '''        
+            
     top_line = ""
     for category in categories:
         top_line += " & \\rotatebox[origin=c]{90}{\\textbf{" + short_name(category["name"]) + "}}"
@@ -248,9 +254,9 @@ def print_confusion_matrix(confusion_matrix, categories, percentage=True):
     for category_side in categories:
         line_string = "\\textbf{" + short_name(category_side["name"]) + "}"
         for category_top in categories:
-            
             id_top = category_top["id"] -1
-            id_side = category_side["id"] -1
+            id_side = category_side["id"] -1    
+            
             value = confusion_matrix[id_side][id_top]
             percentage_value = 0
             for c in categories:
