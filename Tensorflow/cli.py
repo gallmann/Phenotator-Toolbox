@@ -98,13 +98,15 @@ def export_inference_graph(project_dir,model_selection_criterion):
 @click.option('--tile-size', default=constants.prediction_tile_size,type=int, help='Image Tile Size that should be used as Tensorflow input.',show_default=True)
 @click.option('--prediction-overlap', default=constants.prediction_overlap,type=int, help='The image tiles are predicted with an overlap to improve the results on the tile edges. Define the overlap in pixels with this flag.',show_default=True)
 @click.option('--min-confidence', default=constants.min_confidence_score,type=float, help='Float between 0 and 1 indicating the minimum confidence a prediction must have to be considered.',show_default=True)
-def predict(project_dir,images_to_predict,predictions_folder,tile_size,prediction_overlap,min_confidence):
+@click.option('--visualize-predictions', default=constants.visualize_predictions,type=bool, help='If True, the prediction bounding boxes are painted onto copies of the input images and are saved to the predictions-folder.',show_default=True)
+@click.option('--visualize-groundtruth', default=constants.visualize_groundtruth,type=bool, help='If True, the groundtruth bounding boxes are painted onto copies of the input images and are saved to the predictions-folder.',show_default=True)
+def predict(project_dir,images_to_predict,predictions_folder,tile_size,prediction_overlap,min_confidence, visualize_prediction,visualize_groundtruth):
     """
         Runs the prediction algorithm on images (png, jpg and tif) of any size.
     """
     if check_inputs(folders=[project_dir,images_to_predict,predictions_folder]):
         import predict
-        predict.predict(project_dir,images_to_predict,predictions_folder,tile_size,prediction_overlap,min_confidence)
+        predict.predict(project_dir,images_to_predict,predictions_folder,tile_size,prediction_overlap,min_confidence,visualize_prediction,visualize_groundtruth)
     
 
 
@@ -226,6 +228,40 @@ def export_annotations(annotation_folder,output_folder):
     
     
     
+    
+    
+    
+@cli.command(short_help='Generate heatmaps from predictions.')
+@click.argument('predictions-folder', type=click.Path())
+@click.argument('output-folder', type=click.Path())
+@click.option('--stride', default=constants.stride,type=int, help='The size of one heatmap entry. If set to 200, one heatmap pixel corresponds to 200 x 200 image pixels.',show_default=True)
+@click.option('--max-val', default=constants.max_val, type=int, help='If defined, it denotes the maximum value of the heatmap, meaning that all values in the heatmap that are larger than this max_val will be painted as red.',show_default=True)
+@click.option('--flower', default=constants.classes, multiple=True, type=int, help='For which class the heatmap should be generated. If None is provided, only the overall heatmap for all classes is generated. This flag can be defined multiple times.',show_default=True)
+@click.option('--min-score', default=constants.min_confidence_score,type=float, help='The minimum score a prediction must have to be included in the heatmap.',show_default=True)
+@click.option('--overlay', default=constants.overlay,type=bool, help='If True, the heatmap is drawn onto a copy of the input image. Otherwise it is drawn without any background.',show_default=True)
+@click.option('--output-image-width', default=constants.output_image_width,type=int, help='The width of the output image, the height is resized such that the width/height ratio is preserved.',show_default=True)
+@click.option('--generate-from-multiple', default=False,type=bool, help='If True, the script takes all predictions in the input folder and generates one heatmap from all of them. For this option, the input folder needs to contain georeferenced images and the background-image option has to be set.',show_default=True)
+@click.option('--background-image', default=None,type=click.Path(), help='The path to the image that should be used as background for the heatmap. (The background can still be deactivated with the --overlay flag but it needs to be provided as a frame for the heatmap.) If generate-from-multiple is set to False, this option is ignored.',show_default=True)
+def generate_heatmaps(predictions_folder, background_image, output_folder, stride, max_val ,flower , min_score, overlay, output_image_width, generate_from_multiple):
+    """
+    Creates heatmaps for all images in the predictions_folder and saves them to
+    the output_folder. If the --generate-from-multiple flag is set to True and 
+    the --background-image flag is defined, the script generates one heatmap from 
+    all images in the predictions-folder. In this case the images have to be 
+    georeferenced.
+    
+    """
+    
+    import create_heatmap
+    if generate_from_multiple:
+        if check_inputs(folders=[predictions_folder,output_folder], files=[background_image]):
+            create_heatmap.create_heatmap_from_multiple(predictions_folder, background_image, output_folder, stride, max_val ,flower, min_score, overlay, output_image_width)
+    else:
+        if check_inputs(folders=[predictions_folder,output_folder]):
+            create_heatmap.create_heatmap(predictions_folder, output_folder, stride, max_val ,flower, min_score, overlay, output_image_width)
+        
+        
+        
 def check_inputs(folders=[],files=[]):
     """Checks for all folders and files if they exist.
 

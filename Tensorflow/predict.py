@@ -35,7 +35,7 @@ if StrictVersion(tf.__version__) < StrictVersion('1.9.0'):
 from object_detection.utils import label_map_util
 
 
-def predict(project_dir,images_to_predict,output_folder,tile_size,prediction_overlap,min_confidence_score=0.5):
+def predict(project_dir,images_to_predict,output_folder,tile_size,prediction_overlap,min_confidence_score=0.5,visualize_predictions=True,visualize_groundtruths=False):
   """
   Makes predictions on all images in the images_to_predict folder and saves them to the
   output_folder with the prediction bounding boxes drawn onto the images. Additionally
@@ -154,34 +154,37 @@ def predict(project_dir,images_to_predict,output_folder,tile_size,prediction_ove
         ground_truth = get_ground_truth_annotations(image_path)
         if ground_truth:
             #draw ground truth
-            for detection in ground_truth:
-                [top,left,bottom,right] = detection["bounding_box"]
-                col = "black"
-                if not large_image:
-                    visualization_utils.draw_bounding_box_on_image(image,top,left,bottom,right,display_str_list=(),thickness=1, color=col, use_normalized_coordinates=False)          
-                else:
-                    draw_bounding_box_onto_array(image_array,top,left,bottom,right)
+            if visualize_groundtruths:
+                for detection in ground_truth:
+                    [top,left,bottom,right] = detection["bounding_box"]
+                    col = "black"
+                    if not large_image:
+                        visualization_utils.draw_bounding_box_on_image(image,top,left,bottom,right,display_str_list=(),thickness=1, color=col, use_normalized_coordinates=False)          
+                    else:
+                        draw_bounding_box_onto_array(image_array,top,left,bottom,right)
 
             ground_truth_out_path = os.path.join(output_folder, os.path.basename(image_path)[:-4] + "_ground_truth.json")
             file_utils.save_json_file(ground_truth,ground_truth_out_path)
         
 
         for detection in detections:
-            col = flower_info.get_color_for_flower(detection["name"])
-            [top,left,bottom,right] = detection["bounding_box"]
-            score_string = str('{0:.2f}'.format(detection["score"]))
-            if not large_image:
-                visualization_utils.draw_bounding_box_on_image(image,top,left,bottom,right,display_str_list=[score_string,detection["name"]],thickness=1, color=col, use_normalized_coordinates=False)          
-            else:
-                col = flower_info.get_color_for_flower(detection["name"],get_rgb_value=True)[0:3]
-                draw_bounding_box_onto_array(image_array,top,left,bottom,right,color=col)
+            if visualize_predictions:
+                col = flower_info.get_color_for_flower(detection["name"])
+                [top,left,bottom,right] = detection["bounding_box"]
+                score_string = str('{0:.2f}'.format(detection["score"]))
+                if not large_image:
+                    visualization_utils.draw_bounding_box_on_image(image,top,left,bottom,right,display_str_list=[score_string,detection["name"]],thickness=1, color=col, use_normalized_coordinates=False)          
+                else:
+                    col = flower_info.get_color_for_flower(detection["name"],get_rgb_value=True)[0:3]
+                    draw_bounding_box_onto_array(image_array,top,left,bottom,right,color=col)
         
-        image_output_path = os.path.join(output_folder, os.path.basename(image_path))
-        if not large_image:
-            image.save(image_output_path)
-        else:
-            print("Saving image. This might take a while...")
-            file_utils.save_array_as_image(image_output_path[:-4] + ".png" ,image_array,tile_size=5000)
+        if visualize_groundtruths or visualize_predictions:
+            image_output_path = os.path.join(output_folder, os.path.basename(image_path))
+            if not large_image:
+                image.save(image_output_path)
+            else:
+                print("Saving image. This might take a while...")
+                file_utils.save_array_as_image(image_output_path[:-4] + ".png" ,image_array,tile_size=5000)
 
 
 
