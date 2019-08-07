@@ -527,6 +527,8 @@ def set_config_file_parameters(project_dir,num_classes,tensorflow_tile_size=900)
     pipeline_config.model.faster_rcnn.first_stage_anchor_generator.grid_anchor_generator.width = 256                                                                                                                                                                                 
     pipeline_config.model.faster_rcnn.second_stage_post_processing.batch_non_max_suppression.max_detections_per_class = 300                                                                                                                                                                                 
     pipeline_config.model.faster_rcnn.second_stage_post_processing.batch_non_max_suppression.max_total_detections = 300                                                                                                                                                                                 
+    pipeline_config.model.faster_rcnn.first_stage_max_proposals = 300
+    pipeline_config.model.faster_rcnn.second_stage_post_processing.batch_non_max_suppression.score_threshold = 0.0
 
     pipeline_config.train_config.optimizer.momentum_optimizer.learning_rate.manual_step_learning_rate.schedule[0].step = 20000
     pipeline_config.train_config.optimizer.momentum_optimizer.learning_rate.manual_step_learning_rate.schedule[1].step = 70000
@@ -569,7 +571,6 @@ def set_config_file_parameters(project_dir,num_classes,tensorflow_tile_size=900)
     
     d1 = pipeline_config.train_config.data_augmentation_options.add()
     d1.random_jitter_boxes.CopyFrom(preprocessor_pb2.RandomJitterBoxes()) 
-    
 
     config_text = text_format.MessageToString(pipeline_config)                                                                                                                                                                                                        
     with tf.gfile.Open(project_dir + "/pre-trained-model/pipeline.config", "wb") as f:                                                                                                                                                                                                                       

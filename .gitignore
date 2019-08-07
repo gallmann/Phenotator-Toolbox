@@ -105,3 +105,4 @@ Tensorflow/slim/deployment/__pycache__/
 Tensorflow/slim/nets/__pycache__/
 Tensorflow/slim/nets/mobilenet/__pycache__/
 Tensorflow/slim/nets/nasnet/__pycache__/
+Tensorflow/object_detection/anchor_generators/__pycache__/
