@@ -17,7 +17,6 @@ import gdal
 from utils import apply_annotations
 import progressbar
 
-
 def get_height_width_of_image(image_path):
     max_pixels = Image.MAX_IMAGE_PIXELS
     Image.MAX_IMAGE_PIXELS = 5000000000
@@ -29,7 +28,7 @@ def get_height_width_of_image(image_path):
 
 
 
-def create_heatmap_from_multiple(predictions_folder, background_image, output_folder, stride=500, max_val=None ,flower_list=None, min_score=0.5, overlay=True, output_image_width=1000):
+def create_heatmap_from_multiple(predictions_folder, background_image, output_folder, heatmap_width=100, max_val=None ,flower_list=None, min_score=0.5, overlay=True, output_image_width=1000, window=None):
     """
     Creates heatmaps for the background_image using all georeferenced images in the
     predictions_folder and saves them to the output_folder. The input images must
@@ -42,8 +41,10 @@ def create_heatmap_from_multiple(predictions_folder, background_image, output_fo
         background_image (str): Path of the background image onto which the heatmaps
             should be painted.
         output_folder (str): Path to the folder where the heatmaps should be saved to
-        stride (int): The size of one heatmap entry in pixels. If set to 200, all flowers
-            within this 200x200 pixel square will be added to this heatmap pixel
+        heatmap_width (int): Defines the the number of pixels the heatmap will 
+            have on the x axis. The height of the heatmap is chosen such that 
+            the width/height ratio is preserved. This heatmap will finally be 
+            resized to the size of the background image.
         max_val (int): If defined, it denotes the maximum value of the heatmap,
             meaning that all values in the heatmap array that are larger than
             this max_val will be painted as red.
@@ -54,14 +55,125 @@ def create_heatmap_from_multiple(predictions_folder, background_image, output_fo
         overlay (bool): If true, the heatmap is painted onto the image
         output_image_width (int): The width of the output image, the height is
             resizes such that the width/height ratio is preserved
+        window (list): list of four float values indicating the [ulx, uly, lrx, lry]
+            coordinates in the swiss coordinate system LV95+ of the area that should
+            be used for the heatmap.
+    Returns:
+        None
+    
+    """
+    all_images = file_utils.get_all_images_in_folder(predictions_folder)
+    create_heatmap_internal(all_images, background_image, output_folder, heatmap_width, max_val, flower_list, min_score, overlay, output_image_width, window)
+
+
+
+
+def create_heatmap(predictions_folder, output_folder, heatmap_width=100, max_val=None ,flower_list=None, min_score=0.5, overlay=True, output_image_width=1000,window=None):
+    """
+    Creates heatmaps for all images in the predictions_folder and saves them to
+    the output_folder.
+    
+    Paramters:
+        predictions_folder (str): Path to the folder containing the images with
+            the predictino json files
+        output_folder (str): Path to the folder where the heatmaps should be saved to
+        heatmap_width (int): Defines the the number of pixels the heatmap will 
+            have on the x axis. The height of the heatmap is chosen such that 
+            the width/height ratio is preserved. This heatmap will finally be 
+            resized to the size of the input image.
+        max_val (int): If defined, it denotes the maximum value of the heatmap,
+            meaning that all values in the heatmap array that are larger than
+            this max_val will be painted as red.
+        flower_list (list): list of flowers for which the heatmaps should be 
+            generated. If None, only the overall heatmap is generated.
+        min_score (float): Minimum prediction score to include a prediction in 
+            the heatmap.
+        overlay (bool): If true, the heatmap is painted onto the image
+        output_image_width (int): The width of the output image, the height is
+            resizes such that the width/height ratio is preserved
+        window (list): list of four float values indicating the [ulx, uly, lrx, lry]
+            coordinates in the swiss coordinate system LV95+ of the area that should
+            be used for the heatmap.
             
     Returns:
         None
     
     """
+    
+    all_images = file_utils.get_all_images_in_folder(predictions_folder)
+    for image_path in all_images:
+        create_heatmap_internal([image_path], image_path, output_folder, heatmap_width, max_val, flower_list, min_score, overlay, output_image_width, window)
+    return
+    
+    
+    
+    
+
+def create_heatmap_internal(input_images, background_image, output_folder, heatmap_width=100, max_val=None ,flower_list=None, min_score=0.5, overlay=True, output_image_width=1000, window=None):
+    """
+    Creates heatmaps for the background_image using all georeferenced images in the
+    predictions_folder and saves them to the output_folder. The input images must
+    be in the jpg or png format with a imagename_geoinfo.json file in the same folder
+    or otherwise can be a georeferenced tif.
+    
+    Paramters:
+        input_images (list): List of paths denoting the input images which should
+            be used as inputs for the heatmap
+        background_image (str): Path of the background image onto which the heatmaps
+            should be painted.
+        output_folder (str): Path to the folder where the heatmaps should be saved to
+        heatmap_width (int): Defines the the number of pixels the heatmap will 
+            have on the x axis. The height of the heatmap is chosen such that 
+            the width/height ratio is preserved. This heatmap will finally be 
+            resized to the size of the background image.
+        max_val (int): If defined, it denotes the maximum value of the heatmap,
+            meaning that all values in the heatmap array that are larger than
+            this max_val will be painted as red.
+        flower_list (list): list of flowers for which the heatmaps should be 
+            generated. If None, only the overall heatmap is generated.
+        min_score (float): Minimum prediction score to include a prediction in 
+            the heatmap.
+        overlay (bool): If true, the heatmap is painted onto the image
+        output_image_width (int): The width of the output image, the height is
+            resizes such that the width/height ratio is preserved
+        window (list): list of four float values indicating the [ulx, uly, lrx, lry]
+            coordinates in the swiss coordinate system LV95+ of the area that should
+            be used for the heatmap.
+    Returns:
+        None
+    
+    """
+    
+    
+    output_image = os.path.join(output_folder,os.path.basename(background_image))
+    background_image_coords = apply_annotations.get_geo_coordinates(background_image)
+    #print some info to the user
+    if background_image_coords:
+        print("Coordinates of background image: " + str(background_image_coords.ul_lon) + " " + str(background_image_coords.ul_lat) + " " + str(background_image_coords.lr_lon) + " " + str(background_image_coords.lr_lat))
+        if window:
+            print("Coordinates of projected background image: " + str(window[0]) + " " + str(window[1]) + " " + str(window[2]) + " " + str(window[3]))  
+            if overlay:
+                print("Creating background image from provided window and output-image-width...")
+        else:
+            if overlay:
+                print("Scaling background image...")
+    
+    
     #get height and width of image
     (background_height,background_width) = get_height_width_of_image(background_image)
+
+
     
+    
+    background = None
+    if overlay:
+        background = scale_image(background_image,output_image[:-4] + "_background.tif",output_image_width, window)
+        background_image = output_image[:-4] + "_background.tif"
+    
+    (background_height,background_width) = get_height_width_of_image(background_image)
+    background_image_coords = apply_annotations.get_geo_coordinates(background_image)
+    background_image_coords = None
+    stride=background_width/heatmap_width
     #initialize the overall heatmap
     heatmap_size_y = int(math.ceil(background_height/stride))
     heatmap_size_x = int(math.ceil(background_width/stride))
@@ -70,15 +182,13 @@ def create_heatmap_from_multiple(predictions_folder, background_image, output_fo
     coverage_counter = np.zeros((heatmap_size_y,heatmap_size_x))
     
     
-    background_image_coords = apply_annotations.get_geo_coordinates(background_image)
-
     
-
+    
     #loop through all images in the input folder
-    all_images = file_utils.get_all_images_in_folder(predictions_folder)
-    for i in progressbar.progressbar(range(len(all_images))):
+    print("Adding the annotations to the heatmaps...")
+    for i in progressbar.progressbar(range(len(input_images))):
         
-        image_path = all_images[i]
+        image_path = input_images[i]
         (height,width) = get_height_width_of_image(image_path)
         image_coords = apply_annotations.get_geo_coordinates(image_path)
         image_array = file_utils.get_image_array(image_path)
@@ -110,25 +220,15 @@ def create_heatmap_from_multiple(predictions_folder, background_image, output_fo
                 heatmaps[name] = np.zeros((heatmap_size_y,heatmap_size_x))
             
             (center_x,center_y)=apply_annotations.translate_pixel_coordinates(center_x,center_y,height,width,image_coords,background_image_coords,background_height,background_width)
-            
             heatmap_y = int(math.ceil(center_y/stride))-1
             heatmap_x = int(math.ceil(center_x/stride))-1
+            if not apply_annotations.are_coordinates_within_image_bounds(heatmap_x,heatmap_y,heatmap_size_x,heatmap_size_y):
+                continue
             heatmaps[name][heatmap_y][heatmap_x] += 1
             heatmaps["overall"][heatmap_y][heatmap_x] += 1
             
             
             
-            
-            
-            
-    background = None
-    
-    output_image = os.path.join(output_folder,os.path.basename(background_image))
-    
-    if overlay:
-        print("Scaling background image...")
-        background = scale_image(background_image,output_image[:-4] + "_scaled.png",output_image_width)
-
 
     coverage_out_path = output_image[:-4] + "_coverage.png"
     save_heatmap_as_image(coverage_counter,coverage_out_path,background, output_image_width,None)
@@ -144,94 +244,7 @@ def create_heatmap_from_multiple(predictions_folder, background_image, output_fo
         heatmap = np.divide(heatmap,coverage_counter)
         save_heatmap_as_image(heatmap,out_path,background, output_image_width,max_val)
 
-
-def create_heatmap(predictions_folder, output_folder, stride=250, max_val=None ,flower_list=None, min_score=0.5, overlay=True, output_image_width=1000):
-    """
-    Creates heatmaps for all images in the predictions_folder and saves them to
-    the output_folder.
-    
-    Paramters:
-        predictions_folder (str): Path to the folder containing the images with
-            the predictino json files
-        output_folder (str): Path to the folder where the heatmaps should be saved to
-        stride (int): The size of one heatmap entry in pixels. If set to 200, all flowers
-            within this 200x200 pixel square will be added to this heatmap pixel
-        max_val (int): If defined, it denotes the maximum value of the heatmap,
-            meaning that all values in the heatmap array that are larger than
-            this max_val will be painted as red.
-        flower_list (list): list of flowers for which the heatmaps should be 
-            generated. If None, only the overall heatmap is generated.
-        min_score (float): Minimum prediction score to include a prediction in 
-            the heatmap.
-        overlay (bool): If true, the heatmap is painted onto the image
-        output_image_width (int): The width of the output image, the height is
-            resizes such that the width/height ratio is preserved
-            
-    Returns:
-        None
-    
-    """
-    
-    
-    #loop through all images in the input folder
-    all_images = file_utils.get_all_images_in_folder(predictions_folder)
-    print("Going through all images and adding the annotations to the heatmaps...")
-    for image_path in all_images:
-        
-        #get height and width of image
-        max_pixels = Image.MAX_IMAGE_PIXELS
-        Image.MAX_IMAGE_PIXELS = 5000000000
-        image = Image.open(image_path)    
-        width, height = image.size
-        Image.MAX_IMAGE_PIXELS = max_pixels
-        
-        
-        #initialize the overall heatmap
-        heatmap_size_y = int(math.ceil(height/stride))
-        heatmap_size_x = int(math.ceil(width/stride))
-        heatmaps = {}
-        heatmaps["overall"] = np.zeros((heatmap_size_y,heatmap_size_x))
-        
-
-
-
-
-        predictions = file_utils.read_json_file(image_path[:-4] + "_predictions.json")
-        if predictions == None:
-            continue
-        
-        for prediction in predictions:
-            score = prediction["score"]
-            if score < min_score:
-                continue
-            name = prediction["name"]
-            [top,left,bottom,right]  = prediction["bounding_box"]
-            center_x = int((left+right)/2)
-            center_y = int((top+bottom)/2)
-            
-            if not name in heatmaps:
-                heatmaps[name] = np.zeros((heatmap_size_y,heatmap_size_x))
-            
-            heatmap_y = int(math.ceil(center_y/stride))-1
-            heatmap_x = int(math.ceil(center_x/stride))-1
-            heatmaps[name][heatmap_y][heatmap_x] += 1
-            heatmaps["overall"][heatmap_y][heatmap_x] += 1
-            
-        background = None
-        
-        output_image = os.path.join(output_folder,os.path.basename(image_path))
-        
-        if overlay:
-            background = scale_image(image_path,output_image[:-4] + "_scaled.png",output_image_width)
-
-        
-        for heatmap in heatmaps:
-            if flower_list != None and not heatmap in flower_list and not heatmap == "overall":
-                continue
-            out_path = output_image[:-4] + "_heatmap_" + heatmap + ".png"
-            save_heatmap_as_image(heatmaps[heatmap],out_path,background, output_image_width,max_val)
-            
-            
+                
 
 
 def save_heatmap_as_image(heatmap,output_path,background_image=None, output_image_width=1000, max_val=None):
@@ -288,7 +301,7 @@ def save_heatmap_as_image(heatmap,output_path,background_image=None, output_imag
     
     
 
-def scale_image(image_to_scale, image_output_path, new_width=10000):
+def scale_image(image_to_scale, image_output_path, new_width=1000, window=None):
     """
     Scales the image_to_scale such that its new width is new_width.
     
@@ -308,8 +321,8 @@ def scale_image(image_to_scale, image_output_path, new_width=10000):
     height = band.YSize
     new_height = int(new_width/width*height)
     
-    gdal.Translate(image_output_path,ds, options=gdal.TranslateOptions(width=int(new_width),height=int(new_height), bandList=[1,2,3]))
-    
+    gdal.Translate(image_output_path,ds, options=gdal.TranslateOptions(width=int(new_width),height=int(new_height),projWin=window))
+
     return Image.open(image_output_path)
     
     
@@ -395,7 +408,7 @@ color_ramp = [
  
     
 
-
+'''
     
 create_heatmap("G:/Johannes/Experiments/025/ortho_tif/ortho_tif_14_june",
                "G:/Johannes/Experiments/025/ortho_tif/heatmaps",
@@ -413,3 +426,4 @@ create_heatmap_from_multiple("G:/Johannes/Experiments/025/ortho_tif/single_image
                flower_list=["leucanthemum vulgare","lotus corniculatus","knautia arvensis"],
                output_image_width=5000,
                max_val=15)
+'''

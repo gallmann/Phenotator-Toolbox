@@ -234,15 +234,16 @@ def export_annotations(annotation_folder,output_folder):
 @cli.command(short_help='Generate heatmaps from predictions.')
 @click.argument('predictions-folder', type=click.Path())
 @click.argument('output-folder', type=click.Path())
-@click.option('--stride', default=constants.stride,type=int, help='The size of one heatmap entry. If set to 200, one heatmap pixel corresponds to 200 x 200 image pixels.',show_default=True)
+@click.option('--heatmap-width', default=constants.heatmap_width,type=int, help='Defines the the number of pixels the heatmap will have on the x axis. The height of the heatmap is chosen such that the width/height ratio is preserved. This heatmap will finally be resized to the size of the input (or background) image.',show_default=True)
 @click.option('--max-val', default=constants.max_val, type=int, help='If defined, it denotes the maximum value of the heatmap, meaning that all values in the heatmap that are larger than this max_val will be painted as red.',show_default=True)
-@click.option('--flower', default=constants.classes, multiple=True, type=int, help='For which class the heatmap should be generated. If None is provided, only the overall heatmap for all classes is generated. This flag can be defined multiple times.',show_default=True)
+@click.option('--flower', default=constants.classes, multiple=True, type=str, help='For which class the heatmap should be generated. If None is provided, only the overall heatmap for all classes is generated. This flag can be defined multiple times.',show_default=True)
 @click.option('--min-score', default=constants.min_confidence_score,type=float, help='The minimum score a prediction must have to be included in the heatmap.',show_default=True)
 @click.option('--overlay', default=constants.overlay,type=bool, help='If True, the heatmap is drawn onto a copy of the input image. Otherwise it is drawn without any background.',show_default=True)
 @click.option('--output-image-width', default=constants.output_image_width,type=int, help='The width of the output image, the height is resized such that the width/height ratio is preserved.',show_default=True)
 @click.option('--generate-from-multiple', default=False,type=bool, help='If True, the script takes all predictions in the input folder and generates one heatmap from all of them. For this option, the input folder needs to contain georeferenced images and the background-image option has to be set.',show_default=True)
 @click.option('--background-image', default=None,type=click.Path(), help='The path to the image that should be used as background for the heatmap. (The background can still be deactivated with the --overlay flag but it needs to be provided as a frame for the heatmap.) If generate-from-multiple is set to False, this option is ignored.',show_default=True)
-def generate_heatmaps(predictions_folder, background_image, output_folder, stride, max_val ,flower , min_score, overlay, output_image_width, generate_from_multiple):
+@click.option('--window', default=None,type=float, help='',show_default=True,nargs=4)
+def generate_heatmaps(predictions_folder, background_image, output_folder, heatmap_width, max_val ,flower , min_score, overlay, output_image_width, generate_from_multiple,window):
     """
     Creates heatmaps for all images in the predictions_folder and saves them to
     the output_folder. If the --generate-from-multiple flag is set to True and 
@@ -251,14 +252,15 @@ def generate_heatmaps(predictions_folder, background_image, output_folder, strid
     georeferenced.
     
     """
-    
+    if window == ():
+        window = None
     import create_heatmap
     if generate_from_multiple:
         if check_inputs(folders=[predictions_folder,output_folder], files=[background_image]):
-            create_heatmap.create_heatmap_from_multiple(predictions_folder, background_image, output_folder, stride, max_val ,flower, min_score, overlay, output_image_width)
+            create_heatmap.create_heatmap_from_multiple(predictions_folder, background_image, output_folder, heatmap_width, max_val ,flower, min_score, overlay, output_image_width,window)
     else:
         if check_inputs(folders=[predictions_folder,output_folder]):
-            create_heatmap.create_heatmap(predictions_folder, output_folder, stride, max_val ,flower, min_score, overlay, output_image_width)
+            create_heatmap.create_heatmap(predictions_folder, output_folder, heatmap_width, max_val ,flower, min_score, overlay, output_image_width,window)
         
         
         
