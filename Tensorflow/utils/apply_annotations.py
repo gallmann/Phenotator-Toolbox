@@ -300,6 +300,9 @@ def translate_pixel_coordinates(x,y,height,width,source_geo_coords,target_geo_co
 
     rel_x = x/width
     rel_y = y/height
+    if (not source_geo_coords) or (not target_geo_coords):
+        return (rel_x*width_target, rel_y*height_target)
+        
     geo_x = (source_geo_coords.lr_lon-source_geo_coords.ul_lon) * rel_x + source_geo_coords.ul_lon
     geo_y = (source_geo_coords.ul_lat-source_geo_coords.lr_lat) * (1-rel_y) + source_geo_coords.lr_lat
     
@@ -332,39 +335,44 @@ def get_geo_coordinates(input_image):
     if input_image.endswith(".png") or input_image.endswith(".jpg"):
         #if the input_image is a .png file, there should be a geoinfo.json file in the same folder
         #where the geo information is read from
-        geo_info_path = input_image[:-4] +  "_geoinfo.json"
-        with open(geo_info_path, 'r') as f:
-            datastore = json.load(f)
-            geo_info = GeoInformation(datastore)
-            swiss = pyproj.Proj("+init=EPSG:2056")
-            wgs84=pyproj.Proj("+init=EPSG:4326") # LatLon with WGS84 datum used by GPS units and Google Earth
-            geo_info.lr_lon,geo_info.lr_lat  = pyproj.transform(wgs84, swiss, geo_info.lr_lon, geo_info.lr_lat)
-            geo_info.ul_lon,geo_info.ul_lat = pyproj.transform(wgs84, swiss, geo_info.ul_lon, geo_info.ul_lat)
-            return geo_info
+        try:
+            geo_info_path = input_image[:-4] +  "_geoinfo.json"
+            with open(geo_info_path, 'r') as f:
+                datastore = json.load(f)
+                geo_info = GeoInformation(datastore)
+                swiss = pyproj.Proj("+init=EPSG:2056")
+                wgs84=pyproj.Proj("+init=EPSG:4326") # LatLon with WGS84 datum used by GPS units and Google Earth
+                geo_info.lr_lon,geo_info.lr_lat  = pyproj.transform(wgs84, swiss, geo_info.lr_lon, geo_info.lr_lat)
+                geo_info.ul_lon,geo_info.ul_lat = pyproj.transform(wgs84, swiss, geo_info.ul_lon, geo_info.ul_lat)
+                return geo_info
+        except FileNotFoundError:
+            return None
     else:
-        #if the input_image is a geo-annotated .tif file, read the geo information using gdal
-        ds = gdal.Open(input_image)
-        inSRS_wkt = ds.GetProjection()  # gives SRS in WKT
-        inSRS_converter = osr.SpatialReference()  # makes an empty spatial ref object
-        inSRS_converter.ImportFromWkt(inSRS_wkt)  # populates the spatial ref object with our WKT SRS
-        inSRS_forPyProj = inSRS_converter.ExportToProj4()  # Exports an SRS ref as a Proj4 string usable by PyProj
-        
-        input_coord_system = pyproj.Proj(inSRS_forPyProj) 
-        swiss = pyproj.Proj("+init=EPSG:2056")
-        
-        ulx, xres, xskew, uly, yskew, yres  = ds.GetGeoTransform()
-        lrx = ulx + (ds.RasterXSize * xres)
-        lry = uly + (ds.RasterYSize * yres)
-        geo_info = GeoInformation()
-        geo_info.lr_lon = lrx
-        geo_info.lr_lat = lry
-        geo_info.ul_lon = ulx
-        geo_info.ul_lat = uly
-        geo_info.lr_lon,geo_info.lr_lat = pyproj.transform(input_coord_system, swiss, geo_info.lr_lon, geo_info.lr_lat)
-        geo_info.ul_lon,geo_info.ul_lat = pyproj.transform(input_coord_system, swiss, geo_info.ul_lon, geo_info.ul_lat)
-
-        return geo_info
-
+        try:
+            #if the input_image is a geo-annotated .tif file, read the geo information using gdal
+            ds = gdal.Open(input_image)
+            inSRS_wkt = ds.GetProjection()  # gives SRS in WKT
+            inSRS_converter = osr.SpatialReference()  # makes an empty spatial ref object
+            inSRS_converter.ImportFromWkt(inSRS_wkt)  # populates the spatial ref object with our WKT SRS
+            inSRS_forPyProj = inSRS_converter.ExportToProj4()  # Exports an SRS ref as a Proj4 string usable by PyProj
+            
+            input_coord_system = pyproj.Proj(inSRS_forPyProj) 
+            swiss = pyproj.Proj("+init=EPSG:2056")
+            
+            ulx, xres, xskew, uly, yskew, yres  = ds.GetGeoTransform()
+            lrx = ulx + (ds.RasterXSize * xres)
+            lry = uly + (ds.RasterYSize * yres)
+            geo_info = GeoInformation()
+            geo_info.lr_lon = lrx
+            geo_info.lr_lat = lry
+            geo_info.ul_lon = ulx
+            geo_info.ul_lat = uly
+            geo_info.lr_lon,geo_info.lr_lat = pyproj.transform(input_coord_system, swiss, geo_info.lr_lon, geo_info.lr_lat)
+            geo_info.ul_lon,geo_info.ul_lat = pyproj.transform(input_coord_system, swiss, geo_info.ul_lon, geo_info.ul_lat)
+    
+            return geo_info
+        except RuntimeError:
+            return None
 
         
 

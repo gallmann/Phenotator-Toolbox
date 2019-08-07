@@ -243,7 +243,8 @@ def check_all_json_files_in_folder(folder_path):
     print("if no errors were printed, everything is fine")
     
     
-def get_image_array(image_path):
+def get_image_array(image_path, xoff=0, yoff=0, xsize=None, ysize=None):
+    '''
     try:
         image = Image.open(image_path)
         width, height = image.size
@@ -251,11 +252,12 @@ def get_image_array(image_path):
         img_array = numpy.asarray(img)
         return img_array
     except Image.DecompressionBombError:
-        ds = gdal.Open(image_path)
-        image_array = ds.ReadAsArray().astype(np.uint8)
-        image_array = np.swapaxes(image_array,0,1)
-        image_array = np.swapaxes(image_array,1,2)
-        return image_array
+    '''
+    ds = gdal.Open(image_path)
+    image_array = ds.ReadAsArray(xoff, yoff, xsize, ysize).astype(np.uint8)
+    image_array = np.swapaxes(image_array,0,1)
+    image_array = np.swapaxes(image_array,1,2)
+    return image_array
   
 
 

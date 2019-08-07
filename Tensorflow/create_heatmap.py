@@ -172,7 +172,6 @@ def create_heatmap_internal(input_images, background_image, output_folder, heatm
     
     (background_height,background_width) = get_height_width_of_image(background_image)
     background_image_coords = apply_annotations.get_geo_coordinates(background_image)
-    background_image_coords = None
     stride=background_width/heatmap_width
     #initialize the overall heatmap
     heatmap_size_y = int(math.ceil(background_height/stride))
