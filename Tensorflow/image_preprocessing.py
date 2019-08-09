@@ -119,7 +119,7 @@ def convert_annotation_folders(input_folders, test_splits, validation_splits, pr
     labels_validation = {}
     validation_splits = list(validation_splits)
     for i in range(len(validation_splits)):
-        validation_splits[i] = validation_splits[i]/(1-test_splits[i])
+        validation_splits[i] = validation_splits[i]/(1-min(0.9999,test_splits[i]))
     split_train_dir(train_images_dir,validation_images_dir, labels, labels_validation,split_mode,input_folders,validation_splits,full_size_splitted_dir = validation_images_dir_full_size)
 
     
@@ -169,30 +169,29 @@ def tile_image_and_annotations(image_path, output_folder,labels,input_folder_ind
     
     image = Image.open(image_path)
     image_name = os.path.basename(image_path)
-    
-    counter = 0
-    currentx = 0
-    currenty = 0
-    while currenty < image.size[1]:
-        tile_size = tile_sizes[counter%len(tile_sizes)]
-        while currentx < image.size[0]:
-            filtered_annotations = get_flowers_within_bounds(image_path, currentx,currenty,tile_size)
-            if len(filtered_annotations) == 0:
-                #Ignore image tiles without any annotations
-                currentx += tile_size-overlap
-                continue
-            tile = image.crop((currentx,currenty,currentx + tile_size,currenty + tile_size))
-            output_image_path = os.path.join(output_folder, image_name + "_subtile_" + "x" + str(currentx) + "y" + str(currenty) + "_inputdir" + str(input_folder_index) + ".png")
-            tile.save(output_image_path,"PNG")
-            
-            xml_path = output_image_path[:-4] + ".xml"
-            annotations_xml = build_xml_tree(filtered_annotations,output_image_path,labels)
-            annotations_xml.write(xml_path)
-            
-            currentx += tile_size-overlap
-        currenty += tile_size-overlap
+    for tile_size in tile_sizes:
+        counter = 0
         currentx = 0
-        counter = counter + 1
+        currenty = 0
+        while currenty < image.size[1]:
+            while currentx < image.size[0]:
+                filtered_annotations = get_flowers_within_bounds(image_path, currentx,currenty,tile_size)
+                if len(filtered_annotations) == 0:
+                    #Ignore image tiles without any annotations
+                    currentx += tile_size-overlap
+                    continue
+                tile = image.crop((currentx,currenty,currentx + tile_size,currenty + tile_size))
+                output_image_path = os.path.join(output_folder, image_name + "_subtile_" + "x" + str(currentx) + "y" + str(currenty) + "size" + str(tile_size) + "_inputdir" + str(input_folder_index) + ".png")
+                tile.save(output_image_path,"PNG")
+                
+                xml_path = output_image_path[:-4] + ".xml"
+                annotations_xml = build_xml_tree(filtered_annotations,output_image_path,labels)
+                annotations_xml.write(xml_path)
+                
+                currentx += tile_size-overlap
+            currenty += tile_size-overlap
+            currentx = 0
+            counter = counter + 1
 
 
 
