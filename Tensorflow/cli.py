@@ -81,13 +81,14 @@ def train(project_dir, max_steps, with_validation,stopping_criterion):
 @cli.command(short_help='Export the trained inference graph.')
 @click.option('--project-dir', default=constants.project_folder,type=click.Path(), help='Provide the project folder that was also used for the training.',show_default=True)
 @click.option('--model-selection-criterion', default=constants.model_selection_criterion,type=click.Choice(['mAP', 'f1']), help="If the train command was executed with the '--with-validation True' flag, the model with the best performance on the validation set is exported (in terms of either mAP or f1 score).",show_default=True)
-def export_inference_graph(project_dir,model_selection_criterion):
+@click.option('--checkpoint', default=None,type=int, help="",show_default=True)
+def export_inference_graph(project_dir,model_selection_criterion,checkpoint):
     """
         Exports the trained network to a format that can then be used to make predictions.
     """
     if check_inputs(folders=[project_dir]):
         import my_export_inference_graph
-        my_export_inference_graph.run(project_dir,look_in_checkpoints_dir=True,model_selection_criterion=model_selection_criterion)
+        my_export_inference_graph.run(project_dir,True,model_selection_criterion,checkpoint)
 
 
 

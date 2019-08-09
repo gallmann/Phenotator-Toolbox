@@ -36,7 +36,7 @@ if StrictVersion(tf.__version__) < StrictVersion('1.9.0'):
 from object_detection.utils import label_map_util
 
 
-def predict(project_dir,images_to_predict,output_folder,tile_size,prediction_overlap,min_confidence_score=0.5,visualize_predictions=True,visualize_groundtruths=False, visualize_names=False):
+def predict(project_dir,images_to_predict,output_folder,tile_size,prediction_overlap,min_confidence_score=0.5,visualize_predictions=True,visualize_groundtruths=False, visualize_names=False,max_iou=0.3):
   """
   Makes predictions on all images in the images_to_predict folder and saves them to the
   output_folder with the prediction bounding boxes drawn onto the images. Additionally
@@ -146,7 +146,7 @@ def predict(project_dir,images_to_predict,output_folder,tile_size,prediction_ove
                         detections.append({"bounding_box": [top,left,bottom,right], "score": float(score), "name": category_index[detection_class]["name"]})
                 #detections.append({"bounding_box": [y_start+25,x_start+25,y_start+tile_size-25,x_start+tile_size-25], "score": float(0.9), "name": "tile"})
                         
-        detections = eval_utils.non_max_suppression(detections,0.7)
+        detections = eval_utils.non_max_suppression(detections,max_iou)
         
         print(str(len(detections)) + " flowers detected")
         predictions_out_path = os.path.join(output_folder, os.path.basename(image_path)[:-4] + "_predictions.json")
