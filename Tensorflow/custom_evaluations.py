@@ -22,6 +22,7 @@ import numpy as np
 from object_detection.utils import object_detection_evaluation
 from object_detection.core import standard_fields
 from object_detection.utils import per_image_evaluation
+from utils import eval_utils
 
 
 
@@ -75,7 +76,7 @@ def evaluate(project_folder, input_folder, output_folder,iou_threshold=constants
 
         ground_truths = filter_ground_truth(ground_truths,flower_names)
         predictions = filter_predictions(predictions,min_score)
-        
+        #predictions = eval_utils.non_max_suppression(predictions,0.5)
         
         for gt in ground_truths:
             gt["hits"] = 0
@@ -100,7 +101,7 @@ def evaluate(project_folder, input_folder, output_folder,iou_threshold=constants
                 
         for i in range(len(bounding_boxes_gt)):
             for j in range(len(bounding_boxes_p)):
-                curr_iou = iou(bounding_boxes_gt[i], bounding_boxes_p[j])
+                curr_iou = eval_utils.iou(bounding_boxes_gt[i], bounding_boxes_p[j])
                 
                 if curr_iou > iou_threshold:
                     matches.append([i, j, curr_iou])
@@ -146,7 +147,7 @@ def evaluate(project_folder, input_folder, output_folder,iou_threshold=constants
             max_i = -1
             for gt_i,ground_truth in enumerate(ground_truths):
                 if ground_truth["name"] == prediction["name"]:
-                    val = iou(prediction["bounding_box"], ground_truth["bounding_box"])
+                    val = eval_utils.iou(prediction["bounding_box"], ground_truth["bounding_box"])
                     if(val>iou_threshold and val > max_val):
                         max_val = val
                         max_i = gt_i
@@ -172,7 +173,7 @@ def evaluate(project_folder, input_folder, output_folder,iou_threshold=constants
             for prediction in predictions:
                 for gt in ground_truths:
                     if prediction["label"] == "fp" and gt["label"] == "fn":
-                        if iou(prediction["bounding_box"], gt["bounding_box"])>iou_threshold:
+                        if eval_utils.iou(prediction["bounding_box"], gt["bounding_box"])>iou_threshold:
                             [top,left,bottom,right] = gt["bounding_box"]
                             visualization_utils.draw_bounding_box_on_image(image,top,left,bottom,right,display_str_list=["Misclassification", "is: " + gt["name"] , "pred: " + prediction["name"]],thickness=2, color="DarkOrange", use_normalized_coordinates=False)          
                             ground_truths.remove(gt)
@@ -347,45 +348,6 @@ def print_stats(stat, flower_name, print_latex_format = False):
         print("   TP: " + str(stat["tp"]) + " FP: " + str(stat["fp"]) + " FN: " + str(stat["fn"]))
 
         
-def iou(a, b, epsilon=1e-5):
-    """ Given two boxes `a` and `b` defined as a list of four numbers:
-            [x1,y1,x2,y2]
-        where:
-            x1,y1 represent the upper left corner
-            x2,y2 represent the lower right corner
-        It returns the Intersect of Union score for these two boxes.
-
-    Parameters:
-        a (list): (list of 4 numbers) [x1,y1,x2,y2]
-        b (list): (list of 4 numbers) [x1,y1,x2,y2]
-        epsilon (float): Small value to prevent division by zero
-
-    Returns:
-        (float) The Intersection over Union score.
-    """
-    # COORDINATES OF THE INTERSECTION BOX
-    x1 = max(a[0], b[0])
-    y1 = max(a[1], b[1])
-    x2 = min(a[2], b[2])
-    y2 = min(a[3], b[3])
-
-    # AREA OF OVERLAP - Area where the boxes intersect
-    width = (x2 - x1)
-    height = (y2 - y1)
-    # handle case where there is NO overlap
-    if (width<0) or (height <0):
-        return 0.0
-    area_overlap = width * height
-
-    # COMBINED AREA
-    area_a = (a[2] - a[0]) * (a[3] - a[1])
-    area_b = (b[2] - b[0]) * (b[3] - b[1])
-    area_combined = area_a + area_b - area_overlap
-
-    # RATIO OF AREA OF OVERLAP OVER COMBINED AREA
-    iou = area_overlap / (area_combined+epsilon)
-    return iou
-
 def filter_ground_truth(ground_truths, flower_names):
     """ 
     Helper function that filters all entries of the ground truth which names are not

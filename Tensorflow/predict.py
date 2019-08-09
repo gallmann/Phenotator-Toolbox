@@ -23,6 +23,7 @@ import tensorflow as tf
 from object_detection.utils import visualization_utils
 import progressbar
 import gdal
+from utils import eval_utils
 
 
 from distutils.version import StrictVersion
@@ -35,7 +36,7 @@ if StrictVersion(tf.__version__) < StrictVersion('1.9.0'):
 from object_detection.utils import label_map_util
 
 
-def predict(project_dir,images_to_predict,output_folder,tile_size,prediction_overlap,min_confidence_score=0.5,visualize_predictions=True,visualize_groundtruths=False):
+def predict(project_dir,images_to_predict,output_folder,tile_size,prediction_overlap,min_confidence_score=0.5,visualize_predictions=True,visualize_groundtruths=False, visualize_names=False):
   """
   Makes predictions on all images in the images_to_predict folder and saves them to the
   output_folder with the prediction bounding boxes drawn onto the images. Additionally
@@ -124,18 +125,18 @@ def predict(project_dir,images_to_predict,output_folder,tile_size,prediction_ove
                 extrema = cropped_im.convert("L").getextrema()
                 if extrema[0] == extrema[1]:
                     continue
-
+                #cropped_im.save("G:/Johannes/test/" + os.path.basename(image_path)[:-4] + "_" + str(x_start) + "_" + str(y_start) + ".png")
                 image_np = load_image_into_numpy_array(cropped_im)
                 output_dict = sess.run(tensor_dict,feed_dict={image_tensor: np.expand_dims(image_np, 0)})
                 output_dict = clean_output_dict(output_dict)
                 
 
-        
+                core_overlap = int(prediction_overlap * 0.2)
                 count = 0
                 for i,score in enumerate(output_dict['detection_scores']):
                     center_x = (output_dict['detection_boxes'][i][3]+output_dict['detection_boxes'][i][1])/2*tile_size
                     center_y = (output_dict['detection_boxes'][i][2]+output_dict['detection_boxes'][i][0])/2*tile_size
-                    if score >= min_confidence_score and center_x >= prediction_overlap and center_y >= prediction_overlap and center_x < tile_size-prediction_overlap and center_y < tile_size-prediction_overlap:
+                    if score >= min_confidence_score and center_x >= prediction_overlap-core_overlap and center_y >= prediction_overlap-core_overlap and center_x < tile_size-prediction_overlap+core_overlap and center_y < tile_size-prediction_overlap+core_overlap:
                         count += 1
                         top = round(output_dict['detection_boxes'][i][0] * tile_size + y_start)
                         left = round(output_dict['detection_boxes'][i][1] * tile_size + x_start)
@@ -143,9 +144,10 @@ def predict(project_dir,images_to_predict,output_folder,tile_size,prediction_ove
                         right = round(output_dict['detection_boxes'][i][3] * tile_size + x_start)
                         detection_class = output_dict['detection_classes'][i]
                         detections.append({"bounding_box": [top,left,bottom,right], "score": float(score), "name": category_index[detection_class]["name"]})
-
-
-
+                #detections.append({"bounding_box": [y_start+25,x_start+25,y_start+tile_size-25,x_start+tile_size-25], "score": float(0.9), "name": "tile"})
+                        
+        detections = eval_utils.non_max_suppression(detections,0.7)
+        
         print(str(len(detections)) + " flowers detected")
         predictions_out_path = os.path.join(output_folder, os.path.basename(image_path)[:-4] + "_predictions.json")
         file_utils.save_json_file(detections,predictions_out_path)
@@ -173,7 +175,11 @@ def predict(project_dir,images_to_predict,output_folder,tile_size,prediction_ove
                 [top,left,bottom,right] = detection["bounding_box"]
                 score_string = str('{0:.2f}'.format(detection["score"]))
                 if not large_image:
-                    visualization_utils.draw_bounding_box_on_image(image,top,left,bottom,right,display_str_list=[score_string,detection["name"]],thickness=1, color=col, use_normalized_coordinates=False)          
+                    if visualize_names:
+                        vis_string_list =[score_string,detection["name"]]
+                    else:
+                        vis_string_list = []
+                    visualization_utils.draw_bounding_box_on_image(image,top,left,bottom,right,display_str_list=vis_string_list,thickness=1, color=col, use_normalized_coordinates=False)          
                 else:
                     col = flower_info.get_color_for_flower(detection["name"],get_rgb_value=True)[0:3]
                     draw_bounding_box_onto_array(image_array,top,left,bottom,right,color=col)
@@ -236,6 +242,7 @@ def get_ground_truth_annotations(image_path):
     if len(ground_truth) == 0:                     
         return None
     return ground_truth
+
         
 
 def get_detection_graph(PATH_TO_FROZEN_GRAPH):

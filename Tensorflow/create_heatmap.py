@@ -241,6 +241,9 @@ def create_heatmap_internal(input_images, background_image, output_folder, heatm
         heatmap = heatmaps[heatmap_name]
         coverage_counter[coverage_counter==0] = 100
         heatmap = np.divide(heatmap,coverage_counter)
+        
+        print(heatmap_name + ": " + str(np.sum(heatmap)))
+        
         save_heatmap_as_image(heatmap,out_path,background, output_image_width,max_val)
 
                 
