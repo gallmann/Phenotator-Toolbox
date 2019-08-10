@@ -13,6 +13,9 @@ import custom_evaluations
 import predict
 import os
 from utils import constants
+import tensorflow as tf
+from google.protobuf import text_format
+from object_detection.protos import pipeline_pb2
 
 
 
@@ -35,6 +38,7 @@ def train_with_validation(project_dir,max_steps,stopping_criterion="f1"):
         None
     """
 
+
     images_folder = os.path.join(project_dir,"images")
     validation_images_folder = os.path.join(images_folder,"validation_full_size")
     validation_folder = os.path.join(project_dir,"validation")
@@ -46,15 +50,17 @@ def train_with_validation(project_dir,max_steps,stopping_criterion="f1"):
     
     precision_recall_list = get_precision_recall_list_from_file(precision_recall_file)
     (best_index,best_configuration) = get_best_configuration_from_precision_recall_list(precision_recall_list,stopping_criterion)
-    
+    learning_rate = 0.0003
+    if len(precision_recall_list)>0:
+        learning_rate = precision_recall_list[len(precision_recall_list)-1][4]
+    set_learning_rate_in_config_file(1,learning_rate,project_dir)
+
     current_step = get_max_checkpoint(checkpoints_folder)
     
     for num_steps in range(max(2500,current_step+2500),max_steps,2500):
-        try:
-            print("Train 2500 steps...")
-            train.run(project_dir,num_steps)
-        except:
-            print("An exception occured in the train script. Continue anyways")
+        print("Train 2500 steps...")
+        train.run(project_dir,num_steps)
+        #print("An exception occured in the train script. Continue anyways")
         
         print("Export inference graph...")
         
@@ -66,10 +72,10 @@ def train_with_validation(project_dir,max_steps,stopping_criterion="f1"):
         
         stats = custom_evaluations.evaluate(project_dir, validation_folder, evaluation_folder)
         (precision,recall,mAP,f1) = get_precision_and_recall_from_stat(stats)
-        precision_recall_list.append((precision,recall,mAP,f1))
+        precision_recall_list.append((precision,recall,mAP,f1,learning_rate))
         
         with open(precision_recall_file, "a") as text_file:
-            text_file.write("step " + str(num_steps) + "; precision: " + str(precision) + " recall: " + str(recall) + " mAP: " + str(mAP) + " f1: " + str(f1) + "\n")
+            text_file.write("step " + str(num_steps) + "; precision: " + str(precision) + " recall: " + str(recall) + " mAP: " + str(mAP) + " f1: " + str(f1) + " learning rate: " + str(learning_rate) + "\n")
         
         relevant_metric = f1
         if stopping_criterion == "mAP":
@@ -79,10 +85,77 @@ def train_with_validation(project_dir,max_steps,stopping_criterion="f1"):
             best_configuration = relevant_metric
             best_index = len(precision_recall_list)-1
         else:
-            if len(precision_recall_list)-1-best_index >=20:
+            if learning_rate == 0.0003 and use_next_learning_rate(precision_recall_list,stopping_criterion):
+                learning_rate = 0.00003
+                set_learning_rate_in_config_file(num_steps,learning_rate,project_dir)
+            elif learning_rate == 0.00003 and use_next_learning_rate(precision_recall_list,stopping_criterion):
+                learning_rate = 0.000003
+                set_learning_rate_in_config_file(num_steps,learning_rate,project_dir)
+            elif learning_rate == 0.000003 and use_next_learning_rate(precision_recall_list,stopping_criterion):
                 break
    
+def use_next_learning_rate(precision_recall_list,stopping_criterion):
+    """
+    Returns True if the next learning rate should be used, i.e. if the network
+    has trained for 15000 steps without improving the stopping_criterion score
+    with the current learning rate.
     
+    Arguments:
+        precision_recall_list (list): List of tuples of the format (precision,recall,mAP,f1).
+        metric_to_use (str): Either 'f1' or 'mAP'.
+    
+    Returns:
+        bool: True if the network has trained for 15000 steps without improving
+        the stopping_criterion score with the current learning rate, False otherwise
+    """
+    (best_index,best_configuration) = get_best_configuration_from_precision_recall_list(precision_recall_list,stopping_criterion)
+    
+    number_of_entries_with_same_learning_rate = 1
+    last_used_learning_rate = precision_recall_list[len(precision_recall_list)-1][4]
+    for i in range(len(precision_recall_list)-2,best_index,-1):  
+        learning_rate = precision_recall_list[i][4]
+        if learning_rate == last_used_learning_rate:
+            number_of_entries_with_same_learning_rate+=1
+    if number_of_entries_with_same_learning_rate > 6:
+        return True
+    return False
+        
+
+def set_learning_rate_in_config_file(step,learning_rate,project_dir):
+    """
+    Sets the learning rate for a step.
+
+    Parameters:
+        step (int): step at which the learning rate should be changed to learning_rate
+        learning_rate (float): the learning rate
+    
+    Returns:
+        None
+    """
+
+
+    
+    #edit config file in pre_trained_model_folder
+    pipeline_config = pipeline_pb2.TrainEvalPipelineConfig()                                                                                                                                                                                                          
+    with tf.gfile.GFile(project_dir + "/pre-trained-model/pipeline.config", "r") as f:                                                                                                                                                                                                                     
+        proto_str = f.read()                                                                                                                                                                                                                                          
+        text_format.Merge(proto_str, pipeline_config)  
+    
+
+    for i in range(len(pipeline_config.train_config.optimizer.momentum_optimizer.learning_rate.manual_step_learning_rate.schedule)-1):
+        pipeline_config.train_config.optimizer.momentum_optimizer.learning_rate.manual_step_learning_rate.schedule.pop()
+    
+    pipeline_config.train_config.optimizer.momentum_optimizer.learning_rate.manual_step_learning_rate.schedule[0].step = step
+    pipeline_config.train_config.optimizer.momentum_optimizer.learning_rate.manual_step_learning_rate.schedule[0].learning_rate = learning_rate
+
+    config_text = text_format.MessageToString(pipeline_config)                                                                                                                                                                                                        
+    with tf.gfile.Open(project_dir + "/pre-trained-model/pipeline.config", "wb") as f:                                                                                                                                                                                                                       
+        f.write(config_text)   
+    
+    #copy file to training folder
+    src = project_dir + "/pre-trained-model/pipeline.config"
+    dst = project_dir + "/training/pipeline.config"
+    copyfile(src, dst)
 
     
 
@@ -101,7 +174,7 @@ def get_best_configuration_from_precision_recall_list(precision_recall_list, met
     best_configuration = 0
     best_index = 0
         
-    for index,(precision,recall,mAP,f1) in enumerate(precision_recall_list):
+    for index,(precision,recall,mAP,f1,learning_rate) in enumerate(precision_recall_list):
         relevant_metric = f1
         if metric_to_use == "mAP":
             relevant_metric = mAP
@@ -113,7 +186,7 @@ def get_best_configuration_from_precision_recall_list(precision_recall_list, met
 
 def get_precision_recall_list_from_file(file_path):
     """
-    During the training the precision/recall/mAP/f1 scores are saved to a file every
+    During the training the precision/recall/mAP/f1/learning_rate scores are saved to a file every
     2500 steps. Should the user stop training. This function reads the values once the 
     user wants to resume the training.
     
@@ -136,7 +209,8 @@ def get_precision_recall_list_from_file(file_path):
             recall = float(line[line.find(" recall: ")+len(" recall: "):line.rfind(" mAP: ")])
             mAP = float(line[line.rfind(" mAP: ")+len(" mAP: "):line.rfind(" f1: ")])
             f1 = 2 * (precision*recall)/(precision+recall)
-            precision_recall_list.append((precision,recall,mAP,f1))
+            learning_rate = float(line[line.rfind(" learning rate: ")+len(" learning rate: "):len(line)])
+            precision_recall_list.append((precision,recall,mAP,f1,learning_rate))
         
     return precision_recall_list
         

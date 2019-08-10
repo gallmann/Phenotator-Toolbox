@@ -22,6 +22,8 @@ import sys
 import tensorflow as tf
 from object_detection.utils import visualization_utils
 import progressbar
+import gdal
+from utils import eval_utils
 
 
 from distutils.version import StrictVersion
@@ -34,7 +36,7 @@ if StrictVersion(tf.__version__) < StrictVersion('1.9.0'):
 from object_detection.utils import label_map_util
 
 
-def predict(project_dir,images_to_predict,output_folder,tile_size,prediction_overlap,min_confidence_score=0.5):
+def predict(project_dir,images_to_predict,output_folder,tile_size,prediction_overlap,min_confidence_score=0.5,visualize_predictions=True,visualize_groundtruths=False, visualize_names=False,max_iou=0.3):
   """
   Makes predictions on all images in the images_to_predict folder and saves them to the
   output_folder with the prediction bounding boxes drawn onto the images. Additionally
@@ -79,35 +81,62 @@ def predict(project_dir,images_to_predict,output_folder,tile_size,prediction_ove
     all_images = file_utils.get_all_images_in_folder(images_to_predict)
     
     for image_path in all_images:
-        image = Image.open(image_path)
-        width, height = image.size
-                
-        print("Making Predictions for " + os.path.basename(image_path))
+        
+        large_image = False
+        try:
+            image = Image.open(image_path)
+            width, height = image.size
+        except Image.DecompressionBombError:
+            ds = gdal.Open(image_path)
+            band = ds.GetRasterBand(1)
+            width = band.XSize
+            height = band.YSize
+            image_array = ds.ReadAsArray().astype(np.uint8)
+            image_array = np.swapaxes(image_array,0,1)
+            image_array = np.swapaxes(image_array,1,2)
+            large_image = True
+            print("Please note that the image is very large. The prediction algorithm will work as usual but no information will be drawn onto the bounding boxes.")
+
+        print("Making Predictions for " + os.path.basename(image_path) + "...")
         
         detections = []
-        
         #create appropriate tiles from image
         for x_start in progressbar.progressbar(range(-prediction_overlap, width-1,tile_size-2*prediction_overlap)):
             for y_start in range(-prediction_overlap,height-1,tile_size-2*prediction_overlap):
-                crop_rectangle = (x_start, y_start, x_start+tile_size, y_start + tile_size)
-                cropped_im = image.crop(crop_rectangle)
                 
+                if not large_image:
+                    crop_rectangle = (x_start, y_start, x_start+tile_size, y_start + tile_size)
+                    cropped_im = image.crop(crop_rectangle)
+                else:
+                    #crop the image using gdal if it is too large for PIL
+                    pad_front_x = max(0,-x_start)
+                    pad_front_y = max(0,-y_start)
+                    
+                    cropped_array = image_array[y_start+pad_front_y:y_start+tile_size,x_start+pad_front_x:x_start+tile_size,:]
+                    
+                    pad_end_x = tile_size - cropped_array.shape[1] - pad_front_x
+                    pad_end_y = tile_size - cropped_array.shape[0] - pad_front_y
+                    cropped_array = np.pad(cropped_array,((pad_front_y,pad_end_y),(pad_front_x,pad_end_x),(0,0)), mode='constant', constant_values=0)
+                    cropped_im = Image.fromarray(cropped_array)
+                
+                
+                cropped_im = cropped_im.convert("RGB")
                 #check if image consists of only one color.
                 extrema = cropped_im.convert("L").getextrema()
                 if extrema[0] == extrema[1]:
                     continue
-                
+                #cropped_im.save("G:/Johannes/test/" + os.path.basename(image_path)[:-4] + "_" + str(x_start) + "_" + str(y_start) + ".png")
                 image_np = load_image_into_numpy_array(cropped_im)
                 output_dict = sess.run(tensor_dict,feed_dict={image_tensor: np.expand_dims(image_np, 0)})
                 output_dict = clean_output_dict(output_dict)
                 
 
-        
+                core_overlap = int(prediction_overlap * 0.2)
                 count = 0
                 for i,score in enumerate(output_dict['detection_scores']):
                     center_x = (output_dict['detection_boxes'][i][3]+output_dict['detection_boxes'][i][1])/2*tile_size
                     center_y = (output_dict['detection_boxes'][i][2]+output_dict['detection_boxes'][i][0])/2*tile_size
-                    if score >= min_confidence_score and center_x >= prediction_overlap and center_y >= prediction_overlap and center_x < tile_size-prediction_overlap and center_y < tile_size-prediction_overlap:
+                    if score >= min_confidence_score and center_x >= prediction_overlap-core_overlap and center_y >= prediction_overlap-core_overlap and center_x < tile_size-prediction_overlap+core_overlap and center_y < tile_size-prediction_overlap+core_overlap:
                         count += 1
                         top = round(output_dict['detection_boxes'][i][0] * tile_size + y_start)
                         left = round(output_dict['detection_boxes'][i][1] * tile_size + x_start)
@@ -115,35 +144,84 @@ def predict(project_dir,images_to_predict,output_folder,tile_size,prediction_ove
                         right = round(output_dict['detection_boxes'][i][3] * tile_size + x_start)
                         detection_class = output_dict['detection_classes'][i]
                         detections.append({"bounding_box": [top,left,bottom,right], "score": float(score), "name": category_index[detection_class]["name"]})
-
+                #detections.append({"bounding_box": [y_start+25,x_start+25,y_start+tile_size-25,x_start+tile_size-25], "score": float(0.9), "name": "tile"})
+                        
+        detections = eval_utils.non_max_suppression(detections,max_iou)
         
-
         print(str(len(detections)) + " flowers detected")
-        
+        predictions_out_path = os.path.join(output_folder, os.path.basename(image_path)[:-4] + "_predictions.json")
+        file_utils.save_json_file(detections,predictions_out_path)
+
         #copy the ground truth annotations to the output folder if there is any ground truth
         ground_truth = get_ground_truth_annotations(image_path)
         if ground_truth:
             #draw ground truth
-            for detection in ground_truth:
-                [top,left,bottom,right] = detection["bounding_box"]
-                col = "black"
-                visualization_utils.draw_bounding_box_on_image(image,top,left,bottom,right,display_str_list=(),thickness=1, color=col, use_normalized_coordinates=False)          
+            if visualize_groundtruths:
+                for detection in ground_truth:
+                    [top,left,bottom,right] = detection["bounding_box"]
+                    col = "black"
+                    if not large_image:
+                        visualization_utils.draw_bounding_box_on_image(image,top,left,bottom,right,display_str_list=(),thickness=1, color=col, use_normalized_coordinates=False)          
+                    else:
+                        draw_bounding_box_onto_array(image_array,top,left,bottom,right)
+
             ground_truth_out_path = os.path.join(output_folder, os.path.basename(image_path)[:-4] + "_ground_truth.json")
             file_utils.save_json_file(ground_truth,ground_truth_out_path)
         
-        
+
         for detection in detections:
-            col = flower_info.get_color_for_flower(detection["name"])
-            [top,left,bottom,right] = detection["bounding_box"]
-            score_string = str('{0:.2f}'.format(detection["score"]))
-            visualization_utils.draw_bounding_box_on_image(image,top,left,bottom,right,display_str_list=[score_string,detection["name"]],thickness=1, color=col, use_normalized_coordinates=False)          
-        predictions_out_path = os.path.join(output_folder, os.path.basename(image_path)[:-4] + "_predictions.json")
-        file_utils.save_json_file(detections,predictions_out_path)
+            if visualize_predictions:
+                col = flower_info.get_color_for_flower(detection["name"])
+                [top,left,bottom,right] = detection["bounding_box"]
+                score_string = str('{0:.2f}'.format(detection["score"]))
+                if not large_image:
+                    if visualize_names:
+                        vis_string_list =[score_string,detection["name"]]
+                    else:
+                        vis_string_list = []
+                    visualization_utils.draw_bounding_box_on_image(image,top,left,bottom,right,display_str_list=vis_string_list,thickness=1, color=col, use_normalized_coordinates=False)          
+                else:
+                    col = flower_info.get_color_for_flower(detection["name"],get_rgb_value=True)[0:3]
+                    draw_bounding_box_onto_array(image_array,top,left,bottom,right,color=col)
         
-        
-        image_output_path = os.path.join(output_folder, os.path.basename(image_path))
-        image.save(image_output_path)
-        
+        if visualize_groundtruths or visualize_predictions:
+            image_output_path = os.path.join(output_folder, os.path.basename(image_path))
+            if not large_image:
+                image.save(image_output_path)
+            else:
+                print("Saving image. This might take a while...")
+                file_utils.save_array_as_image(image_output_path[:-4] + ".png" ,image_array,tile_size=5000)
+
+
+
+def draw_bounding_box_onto_array(array,top,left,bottom,right,color=[0,0,0]):
+    """
+
+    Parameters:
+        image_path (str): path to the image of which the annotations should be read
+    
+    Returns:
+        list: a list containing all annotations corresponding to that image.
+            Returns the None if no annotation file is present
+    """
+
+    try:
+        color = np.array(color).astype(np.uint8)
+        top = max(0,int(top))
+        left = max(0,int(left))
+        bottom = min(array.shape[1]-1,int(bottom))
+        right = min(array.shape[0]-1,int(right))
+        for i in range(top,bottom+1,1):
+            array[i,left] = color
+            array[i,right] = color
+        for i in range(left,right+1):
+            array[top,i] = color
+            array[bottom,i] = color
+
+    except IndexError:
+        print("Index error: " + str((top, left, bottom, right)))
+
+
         
 def get_ground_truth_annotations(image_path):
     """Reads the ground_thruth information from either the tablet annotations (imagename_annotations.json),
@@ -164,6 +242,7 @@ def get_ground_truth_annotations(image_path):
     if len(ground_truth) == 0:                     
         return None
     return ground_truth
+
         
 
 def get_detection_graph(PATH_TO_FROZEN_GRAPH):

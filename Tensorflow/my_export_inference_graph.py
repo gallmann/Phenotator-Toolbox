@@ -128,7 +128,7 @@ def find_best_model(training_directory, look_in_checkpoints_dir = True, model_se
 
 
 
-def run(project_dir,look_in_checkpoints_dir = True, model_selection_criterion="f1"):
+def run(project_dir,look_in_checkpoints_dir = True, model_selection_criterion="f1", checkpoint=None):
     """
     Runs the export command.
     
@@ -146,7 +146,12 @@ def run(project_dir,look_in_checkpoints_dir = True, model_selection_criterion="f
     output_directory =  train_dir + "/trained_inference_graphs/output_inference_graph_v1.pb"
     pipeline_config_path = train_dir + "/pre-trained-model/pipeline.config"
     training_directory = os.path.join(project_dir,"training")
-    trained_checkpoint_prefix = find_best_model(training_directory,look_in_checkpoints_dir,model_selection_criterion)
+    if checkpoint:
+        checkpoints_dir = os.path.join(training_directory,"checkpoints")
+        trained_checkpoint_prefix = os.path.join(checkpoints_dir,"model.ckpt-" + str(checkpoint))
+        
+    else:
+        trained_checkpoint_prefix = find_best_model(training_directory,look_in_checkpoints_dir,model_selection_criterion)
     print("Exporting " + trained_checkpoint_prefix)
 
     file_utils.delete_folder_contents(output_directory)
@@ -155,6 +160,7 @@ def run(project_dir,look_in_checkpoints_dir = True, model_selection_criterion="f
     
     main(pipeline_config_path,trained_checkpoint_prefix,output_directory)
     #tf.app.run(main)
+    print("Done exporting " + trained_checkpoint_prefix)
 
 
 if __name__ == '__main__':

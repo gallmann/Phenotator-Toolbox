@@ -119,7 +119,7 @@ def convert_annotation_folders(input_folders, test_splits, validation_splits, pr
     labels_validation = {}
     validation_splits = list(validation_splits)
     for i in range(len(validation_splits)):
-        validation_splits[i] = validation_splits[i]/(1-test_splits[i])
+        validation_splits[i] = validation_splits[i]/(1-min(0.9999,test_splits[i]))
     split_train_dir(train_images_dir,validation_images_dir, labels, labels_validation,split_mode,input_folders,validation_splits,full_size_splitted_dir = validation_images_dir_full_size)
 
     
@@ -169,30 +169,29 @@ def tile_image_and_annotations(image_path, output_folder,labels,input_folder_ind
     
     image = Image.open(image_path)
     image_name = os.path.basename(image_path)
-    
-    counter = 0
-    currentx = 0
-    currenty = 0
-    while currenty < image.size[1]:
-        tile_size = tile_sizes[counter%len(tile_sizes)]
-        while currentx < image.size[0]:
-            filtered_annotations = get_flowers_within_bounds(image_path, currentx,currenty,tile_size)
-            if len(filtered_annotations) == 0:
-                #Ignore image tiles without any annotations
-                currentx += tile_size-overlap
-                continue
-            tile = image.crop((currentx,currenty,currentx + tile_size,currenty + tile_size))
-            output_image_path = os.path.join(output_folder, image_name + "_subtile_" + "x" + str(currentx) + "y" + str(currenty) + "_inputdir" + str(input_folder_index) + ".png")
-            tile.save(output_image_path,"PNG")
-            
-            xml_path = output_image_path[:-4] + ".xml"
-            annotations_xml = build_xml_tree(filtered_annotations,output_image_path,labels)
-            annotations_xml.write(xml_path)
-            
-            currentx += tile_size-overlap
-        currenty += tile_size-overlap
+    for tile_size in tile_sizes:
+        counter = 0
         currentx = 0
-        counter = counter + 1
+        currenty = 0
+        while currenty < image.size[1]:
+            while currentx < image.size[0]:
+                filtered_annotations = get_flowers_within_bounds(image_path, currentx,currenty,tile_size)
+                if len(filtered_annotations) == 0:
+                    #Ignore image tiles without any annotations
+                    currentx += tile_size-overlap
+                    continue
+                tile = image.crop((currentx,currenty,currentx + tile_size,currenty + tile_size))
+                output_image_path = os.path.join(output_folder, image_name + "_subtile_" + "x" + str(currentx) + "y" + str(currenty) + "size" + str(tile_size) + "_inputdir" + str(input_folder_index) + ".png")
+                tile.save(output_image_path,"PNG")
+                
+                xml_path = output_image_path[:-4] + ".xml"
+                annotations_xml = build_xml_tree(filtered_annotations,output_image_path,labels)
+                annotations_xml.write(xml_path)
+                
+                currentx += tile_size-overlap
+            currenty += tile_size-overlap
+            currentx = 0
+            counter = counter + 1
 
 
 
@@ -527,10 +526,16 @@ def set_config_file_parameters(project_dir,num_classes,tensorflow_tile_size=900)
     pipeline_config.model.faster_rcnn.first_stage_anchor_generator.grid_anchor_generator.width = 256                                                                                                                                                                                 
     pipeline_config.model.faster_rcnn.second_stage_post_processing.batch_non_max_suppression.max_detections_per_class = 300                                                                                                                                                                                 
     pipeline_config.model.faster_rcnn.second_stage_post_processing.batch_non_max_suppression.max_total_detections = 300                                                                                                                                                                                 
+    pipeline_config.model.faster_rcnn.first_stage_max_proposals = 300
+    pipeline_config.model.faster_rcnn.second_stage_post_processing.batch_non_max_suppression.score_threshold = 0.0
 
-    pipeline_config.train_config.optimizer.momentum_optimizer.learning_rate.manual_step_learning_rate.schedule[0].step = 20000
-    pipeline_config.train_config.optimizer.momentum_optimizer.learning_rate.manual_step_learning_rate.schedule[1].step = 50000
-    pipeline_config.train_config.optimizer.momentum_optimizer.learning_rate.manual_step_learning_rate.schedule[2].step = 70000
+    for i in range(len(pipeline_config.train_config.optimizer.momentum_optimizer.learning_rate.manual_step_learning_rate.schedule)):
+        if i == 0:
+            pipeline_config.train_config.optimizer.momentum_optimizer.learning_rate.manual_step_learning_rate.schedule[0].step = 20000
+        if i == 1:
+            pipeline_config.train_config.optimizer.momentum_optimizer.learning_rate.manual_step_learning_rate.schedule[1].step = 70000
+        if i == 2:
+            pipeline_config.train_config.optimizer.momentum_optimizer.learning_rate.manual_step_learning_rate.schedule[2].step = 90000
 
     pre_trained_model_folder = os.path.join(project_dir,"pre-trained-model")
     pipeline_config.train_config.fine_tune_checkpoint = os.path.join(pre_trained_model_folder,"model.ckpt")
@@ -569,7 +574,6 @@ def set_config_file_parameters(project_dir,num_classes,tensorflow_tile_size=900)
     
     d1 = pipeline_config.train_config.data_augmentation_options.add()
     d1.random_jitter_boxes.CopyFrom(preprocessor_pb2.RandomJitterBoxes()) 
-    
 
     config_text = text_format.MessageToString(pipeline_config)                                                                                                                                                                                                        
     with tf.gfile.Open(project_dir + "/pre-trained-model/pipeline.config", "wb") as f:                                                                                                                                                                                                                       

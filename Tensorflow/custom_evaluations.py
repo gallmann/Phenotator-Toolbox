@@ -22,10 +22,11 @@ import numpy as np
 from object_detection.utils import object_detection_evaluation
 from object_detection.core import standard_fields
 from object_detection.utils import per_image_evaluation
+from utils import eval_utils
 
 
 
-def evaluate(project_folder, input_folder, output_folder,iou_threshold=constants.iou_threshold,generate_visualizations=False,print_confusion_matrix=False):
+def evaluate(project_folder, input_folder, output_folder,iou_threshold=constants.iou_threshold,generate_visualizations=False,should_print_confusion_matrix=False,min_score=0.5):
     """
     Evaluates all predictions within the input_folder. The input folder should contain images
     alongside with prediction (imagename_prediction.json) and ground truth (imagename_ground_truth.json)
@@ -39,8 +40,10 @@ def evaluate(project_folder, input_folder, output_folder,iou_threshold=constants
             are printed.
         iou_threshold (float): intersection over union threshold to use for the evaluations
         generate_visualizations (bool): Whether or not the visualizations should be generated
-        print_confusion_matrix (bool): If true, the confusion matrix is printed to the console in
+        should_print_confusion_matrix (bool): If true, the confusion matrix is printed to the console in
             a format that can directly be imported into a latex table.
+        min_score (float): The minimum score a prediction must have to be 
+            included in the evaluation
     Returns:
         None
     """
@@ -65,12 +68,15 @@ def evaluate(project_folder, input_folder, output_folder,iou_threshold=constants
         
         predictions = file_utils.read_json_file(predictions_path)
         ground_truths = file_utils.read_json_file(ground_truth_path)
-        if not predictions or not ground_truths:
-            continue
+        
+        if predictions == None:
+            predictions = []
+        if ground_truths == None:
+            ground_truths = []
 
         ground_truths = filter_ground_truth(ground_truths,flower_names)
-        
-        
+        predictions = filter_predictions(predictions,min_score)
+        #predictions = eval_utils.non_max_suppression(predictions,0.5)
         
         for gt in ground_truths:
             gt["hits"] = 0
@@ -95,7 +101,7 @@ def evaluate(project_folder, input_folder, output_folder,iou_threshold=constants
                 
         for i in range(len(bounding_boxes_gt)):
             for j in range(len(bounding_boxes_p)):
-                curr_iou = iou(bounding_boxes_gt[i], bounding_boxes_p[j])
+                curr_iou = eval_utils.iou(bounding_boxes_gt[i], bounding_boxes_p[j])
                 
                 if curr_iou > iou_threshold:
                     matches.append([i, j, curr_iou])
@@ -141,7 +147,7 @@ def evaluate(project_folder, input_folder, output_folder,iou_threshold=constants
             max_i = -1
             for gt_i,ground_truth in enumerate(ground_truths):
                 if ground_truth["name"] == prediction["name"]:
-                    val = iou(prediction["bounding_box"], ground_truth["bounding_box"])
+                    val = eval_utils.iou(prediction["bounding_box"], ground_truth["bounding_box"])
                     if(val>iou_threshold and val > max_val):
                         max_val = val
                         max_i = gt_i
@@ -167,7 +173,7 @@ def evaluate(project_folder, input_folder, output_folder,iou_threshold=constants
             for prediction in predictions:
                 for gt in ground_truths:
                     if prediction["label"] == "fp" and gt["label"] == "fn":
-                        if iou(prediction["bounding_box"], gt["bounding_box"])>iou_threshold:
+                        if eval_utils.iou(prediction["bounding_box"], gt["bounding_box"])>iou_threshold:
                             [top,left,bottom,right] = gt["bounding_box"]
                             visualization_utils.draw_bounding_box_on_image(image,top,left,bottom,right,display_str_list=["Misclassification", "is: " + gt["name"] , "pred: " + prediction["name"]],thickness=2, color="DarkOrange", use_normalized_coordinates=False)          
                             ground_truths.remove(gt)
@@ -200,22 +206,26 @@ def evaluate(project_folder, input_folder, output_folder,iou_threshold=constants
 
     print_stats(stat_overall,"Overall")
     
-    if print_confusion_matrix:
+    if should_print_confusion_matrix:
         print_confusion_matrix(confusion_matrix,labelmap)
     
     return stat_overall
 
 
-def print_confusion_matrix(confusion_matrix, categories):
+def print_confusion_matrix(confusion_matrix, categories, percentage=False):
     """
     Prints the confusion matrix to the console in latex format
     
     Parameters:
         confusion_matrix (np.list): numpy matrix representing the confusion matrix
         categories (dict): list of dicts containing all flowers. Example: [{id:1,name:"flowername"},...]
+        precentage (bool): If the matrix entries should be printed in percentage or absolute values
     Returns:
         None
     """
+    
+    
+    
 
     def short_name(name):
         if " " in name:
@@ -226,23 +236,69 @@ def print_confusion_matrix(confusion_matrix, categories):
             return name
     
     print("\nConfusion Matrix:")
-    
+    categories = sorted(categories, key = lambda i: i['name'])
     categories.append({"id":0, "name":"background"})
+    
+    '''
+    for category in categories:
+        if category["id"] == 15 or category["id"] == 16:
+            categories.remove(category)
+    '''        
+            
     top_line = ""
     for category in categories:
-        top_line += " & \\rotatebox[origin=c]{90}{" + short_name(category["name"]) + "}"
+        top_line += " & \\rotatebox[origin=c]{90}{\\textbf{" + short_name(category["name"]) + "}}"
     print(top_line + "\\\\")
     print("\\hline")
-    for i,line in enumerate(confusion_matrix):
-        line_string = short_name(categories[i]["name"])
-        for number in line:
-            line_string += " & " + str(int(number))
+    
+    
+    for category_side in categories:
+        line_string = "\\textbf{" + short_name(category_side["name"]) + "}"
+        for category_top in categories:
+            id_top = category_top["id"] -1
+            id_side = category_side["id"] -1    
+            
+            value = confusion_matrix[id_side][id_top]
+            percentage_value = 0
+            for c in categories:
+                percentage_value += confusion_matrix[id_side][c["id"]]
+            if percentage_value != 0:
+                percentage_value = value/percentage_value
+            
+            color = "Black"
+            
+            if id_top == id_side and value != 0:
+                color = "ForestGreen"
+            elif id_top == -1 and value != 0:
+                color = "Orange"
+            elif id_side == -1 and value != 0:
+                color = "Red"
+            elif value != 0:
+                color = "Brown"
+               
+            if color == "Black":
+                cell_string = " & -"
+            else:
+                if percentage:
+                    cell_string = " & \\color{" + color + "}\\textbf{" + '{:.1f}'.format(round(percentage_value*100,ndigits=1)) + "}"
+                else:
+                    cell_string = " & \\color{" + color + "}\\textbf{" + str(int(value)) + "}"
+            
+            
+            line_string += cell_string
+                
+                
+            
+            
         line_string += " \\\\"
         print(line_string)
-        
+
+    
+
+
         
 
-def print_stats(stat, flower_name):
+def print_stats(stat, flower_name, print_latex_format = False):
     """
     Prints precision, recall, mAP, f1, TP, FP and FN to the console
     
@@ -254,7 +310,6 @@ def print_stats(stat, flower_name):
     """
 
     n = stat["tp"] + stat["fn"]
-    print(flower_name + " (n=" + str(n) + "):")
     if float(stat["fp"]+stat["tp"]) == 0:
         precision = "-"
     else:
@@ -267,52 +322,32 @@ def print_stats(stat, flower_name):
     f1 = "-"
     if recall != "-" and precision != "-" and ((recall >0) or (precision > 0)):
         f1 = 2 * (precision*recall)/(precision+recall)
-    print("   precision: " + str(precision))
-    print("   recall: " + str(recall))
-    print("   mAP: " + str(stat["mAP"]))
-    print("   f1: " + str(f1))
-    print("   TP: " + str(stat["tp"]) + " FP: " + str(stat["fp"]) + " FN: " + str(stat["fn"]))
+    
+    if print_latex_format:
+        def short_name(name):
+            if " " in name:
+                if "faded" in name:
+                    return "centaurea j. f."
+                return name[0:name.find(" ") + 2] + "."
+            else:
+                return name
+
+        if recall == "-":
+            recall = 0
+        if precision == "-":
+            precision = 0
+        if f1 == "-":
+            f1 = 0
+        print(short_name(flower_name) + " & " + str(n) + " & " + str(round(precision*100,1)) + " \\% & " + str(round(recall*100,1)) + " \\% & " + str(round(stat["mAP"],3)) + " & " + str(round(f1,3)) + " \\\\" )
+    else:
+        print(flower_name + " (n=" + str(n) + "):")
+        print("   precision: " + str(precision))
+        print("   recall: " + str(recall))
+        print("   mAP: " + str(stat["mAP"]))
+        print("   f1: " + str(f1))
+        print("   TP: " + str(stat["tp"]) + " FP: " + str(stat["fp"]) + " FN: " + str(stat["fn"]))
 
         
-def iou(a, b, epsilon=1e-5):
-    """ Given two boxes `a` and `b` defined as a list of four numbers:
-            [x1,y1,x2,y2]
-        where:
-            x1,y1 represent the upper left corner
-            x2,y2 represent the lower right corner
-        It returns the Intersect of Union score for these two boxes.
-
-    Parameters:
-        a (list): (list of 4 numbers) [x1,y1,x2,y2]
-        b (list): (list of 4 numbers) [x1,y1,x2,y2]
-        epsilon (float): Small value to prevent division by zero
-
-    Returns:
-        (float) The Intersection over Union score.
-    """
-    # COORDINATES OF THE INTERSECTION BOX
-    x1 = max(a[0], b[0])
-    y1 = max(a[1], b[1])
-    x2 = min(a[2], b[2])
-    y2 = min(a[3], b[3])
-
-    # AREA OF OVERLAP - Area where the boxes intersect
-    width = (x2 - x1)
-    height = (y2 - y1)
-    # handle case where there is NO overlap
-    if (width<0) or (height <0):
-        return 0.0
-    area_overlap = width * height
-
-    # COMBINED AREA
-    area_a = (a[2] - a[0]) * (a[3] - a[1])
-    area_b = (b[2] - b[0]) * (b[3] - b[1])
-    area_combined = area_a + area_b - area_overlap
-
-    # RATIO OF AREA OF OVERLAP OVER COMBINED AREA
-    iou = area_overlap / (area_combined+epsilon)
-    return iou
-
 def filter_ground_truth(ground_truths, flower_names):
     """ 
     Helper function that filters all entries of the ground truth which names are not
@@ -331,6 +366,27 @@ def filter_ground_truth(ground_truths, flower_names):
         if gt["name"] in flower_names:
             filtered_ground_truths.append(gt)
     return filtered_ground_truths
+
+
+def filter_predictions(predictions, min_score):
+    """ 
+    Helper function that that removes all predictions from the predictions list
+    that have a score of less than min_score
+    
+    Parameters:
+        predictions (list): list of annotation dicts.
+        min_score (float): minimum score to be kept in the list
+
+    Returns:
+        list: The list of predictions whose score is >= min_score
+    """
+
+    filtered_predictions = []
+    for prediction in predictions:
+        if prediction["score"] >= min_score:
+            filtered_predictions.append(prediction)
+    return filtered_predictions
+
 
                 
 def get_flower_names_from_labelmap(labelmap_path):

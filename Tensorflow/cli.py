@@ -8,6 +8,9 @@ Created on Wed Jul 10 16:04:58 2019
 import click
 from utils import constants
 import os
+import sys
+sys.path.append("slim")
+
 
 CONTEXT_SETTINGS = dict(help_option_names=['-h', '--help'])
 
@@ -78,13 +81,14 @@ def train(project_dir, max_steps, with_validation,stopping_criterion):
 @cli.command(short_help='Export the trained inference graph.')
 @click.option('--project-dir', default=constants.project_folder,type=click.Path(), help='Provide the project folder that was also used for the training.',show_default=True)
 @click.option('--model-selection-criterion', default=constants.model_selection_criterion,type=click.Choice(['mAP', 'f1']), help="If the train command was executed with the '--with-validation True' flag, the model with the best performance on the validation set is exported (in terms of either mAP or f1 score).",show_default=True)
-def export_inference_graph(project_dir,model_selection_criterion):
+@click.option('--checkpoint', default=None,type=int, help="",show_default=True)
+def export_inference_graph(project_dir,model_selection_criterion,checkpoint):
     """
         Exports the trained network to a format that can then be used to make predictions.
     """
     if check_inputs(folders=[project_dir]):
         import my_export_inference_graph
-        my_export_inference_graph.run(project_dir,look_in_checkpoints_dir=True,model_selection_criterion=model_selection_criterion)
+        my_export_inference_graph.run(project_dir,True,model_selection_criterion,checkpoint)
 
 
 
@@ -95,13 +99,15 @@ def export_inference_graph(project_dir,model_selection_criterion):
 @click.option('--tile-size', default=constants.prediction_tile_size,type=int, help='Image Tile Size that should be used as Tensorflow input.',show_default=True)
 @click.option('--prediction-overlap', default=constants.prediction_overlap,type=int, help='The image tiles are predicted with an overlap to improve the results on the tile edges. Define the overlap in pixels with this flag.',show_default=True)
 @click.option('--min-confidence', default=constants.min_confidence_score,type=float, help='Float between 0 and 1 indicating the minimum confidence a prediction must have to be considered.',show_default=True)
-def predict(project_dir,images_to_predict,predictions_folder,tile_size,prediction_overlap,min_confidence):
+@click.option('--visualize-predictions', default=constants.visualize_predictions,type=bool, help='If True, the prediction bounding boxes are painted onto copies of the input images and are saved to the predictions-folder.',show_default=True)
+@click.option('--visualize-groundtruth', default=constants.visualize_groundtruth,type=bool, help='If True, the groundtruth bounding boxes are painted onto copies of the input images and are saved to the predictions-folder.',show_default=True)
+def predict(project_dir,images_to_predict,predictions_folder,tile_size,prediction_overlap,min_confidence, visualize_predictions,visualize_groundtruth):
     """
         Runs the prediction algorithm on images (png, jpg and tif) of any size.
     """
     if check_inputs(folders=[project_dir,images_to_predict,predictions_folder]):
         import predict
-        predict.predict(project_dir,images_to_predict,predictions_folder,tile_size,prediction_overlap,min_confidence)
+        predict.predict(project_dir,images_to_predict,predictions_folder,tile_size,prediction_overlap,min_confidence,visualize_predictions,visualize_groundtruth)
     
 
 
@@ -112,8 +118,8 @@ def predict(project_dir,images_to_predict,predictions_folder,tile_size,predictio
 @click.option('--iou-threshold', default=constants.iou_threshold,type=click.FloatRange(0, 1), help='Defines what is the minimum IoU (Intersection over Union) overlap to count a prediction as a True Positive.',show_default=True)
 @click.option('--generate-visualizations', default=False,type=bool, help='If True, the erroneous predictions will be printed onto the images and saved to the evaluations-folder',show_default=True)
 @click.option('--print-confusion-matrix', default=False,type=bool, help='If True, the confusion matrix will be printed to the console in latex table format.',show_default=True)
-
-def evaluate(project_dir,predictions_folder,evaluations_folder,iou_threshold,generate_visualizations,print_confusion_matrix):
+@click.option('--min-score', default=constants.min_confidence_score,type=float, help='The minimum score a prediction must have to be included in the evaluation',show_default=True)
+def evaluate(project_dir,predictions_folder,evaluations_folder,iou_threshold,generate_visualizations,print_confusion_matrix,min_score):
     """
         If the images on which the predictions algorithm was run on had groundtruth information,
         this command will evaluate the performance of the prediction algorithm on these images.
@@ -121,7 +127,7 @@ def evaluate(project_dir,predictions_folder,evaluations_folder,iou_threshold,gen
     """
     if check_inputs(folders=[predictions_folder,evaluations_folder]):
         import custom_evaluations
-        custom_evaluations.evaluate(project_dir,predictions_folder, evaluations_folder, iou_threshold,generate_visualizations,print_confusion_matrix)
+        custom_evaluations.evaluate(project_dir,predictions_folder, evaluations_folder, iou_threshold,generate_visualizations,print_confusion_matrix,min_score)
     
     
 @cli.command(short_help='Visualize Bounding Boxes.')
@@ -190,7 +196,7 @@ def annotate(input_folder,roi_strip):
         select_region.check_annotations(input_folder,roi_strip)
     
 
-@cli.command(short_help='Annotate images or adjust existing annotations.')
+@cli.command(short_help='Prepare an image for the Android Annotation App.')
 @click.argument('input-image', type=click.Path())
 @click.argument('output_folder', type=click.Path())
 @click.option('--tile-size', default=constants.prepare_for_tablet_tile_size, type=int, help="Tile size to use for tablet. Too large tile sizes can cause the app to crash.",show_default=True)
@@ -210,7 +216,7 @@ def prepare_for_tablet(input_image,output_folder,tile_size):
         prepare_for_tablet.preprocess(input_image,output_folder,tile_size)
 
 
-@cli.command(short_help='Annotate images or adjust existing annotations.')
+@cli.command(short_help='Export annotations to shape files.')
 @click.argument('annotation-folder', type=click.Path())
 @click.argument('output-folder', type=click.Path())
 def export_annotations(annotation_folder,output_folder):
@@ -223,6 +229,42 @@ def export_annotations(annotation_folder,output_folder):
     
     
     
+    
+    
+    
+@cli.command(short_help='Generate heatmaps from predictions.')
+@click.argument('predictions-folder', type=click.Path())
+@click.argument('output-folder', type=click.Path())
+@click.option('--heatmap-width', default=constants.heatmap_width,type=int, help='Defines the the number of pixels the heatmap will have on the x axis. The height of the heatmap is chosen such that the width/height ratio is preserved. This heatmap will finally be resized to the size of the input (or background) image.',show_default=True)
+@click.option('--max-val', default=constants.max_val, type=int, help='If defined, it denotes the maximum value of the heatmap, meaning that all values in the heatmap that are larger than this max_val will be painted as red.',show_default=True)
+@click.option('--flower', default=constants.classes, multiple=True, type=str, help='For which class the heatmap should be generated. If None is provided, only the overall heatmap for all classes is generated. This flag can be defined multiple times.',show_default=True)
+@click.option('--min-score', default=constants.min_confidence_score,type=float, help='The minimum score a prediction must have to be included in the heatmap.',show_default=True)
+@click.option('--overlay', default=constants.overlay,type=bool, help='If True, the heatmap is drawn onto a copy of the input image. Otherwise it is drawn without any background.',show_default=True)
+@click.option('--output-image-width', default=constants.output_image_width,type=int, help='The width of the output image, the height is resized such that the width/height ratio is preserved.',show_default=True)
+@click.option('--generate-from-multiple', default=False,type=bool, help='If True, the script takes all predictions in the input folder and generates one heatmap from all of them. For this option, the input folder needs to contain georeferenced images and the background-image option has to be set.',show_default=True)
+@click.option('--background-image', default=None,type=click.Path(), help='The path to the image that should be used as background for the heatmap. (The background can still be deactivated with the --overlay flag but it needs to be provided as a frame for the heatmap.) If generate-from-multiple is set to False, this option is ignored.',show_default=True)
+@click.option('--window', default=None,type=float, help='',show_default=True,nargs=4)
+def generate_heatmaps(predictions_folder, background_image, output_folder, heatmap_width, max_val ,flower , min_score, overlay, output_image_width, generate_from_multiple,window):
+    """
+    Creates heatmaps for all images in the predictions_folder and saves them to
+    the output_folder. If the --generate-from-multiple flag is set to True and 
+    the --background-image flag is defined, the script generates one heatmap from 
+    all images in the predictions-folder. In this case the images have to be 
+    georeferenced.
+    
+    """
+    if window == ():
+        window = None
+    import create_heatmap
+    if generate_from_multiple:
+        if check_inputs(folders=[predictions_folder,output_folder], files=[background_image]):
+            create_heatmap.create_heatmap_from_multiple(predictions_folder, background_image, output_folder, heatmap_width, max_val ,flower, min_score, overlay, output_image_width,window)
+    else:
+        if check_inputs(folders=[predictions_folder,output_folder]):
+            create_heatmap.create_heatmap(predictions_folder, output_folder, heatmap_width, max_val ,flower, min_score, overlay, output_image_width,window)
+        
+        
+        
 def check_inputs(folders=[],files=[]):
     """Checks for all folders and files if they exist.
 
