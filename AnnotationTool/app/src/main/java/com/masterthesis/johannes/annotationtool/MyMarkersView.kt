@@ -21,7 +21,7 @@ class MyMarkersView(context: Context, tileView:MyTileView) : View(context) {
     private var locationPin:Bitmap
     private val MARKER_SIZE = 20
     init {
-        tileView.addListener(this)
+        //tileView.addListener(this)
         val density = resources.displayMetrics.densityDpi.toFloat()
         locationPin = getBitmapFromVectorDrawable(context,R.drawable.my_location)
         var w = density / 200f * locationPin.width

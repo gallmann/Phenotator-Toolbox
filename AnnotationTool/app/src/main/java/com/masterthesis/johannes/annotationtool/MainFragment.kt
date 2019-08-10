@@ -1,6 +1,7 @@
 package com.masterthesis.johannes.annotationtool
 
 import android.Manifest
+import android.content.Context
 import androidx.appcompat.app.AppCompatActivity
 import android.content.Intent
 import android.os.Bundle
@@ -11,6 +12,7 @@ import android.content.pm.PackageManager
 import android.widget.LinearLayout
 import android.content.Context.MODE_PRIVATE
 import android.content.IntentSender
+import android.content.res.AssetFileDescriptor
 import android.graphics.Bitmap
 import com.google.android.material.snackbar.Snackbar
 import androidx.core.content.ContextCompat
@@ -22,14 +24,21 @@ import com.davemorrissey.labs.subscaleview.ImageViewState
 import android.graphics.PointF
 import android.net.Uri
 import androidx.annotation.NonNull
+import androidx.appcompat.widget.AppCompatImageView
 import androidx.recyclerview.widget.DividerItemDecoration
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.davemorrissey.labs.subscaleview.SubsamplingScaleImageView
 import com.moagrius.tileview.TileView
 import com.moagrius.tileview.plugins.MarkerPlugin
+import com.peterlaurence.mapview.MapView
+import com.peterlaurence.mapview.MapViewConfiguration
+import com.peterlaurence.mapview.core.TileStreamProvider
+import com.peterlaurence.mapview.markers.addMarker
 import com.simplecityapps.recyclerview_fastscroll.views.FastScrollRecyclerView
 import ru.dimorinny.floatingtextbutton.FloatingTextButton
+import java.io.FileInputStream
+import java.io.InputStream
 import java.lang.Exception
 
 
@@ -97,13 +106,55 @@ class MainFragment : Fragment(), TileView.ReadyListener, FlowerListAdapter.ItemC
         leftButton = fragmentView.findViewById<FloatingTextButton>(R.id.floating_button_left)
         topButton = fragmentView.findViewById<FloatingTextButton>(R.id.floating_button_top)
         bottomButton = fragmentView.findViewById<FloatingTextButton>(R.id.floating_button_bottom)
+
+
+
+
+        val mapView = MapView(context!!)
+        val tileStreamProvider = object : TileStreamProvider {
+            override fun getTileStream(row: Int, col: Int, zoomLvl: Int): InputStream? {
+
+                var fileDescriptor:AssetFileDescriptor = context!!.getAssets().openFd("Tiled/phi-125000-0_1.jpg")
+                return fileDescriptor.createInputStream()
+                //AssetFileDescriptor fileDescriptor = assetManager.openFd(fileName);
+                //FileInputStream stream = fileDescriptor.createInputStream();
+
+                //return FileInputStream(File("Tiled/phi-125000-0_1.jpg")) // or it can be a remote http fetch
+            }
+        }
+
+        val config = MapViewConfiguration(levelCount = 7, fullWidth = 25000, fullHeight = 25000,
+            tileSize = 256, tileStreamProvider = tileStreamProvider)
+            .setMaxScale(2f).setPadding(256 * 2)
+
+        mapView.configure(config)
+
+        mapView.defineBounds(0.0, 0.0, 1.0, 1.0)
+        for (i in 1..10000){
+            mapView.addNewMarker(i.toDouble()/1000.0, 0.5, "marker #1")
+        }
+
+        fragmentView.findViewById<RelativeLayout>(R.id.imageViewContainer).addView(mapView)
+        //mapView.layoutParams = RelativeLayout.LayoutParams(RelativeLayout.LayoutParams(RelativeLayout.LayoutParams.MATCH_PARENT,RelativeLayout.LayoutParams.MATCH_PARENT))
+
+
+
+
+
+
+
+
+
+
+
+
         /*
         rightButton.setOnClickListener(object : View.OnClickListener { override fun onClick(view: View) {loadNextTile(R.id.floating_button_right)} })
         leftButton.setOnClickListener(object : View.OnClickListener { override fun onClick(view: View) {loadNextTile(R.id.floating_button_left)} })
         bottomButton.setOnClickListener(object : View.OnClickListener { override fun onClick(view: View) {loadNextTile(R.id.floating_button_bottom)} })
         topButton.setOnClickListener(object : View.OnClickListener { override fun onClick(view: View) {loadNextTile(R.id.floating_button_top)} })
 */
-
+/*
         var tileView:MyTileView = MyTileView(context!!)
         var tileViewBuilder:TileView.Builder = TileView.Builder(tileView).setSize(2560, 2560).defineZoomLevel("Tiled/phi-125000-0_1.jpg")
         tileViewBuilder.installPlugin(MarkerPlugin(context!!))
@@ -121,6 +172,8 @@ class MainFragment : Fragment(), TileView.ReadyListener, FlowerListAdapter.ItemC
         for (i in 0..1000) {
             tileView.addMarker(locationPin, i.toFloat(), 500f)
         }
+
+        */
         /*
         val markerPlugin = tileView.getPlugin(MarkerPlugin::class.java)
         for (i in 0..1000){
@@ -137,6 +190,18 @@ class MainFragment : Fragment(), TileView.ReadyListener, FlowerListAdapter.ItemC
 
         return fragmentView
     }
+
+    class MapMarker(context: Context, val x: Double, val y: Double, val name: String) : AppCompatImageView(context)
+
+
+    private fun MapView.addNewMarker(x: Double, y: Double, name: String) {
+        val marker = MapMarker(context, x, y, name).apply {
+            setImageResource(R.drawable.my_location)
+        }
+
+        addMarker(marker, x, y)
+    }
+
 
     override fun onReady(tileView: TileView) {
         println("onReady ...............")

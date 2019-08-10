@@ -8,7 +8,7 @@ android {
     compileSdkVersion 28
     defaultConfig {
         applicationId "com.masterthesis.johannes.annotationtool"
-        minSdkVersion 21
+        minSdkVersion 23
         targetSdkVersion 28
         versionCode 1
         versionName "1.0"
@@ -44,5 +44,7 @@ dependencies {
     implementation 'com.github.dimorinny:floating-text-button:0.0.4'
     implementation 'com.simplecityapps:recyclerview-fastscroll:2.0.0'
     implementation 'com.moagrius:tileview:4.0.7'
+    implementation 'org.jetbrains.kotlinx:kotlinx-coroutines-core:1.2.1'
+    implementation 'com.peterlaurence:mapview:1.0.0'
 
 }
