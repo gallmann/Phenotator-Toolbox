@@ -83,3 +83,7 @@ Tensorflow/utils/constants.py
 Data - Kopie/
 Tensorflow/__pycache__/select_region.cpython-36.pyc
 Tensorflow/__pycache__/
+Tensorflow/object_detection/utils/__pycache__/
+Tensorflow/object_detection/core/__pycache__/
+Tensorflow/object_detection/protos/__pycache__/
+Tensorflow/object_detection/__pycache__/
