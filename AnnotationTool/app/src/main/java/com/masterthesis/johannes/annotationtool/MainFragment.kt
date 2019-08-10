@@ -17,14 +17,9 @@ import androidx.core.content.ContextCompat
 import com.google.android.gms.common.api.ResolvableApiException
 import com.google.android.gms.location.*
 import com.google.android.gms.tasks.Task
-import java.io.File
-import com.davemorrissey.labs.subscaleview.ImageViewState
-import android.graphics.PointF
 import android.net.Uri
-import androidx.annotation.NonNull
 import androidx.recyclerview.widget.DividerItemDecoration
 import androidx.recyclerview.widget.LinearLayoutManager
-import androidx.recyclerview.widget.RecyclerView
 import com.davemorrissey.labs.subscaleview.SubsamplingScaleImageView
 import com.moagrius.tileview.TileView
 import com.moagrius.tileview.plugins.MarkerPlugin
@@ -33,14 +28,10 @@ import ru.dimorinny.floatingtextbutton.FloatingTextButton
 import java.lang.Exception
 
 
-class MainFragment : Fragment(), TileView.ReadyListener, FlowerListAdapter.ItemClickListener, View.OnTouchListener, View.OnClickListener, SubsamplingScaleImageView.OnImageEventListener, CompoundButton.OnCheckedChangeListener {
+class MainFragment : Fragment(), TileView.ReadyListener, FlowerListAdapter.ItemClickListener, View.OnTouchListener, View.OnClickListener, CompoundButton.OnCheckedChangeListener {
     private lateinit var flowerListView: FastScrollRecyclerView
     private lateinit var polygonSwitch: Switch
     private lateinit var annotationState: AnnotationState
-    private lateinit var rightButton: FloatingTextButton
-    private lateinit var leftButton: FloatingTextButton
-    private lateinit var topButton: FloatingTextButton
-    private lateinit var bottomButton: FloatingTextButton
 
     private var currentEditIndex: Int = 0
     lateinit private var undoButton: MenuItem
@@ -93,16 +84,6 @@ class MainFragment : Fragment(), TileView.ReadyListener, FlowerListAdapter.ItemC
         polygonSwitch = fragmentView.findViewById<Switch>(R.id.polygonSwitch)
         polygonSwitch.setOnCheckedChangeListener(this)
 
-        rightButton = fragmentView.findViewById<FloatingTextButton>(R.id.floating_button_right)
-        leftButton = fragmentView.findViewById<FloatingTextButton>(R.id.floating_button_left)
-        topButton = fragmentView.findViewById<FloatingTextButton>(R.id.floating_button_top)
-        bottomButton = fragmentView.findViewById<FloatingTextButton>(R.id.floating_button_bottom)
-        /*
-        rightButton.setOnClickListener(object : View.OnClickListener { override fun onClick(view: View) {loadNextTile(R.id.floating_button_right)} })
-        leftButton.setOnClickListener(object : View.OnClickListener { override fun onClick(view: View) {loadNextTile(R.id.floating_button_left)} })
-        bottomButton.setOnClickListener(object : View.OnClickListener { override fun onClick(view: View) {loadNextTile(R.id.floating_button_bottom)} })
-        topButton.setOnClickListener(object : View.OnClickListener { override fun onClick(view: View) {loadNextTile(R.id.floating_button_top)} })
-*/
 
         var tileView:MyTileView = MyTileView(context!!)
         var tileViewBuilder:TileView.Builder = TileView.Builder(tileView).setSize(2560, 2560).defineZoomLevel("Tiled/phi-125000-0_1.jpg")
@@ -118,8 +99,8 @@ class MainFragment : Fragment(), TileView.ReadyListener, FlowerListAdapter.ItemC
         var w = density / 200f * locationPin.width
         var h = density / 200f * locationPin.height
         locationPin = Bitmap.createScaledBitmap(locationPin, w.toInt(), h.toInt(), true)
-        for (i in 0..1000) {
-            tileView.addMarker(locationPin, i.toFloat(), 500f)
+        for (i in 0..2560) {
+            tileView.addMarker(locationPin, i.toFloat()*2f, 500f)
         }
         /*
         val markerPlugin = tileView.getPlugin(MarkerPlugin::class.java)
@@ -484,10 +465,6 @@ class MainFragment : Fragment(), TileView.ReadyListener, FlowerListAdapter.ItemC
         }
     }
 
-    override fun onReady() {
-        view!!.findViewById<ProgressBar>(R.id.progress_circular).visibility = View.INVISIBLE
-    }
-
     override fun onActivityResult(requestCode: Int, resultCode: Int, resultData: Intent?) {
 
         if (requestCode == OPEN_IMAGE_REQUEST_CODE && resultCode == AppCompatActivity.RESULT_OK) {
@@ -592,16 +569,4 @@ class MainFragment : Fragment(), TileView.ReadyListener, FlowerListAdapter.ItemC
 
 */
 
-
-    /** UNUSED STUBS **/
-
-    override fun onImageLoaded() {}
-
-    override fun onTileLoadError(e: Exception?) {}
-
-    override fun onPreviewReleased() {}
-
-    override fun onImageLoadError(e: Exception?) {}
-
-    override fun onPreviewLoadError(e: Exception?) {}
 }

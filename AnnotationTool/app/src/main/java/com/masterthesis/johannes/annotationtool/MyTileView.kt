@@ -26,13 +26,9 @@ class MyTileView : TileView {
     private fun init() {
         markersView = MyMarkersView(context,this)
         addView(markersView) // added before the callout view
-        var c:CoordinatePlugin = CoordinatePlugin(10.0,10.0,10.0,10.0)
-        var d:MarkerPlugin = MarkerPlugin(context)
-
-
-
-        // ..... other code
     }
+
+
 
     fun addMarker(bitmap: Bitmap, x: Float, y: Float) {
         val marker = MyMarker()
