@@ -22,6 +22,7 @@ import androidx.recyclerview.widget.DividerItemDecoration
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.davemorrissey.labs.subscaleview.SubsamplingScaleImageView
 import com.moagrius.tileview.TileView
+import com.moagrius.tileview.io.StreamProviderFiles
 import com.moagrius.tileview.plugins.MarkerPlugin
 import com.simplecityapps.recyclerview_fastscroll.views.FastScrollRecyclerView
 import ru.dimorinny.floatingtextbutton.FloatingTextButton
@@ -44,7 +45,6 @@ class MainFragment : Fragment(), TileView.ReadyListener, FlowerListAdapter.ItemC
     private lateinit var locationCallback: LocationCallback
 
     private lateinit var projectDirectory: Uri
-    private lateinit var currImageUri: Uri
 
 
     /** FRAGMENT LIFECYCLE FUNCTIONS **/
@@ -85,36 +85,6 @@ class MainFragment : Fragment(), TileView.ReadyListener, FlowerListAdapter.ItemC
         polygonSwitch.setOnCheckedChangeListener(this)
 
 
-        var tileView:MyTileView = MyTileView(context!!)
-        var tileViewBuilder:TileView.Builder = TileView.Builder(tileView).setSize(2560, 2560).defineZoomLevel("Tiled/phi-125000-0_1.jpg")
-        tileViewBuilder.installPlugin(MarkerPlugin(context!!))
-        tileViewBuilder.addReadyListener(this)
-        tileViewBuilder.build()
-        tileView.setMaximumScale(100f)
-        fragmentView.findViewById<RelativeLayout>(R.id.imageViewContainer).addView(tileView)
-        tileView.layoutParams = RelativeLayout.LayoutParams(RelativeLayout.LayoutParams(RelativeLayout.LayoutParams.MATCH_PARENT,RelativeLayout.LayoutParams.MATCH_PARENT))
-
-        val density = resources.displayMetrics.densityDpi.toFloat()
-        var locationPin = getBitmapFromVectorDrawable(context!!,R.drawable.my_location)
-        var w = density / 200f * locationPin.width
-        var h = density / 200f * locationPin.height
-        locationPin = Bitmap.createScaledBitmap(locationPin, w.toInt(), h.toInt(), true)
-        for (i in 0..2560) {
-            tileView.addMarker(locationPin, i.toFloat()*2f, 500f)
-        }
-        /*
-        val markerPlugin = tileView.getPlugin(MarkerPlugin::class.java)
-        for (i in 0..1000){
-            var marker:ImageView = ImageView(context)
-            marker.setTag("bla");
-            marker.setImageResource(R.drawable.my_location);
-            markerPlugin.addMarker(marker, 1000, 1000, 0f, 0f, 0f, 0f);
-        }
-
-
-        markerPlugin.refreshPositions();
-*/
-
 
         return fragmentView
     }
@@ -133,11 +103,9 @@ class MainFragment : Fragment(), TileView.ReadyListener, FlowerListAdapter.ItemC
             }
         }
         val prefs = context!!.getSharedPreferences(SHARED_PREFERENCES_KEY, MODE_PRIVATE)
-        val restoredImageUri = prefs.getString(LAST_OPENED_IMAGE_URI, null)
         val restoredProjectUri = prefs.getString(LAST_OPENED_PROJECT_DIR, null)
 
-        if (restoredImageUri != null && restoredProjectUri != null) {
-            currImageUri = Uri.parse(restoredImageUri)
+        if (restoredProjectUri != null) {
             projectDirectory = Uri.parse(restoredProjectUri)
 
             myRequestPermissions(arrayOf(Manifest.permission.READ_EXTERNAL_STORAGE, Manifest.permission.WRITE_EXTERNAL_STORAGE), READ_PHONE_STORAGE_RETURN_CODE_STARTUP)
@@ -321,47 +289,84 @@ class MainFragment : Fragment(), TileView.ReadyListener, FlowerListAdapter.ItemC
 */
     fun initImageView(){
 
-        /*
-        if(!isExternalStorageWritable()){
-            Snackbar.make(view!!, R.string.could_not_load_image, Snackbar.LENGTH_LONG).show();
-            val editor = context!!.getSharedPreferences(SHARED_PREFERENCES_KEY, MODE_PRIVATE).edit()
-            editor.putString(LAST_OPENED_IMAGE_URI,null)
-            editor.apply()
-            return
+
+        println(projectDirectory.path)
+        val imageWidth = 46919
+        val imageHeight = 42822
+        var tileView:MyTileView = MyTileView(context!!)
+        var tileViewBuilder:TileView.Builder = TileView.Builder(tileView).setSize(imageWidth, imageHeight)
+            .setStreamProvider(StreamProviderFiles())
+            .defineZoomLevel(6,"/storage/emulated/0/Download/test/test/tile_level0_x%1\$d_y%2\$d.png")
+            .defineZoomLevel(5,"/storage/emulated/0/Download/test/test/tile_level1_x%1\$d_y%2\$d.png")
+            .defineZoomLevel(4,"/storage/emulated/0/Download/test/test/tile_level2_x%1\$d_y%2\$d.png")
+
+            .defineZoomLevel(3,"/storage/emulated/0/Download/test/test/tile_level3_x%1\$d_y%2\$d.png")
+            .defineZoomLevel(2,"/storage/emulated/0/Download/test/test/tile_level4_x%1\$d_y%2\$d.png")
+            .defineZoomLevel(1,"/storage/emulated/0/Download/test/test/tile_level5_x%1\$d_y%2\$d.png")
+            .defineZoomLevel(0,"/storage/emulated/0/Download/test/test/tile_level6_x%1\$d_y%2\$d.png")
+
+        tileViewBuilder.addReadyListener(this)
+        tileViewBuilder.build()
+        tileView.setMaximumScale(100f)
+        tileView.smoothScaleAndScrollTo(imageWidth/2,imageHeight/2,0f)
+
+        view!!.findViewById<RelativeLayout>(R.id.imageViewContainer).addView(tileView)
+        tileView.layoutParams = RelativeLayout.LayoutParams(RelativeLayout.LayoutParams(RelativeLayout.LayoutParams.MATCH_PARENT,RelativeLayout.LayoutParams.MATCH_PARENT))
+
+        val density = resources.displayMetrics.densityDpi.toFloat()
+        var locationPin = getBitmapFromVectorDrawable(context!!,R.drawable.my_location)
+        var w = density / 200f * locationPin.width
+        var h = density / 200f * locationPin.height
+        locationPin = Bitmap.createScaledBitmap(locationPin, w.toInt(), h.toInt(), true)
+        for (i in 0..2560) {
+            //tileView.addMarker(locationPin, i.toFloat()*2f, 500f)
         }
 
-        view!!.findViewById<ProgressBar>(R.id.progress_circular).visibility = View.VISIBLE
-        view!!.findViewById<ProgressBar>(R.id.progress_circular).bringToFront()
-        val flowerListSize = getFlowerListFromPreferences(context!!).size
-        annotationState = AnnotationState(currImageUri, projectDirectory, getFlowerListFromPreferences(context!!),context!!)
-        if(flowerListSize< annotationState.flowerList.size){
-            Snackbar.make(view!!, R.string.added_flowers_to_list, Snackbar.LENGTH_LONG).show();
-        }
-        putFlowerListToPreferences(annotationState.flowerList,context!!)
-        val imageViewContainer: RelativeLayout = view!!.findViewById<RelativeLayout>(R.id.imageViewContainer)
 
 
 
-        if(::imageView.isInitialized){
-            imageView.recycle()
-            imageViewContainer.removeView(imageView)
-            updateControlView()
-        }
 
-        imageView = MyImageView(context!!,annotationState,rightButton,leftButton,topButton,bottomButton, stateToRestore = restoredImageViewState)
-        imageView.setOnTouchListener(this)
-        imageView.setOnImageEventListener(this)
-        imageViewContainer.addView(imageView)
-
+    /*
+    if(!isExternalStorageWritable()){
+        Snackbar.make(view!!, R.string.could_not_load_image, Snackbar.LENGTH_LONG).show();
         val editor = context!!.getSharedPreferences(SHARED_PREFERENCES_KEY, MODE_PRIVATE).edit()
-        editor.putString(LAST_OPENED_IMAGE_URI,currImageUri.toString())
-        editor.putString(LAST_OPENED_PROJECT_DIR,projectDirectory.toString())
+        editor.putString(LAST_OPENED_IMAGE_URI,null)
         editor.apply()
-        if(annotationState.hasLocationInformation()){
-            startLocationUpdates()
-        }
+        return
+    }
 
-        */
+    view!!.findViewById<ProgressBar>(R.id.progress_circular).visibility = View.VISIBLE
+    view!!.findViewById<ProgressBar>(R.id.progress_circular).bringToFront()
+    val flowerListSize = getFlowerListFromPreferences(context!!).size
+    annotationState = AnnotationState(currImageUri, projectDirectory, getFlowerListFromPreferences(context!!),context!!)
+    if(flowerListSize< annotationState.flowerList.size){
+        Snackbar.make(view!!, R.string.added_flowers_to_list, Snackbar.LENGTH_LONG).show();
+    }
+    putFlowerListToPreferences(annotationState.flowerList,context!!)
+    val imageViewContainer: RelativeLayout = view!!.findViewById<RelativeLayout>(R.id.imageViewContainer)
+
+
+
+    if(::imageView.isInitialized){
+        imageView.recycle()
+        imageViewContainer.removeView(imageView)
+        updateControlView()
+    }
+
+    imageView = MyImageView(context!!,annotationState,rightButton,leftButton,topButton,bottomButton, stateToRestore = restoredImageViewState)
+    imageView.setOnTouchListener(this)
+    imageView.setOnImageEventListener(this)
+    imageViewContainer.addView(imageView)
+
+    val editor = context!!.getSharedPreferences(SHARED_PREFERENCES_KEY, MODE_PRIVATE).edit()
+    editor.putString(LAST_OPENED_IMAGE_URI,currImageUri.toString())
+    editor.putString(LAST_OPENED_PROJECT_DIR,projectDirectory.toString())
+    editor.apply()
+    if(annotationState.hasLocationInformation()){
+        startLocationUpdates()
+    }
+
+    */
     }
 
     private fun stopLocationUpdates() {
@@ -474,8 +479,7 @@ class MainFragment : Fragment(), TileView.ReadyListener, FlowerListAdapter.ItemC
                         (Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION)
                 context!!.contentResolver.takePersistableUriPermission(uri, takeFlags)
                 projectDirectory = uri
-                currImageUri = getFirstImageTile(uri,context!!)
-                //restoredImageViewState = null
+                println("ausgewählt!!")
                 initImageView()
             }
         }

@@ -32,13 +32,13 @@ class MyMarkersView(context: Context, var tileView:MyTileView) : View(context), 
     }
 
     override protected fun onDraw(canvas: Canvas) {
-        println("--------------------------------")
+        //println("--------------------------------")
         var counter = 0
-        println("x:" + x)
-        println("y:" + y)
-        println("scale:" + scale)
+        //println("x:" + x)
+        //println("y:" + y)
+        //println("scale:" + scale)
         var viewPort = RectF(x.toFloat()+20,y.toFloat(),(x+tileView.width-20).toFloat(),(y+tileView.height).toFloat())
-        println(viewPort)
+        //println(viewPort)
         if (scale>2){
             for (marker in markers) {
                 // use the translator to translate and scale to the correct position on the TileView's coordinate system
