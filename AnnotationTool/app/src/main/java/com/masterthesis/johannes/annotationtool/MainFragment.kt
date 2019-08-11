@@ -26,10 +26,11 @@ import com.moagrius.tileview.io.StreamProviderFiles
 import com.moagrius.tileview.plugins.MarkerPlugin
 import com.simplecityapps.recyclerview_fastscroll.views.FastScrollRecyclerView
 import ru.dimorinny.floatingtextbutton.FloatingTextButton
+import java.io.FileNotFoundException
 import java.lang.Exception
 
 
-class MainFragment : Fragment(), TileView.ReadyListener, FlowerListAdapter.ItemClickListener, View.OnTouchListener, View.OnClickListener, CompoundButton.OnCheckedChangeListener {
+class MainFragment : Fragment(), TileView.TouchListener, FlowerListAdapter.ItemClickListener, View.OnTouchListener, View.OnClickListener, CompoundButton.OnCheckedChangeListener {
     private lateinit var flowerListView: FastScrollRecyclerView
     private lateinit var polygonSwitch: Switch
     private lateinit var annotationState: AnnotationState
@@ -89,11 +90,6 @@ class MainFragment : Fragment(), TileView.ReadyListener, FlowerListAdapter.ItemC
         return fragmentView
     }
 
-    override fun onReady(tileView: TileView) {
-        println("onReady ...............")
-
-    }
-
     override fun onResume() {
         super.onResume()
         if(::annotationState.isInitialized){
@@ -102,12 +98,12 @@ class MainFragment : Fragment(), TileView.ReadyListener, FlowerListAdapter.ItemC
                 startLocationUpdates()
             }
         }
+
         val prefs = context!!.getSharedPreferences(SHARED_PREFERENCES_KEY, MODE_PRIVATE)
         val restoredProjectUri = prefs.getString(LAST_OPENED_PROJECT_DIR, null)
 
         if (restoredProjectUri != null) {
             projectDirectory = Uri.parse(restoredProjectUri)
-
             myRequestPermissions(arrayOf(Manifest.permission.READ_EXTERNAL_STORAGE, Manifest.permission.WRITE_EXTERNAL_STORAGE), READ_PHONE_STORAGE_RETURN_CODE_STARTUP)
         }
     }
@@ -133,7 +129,7 @@ class MainFragment : Fragment(), TileView.ReadyListener, FlowerListAdapter.ItemC
         // as you specify a parent activity in AndroidManifest.xml.
         when (item.itemId) {
             R.id.action_import_image ->{
-                openImage()
+                openProject()
                 return false
             }
             R.id.action_undo -> {
@@ -219,7 +215,7 @@ class MainFragment : Fragment(), TileView.ReadyListener, FlowerListAdapter.ItemC
             }
         }
     }
-/*
+    /*
 
     /** IMAGE VIEW FUNCTIONS **/
     fun loadNextTile(id:Int){
@@ -287,32 +283,47 @@ class MainFragment : Fragment(), TileView.ReadyListener, FlowerListAdapter.ItemC
         }
     }
 */
+
+
     fun initImageView(){
 
 
-        println(projectDirectory.path)
-        val imageWidth = 46919
-        val imageHeight = 42822
-        var tileView:MyTileView = MyTileView(context!!)
-        var tileViewBuilder:TileView.Builder = TileView.Builder(tileView).setSize(imageWidth, imageHeight)
-            .setStreamProvider(StreamProviderFiles())
-            .defineZoomLevel(6,"/storage/emulated/0/Download/test/test/tile_level0_x%1\$d_y%2\$d.png")
-            .defineZoomLevel(5,"/storage/emulated/0/Download/test/test/tile_level1_x%1\$d_y%2\$d.png")
-            .defineZoomLevel(4,"/storage/emulated/0/Download/test/test/tile_level2_x%1\$d_y%2\$d.png")
+        val flowerListSize = getFlowerListFromPreferences(context!!).size
+        annotationState = AnnotationState(projectDirectory, getFlowerListFromPreferences(context!!),context!!)
+        if(flowerListSize< annotationState.flowerList.size){
+            Snackbar.make(view!!, R.string.added_flowers_to_list, Snackbar.LENGTH_LONG).show();
+        }
+        putFlowerListToPreferences(annotationState.flowerList,context!!)
 
-            .defineZoomLevel(3,"/storage/emulated/0/Download/test/test/tile_level3_x%1\$d_y%2\$d.png")
-            .defineZoomLevel(2,"/storage/emulated/0/Download/test/test/tile_level4_x%1\$d_y%2\$d.png")
-            .defineZoomLevel(1,"/storage/emulated/0/Download/test/test/tile_level5_x%1\$d_y%2\$d.png")
-            .defineZoomLevel(0,"/storage/emulated/0/Download/test/test/tile_level6_x%1\$d_y%2\$d.png")
 
-        tileViewBuilder.addReadyListener(this)
-        tileViewBuilder.build()
+        var metadata = Metadata()
+        if(hasMetadata(projectDirectory,context!!)){
+            metadata = getMetadata(projectDirectory,context!!)
+        }
+        else{
+            throw FileNotFoundException("There is no metadata file.")
+        }
+
+        var tileView = MyTileView(context!!)
+        var tileViewBuilder:TileView.Builder = TileView.Builder(tileView)
+            .setSize(metadata.imageWidth, metadata.imageHeight)
+            .setStreamProvider(TileStreamProvider(projectDirectory,context!!,metadata))
+            .setTileSize(metadata.tileSize)
+            .addReadyListener(this)
+            .addTouchListener(this)
+        for (zoomlevel in 0..metadata.zoomlevels){
+            println(zoomlevel.toString())
+            tileViewBuilder = tileViewBuilder.defineZoomLevel(zoomlevel,zoomlevel.toString())
+        }
         tileView.setMaximumScale(100f)
-        tileView.smoothScaleAndScrollTo(imageWidth/2,imageHeight/2,0f)
-
+        tileView.smoothScaleAndScrollTo(metadata.imageWidth/2,metadata.imageHeight/2,0f)
         view!!.findViewById<RelativeLayout>(R.id.imageViewContainer).addView(tileView)
         tileView.layoutParams = RelativeLayout.LayoutParams(RelativeLayout.LayoutParams(RelativeLayout.LayoutParams.MATCH_PARENT,RelativeLayout.LayoutParams.MATCH_PARENT))
+        tileViewBuilder.build()
 
+
+
+        /*
         val density = resources.displayMetrics.densityDpi.toFloat()
         var locationPin = getBitmapFromVectorDrawable(context!!,R.drawable.my_location)
         var w = density / 200f * locationPin.width
@@ -322,7 +333,7 @@ class MainFragment : Fragment(), TileView.ReadyListener, FlowerListAdapter.ItemC
             //tileView.addMarker(locationPin, i.toFloat()*2f, 500f)
         }
 
-
+        */
 
 
 
@@ -438,7 +449,7 @@ class MainFragment : Fragment(), TileView.ReadyListener, FlowerListAdapter.ItemC
         onRequestPermissionsResult(requestCode,permissions,grantResults = IntArray(permissions.size,{_ -> PackageManager.PERMISSION_GRANTED}))
     }
 
-    private fun openImage(){
+    private fun openProject(){
         myRequestPermissions(arrayOf(Manifest.permission.READ_EXTERNAL_STORAGE, Manifest.permission.WRITE_EXTERNAL_STORAGE), READ_PHONE_STORAGE_RETURN_CODE)
     }
 
@@ -479,7 +490,9 @@ class MainFragment : Fragment(), TileView.ReadyListener, FlowerListAdapter.ItemC
                         (Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION)
                 context!!.contentResolver.takePersistableUriPermission(uri, takeFlags)
                 projectDirectory = uri
-                println("ausgewählt!!")
+                val editor = context!!.getSharedPreferences(SHARED_PREFERENCES_KEY, MODE_PRIVATE).edit()
+                editor.putString(LAST_OPENED_PROJECT_DIR,projectDirectory.toString())
+                editor.apply()
                 initImageView()
             }
         }
@@ -488,7 +501,7 @@ class MainFragment : Fragment(), TileView.ReadyListener, FlowerListAdapter.ItemC
         }
     }
 
-    override fun onTouch(view: View, event: MotionEvent): Boolean {
+    override fun onTouch(event: MotionEvent) {
 
         when (event.action) {
             MotionEvent.ACTION_DOWN -> {
@@ -512,12 +525,13 @@ class MainFragment : Fragment(), TileView.ReadyListener, FlowerListAdapter.ItemC
                         }
                     }
                     */
+                    clickedOnNewPosition(event)
                 }
             }
         }
-        return false
     }
-/*
+
+
     private fun clickedOnNewPosition(event: MotionEvent){
         if(annotationState.currentFlower != null && annotationState.currentFlower!!.isPolygon){
             var sourcecoord: PointF = imageView.viewToSourceCoord(PointF(event.x, event.y))!!
@@ -535,6 +549,7 @@ class MainFragment : Fragment(), TileView.ReadyListener, FlowerListAdapter.ItemC
         }
     }
 
+    /*
     private fun clickedOnExistingMark(flower: Pair<Flower,Int>){
         if(annotationState.currentFlower != null && annotationState.currentFlower!!.isPolygon && annotationState.currentFlower!!.polygon.size < 3){
             Snackbar.make(view!!, R.string.to_small_polygon, Snackbar.LENGTH_LONG).show();
