@@ -21,7 +21,6 @@ import progressbar
 import numpy as np
 from object_detection.utils import object_detection_evaluation
 from object_detection.core import standard_fields
-from object_detection.utils import per_image_evaluation
 from utils import eval_utils
 
 
@@ -76,7 +75,7 @@ def evaluate(project_folder, input_folder, output_folder,iou_threshold=constants
 
         ground_truths = filter_ground_truth(ground_truths,flower_names)
         predictions = filter_predictions(predictions,min_score)
-        #predictions = eval_utils.non_max_suppression(predictions,0.5)
+        predictions = eval_utils.non_max_suppression(predictions,0.3)
         
         for gt in ground_truths:
             gt["hits"] = 0
