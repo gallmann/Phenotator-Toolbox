@@ -13,29 +13,15 @@ import com.moagrius.widget.ScalingScrollView
 
 class MyTileView : TileView {
 
-    private var markersView: MyMarkersView? = null
+    lateinit var markersView: MyMarkersView
 
-    constructor(context: Context) : super(context) {
-        init()
+    constructor(context: Context,annotationState: AnnotationState) : super(context) {
+        init(annotationState)
     }
 
-    constructor(context: Context, attrs: AttributeSet) : super(context, attrs) {
-        init()
-    }
-
-    private fun init() {
-        markersView = MyMarkersView(context,this)
+    private fun init(annotationState: AnnotationState) {
+        markersView = MyMarkersView(context,this,annotationState)
         addView(markersView) // added before the callout view
-    }
-
-
-
-    fun addMarker(bitmap: Bitmap, x: Float, y: Float) {
-        val marker = MyMarker()
-        marker.x = x
-        marker.y = y
-        marker.bitmap = bitmap
-        markersView!!.addMarker(marker)
     }
 
 }

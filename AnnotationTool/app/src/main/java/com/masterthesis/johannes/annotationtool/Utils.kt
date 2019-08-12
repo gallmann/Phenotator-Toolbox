@@ -93,15 +93,6 @@ public fun isAClick(startX: Float, endX: Float, startY: Float, endY: Float, star
     return !(differenceX > CLICK_ACTION_THRESHOLD || differenceY > CLICK_ACTION_THRESHOLD)
 }
 
-public fun isCoordinateVisible(canvas: Canvas, x: Float, y:Float, margin: Float): Boolean{
-    if(x < 0 - margin || y < 0-margin){
-        return false
-    }
-    if(x>canvas.width+margin || y > canvas.height+margin){
-        return false
-    }
-    return true
-}
 
 fun isExternalStorageWritable(): Boolean {
     return Environment.getExternalStorageState() == Environment.MEDIA_MOUNTED
@@ -169,7 +160,7 @@ fun getAnnotationFileUri(projectDirectory: Uri, context:Context): Uri{
         }
     }
 
-    return makeFile(projectDirectory,imageName.substring(0,imageName.length-4) ,context)
+    return makeFile(projectDirectory,imageName.substring(0,imageName.length-4) + "_annotations.json" ,context)
 }
 
 

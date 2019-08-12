@@ -25,12 +25,13 @@ import com.moagrius.tileview.TileView
 import com.moagrius.tileview.io.StreamProviderFiles
 import com.moagrius.tileview.plugins.MarkerPlugin
 import com.simplecityapps.recyclerview_fastscroll.views.FastScrollRecyclerView
+import kotlinx.android.synthetic.main.nav_header_main.*
 import ru.dimorinny.floatingtextbutton.FloatingTextButton
 import java.io.FileNotFoundException
 import java.lang.Exception
 
 
-class MainFragment : Fragment(), TileView.TouchListener, FlowerListAdapter.ItemClickListener, View.OnTouchListener, View.OnClickListener, CompoundButton.OnCheckedChangeListener {
+class MainFragment : Fragment(), TileView.TouchListener, FlowerListAdapter.ItemClickListener, View.OnClickListener, CompoundButton.OnCheckedChangeListener {
     private lateinit var flowerListView: FastScrollRecyclerView
     private lateinit var polygonSwitch: Switch
     private lateinit var annotationState: AnnotationState
@@ -46,6 +47,7 @@ class MainFragment : Fragment(), TileView.TouchListener, FlowerListAdapter.ItemC
     private lateinit var locationCallback: LocationCallback
 
     private lateinit var projectDirectory: Uri
+    private lateinit var tileView: MyTileView
 
 
     /** FRAGMENT LIFECYCLE FUNCTIONS **/
@@ -133,7 +135,7 @@ class MainFragment : Fragment(), TileView.TouchListener, FlowerListAdapter.ItemC
                 return false
             }
             R.id.action_undo -> {
-                //removeCurrentPolygonPoint()
+                removeCurrentPolygonPoint()
                 return false
             }
             else -> return super.onOptionsItemSelected(item)
@@ -156,9 +158,8 @@ class MainFragment : Fragment(), TileView.TouchListener, FlowerListAdapter.ItemC
 
 
     override fun onItemClick(view: View, position: Int) {
-        //TODO
         (flowerListView.adapter as FlowerListAdapter).selectedIndex(position)
-        //imageView.invalidate()
+        tileView.markersView.invalidate()
     }
 
     override fun onClick(view: View) {
@@ -170,14 +171,14 @@ class MainFragment : Fragment(), TileView.TouchListener, FlowerListAdapter.ItemC
                 else{
                     annotationState.permanentlyAddCurrentFlower()
                     updateControlView()
-                    //imageView.invalidate()
+                    tileView.markersView.invalidate()
                     polygonSwitch.isChecked = false
                 }
             }
             R.id.cancel_button -> {
                 annotationState.cancelCurrentFlower()
                 updateControlView()
-                //imageView.invalidate()
+                tileView.markersView.invalidate()
             }
             R.id.upButton, R.id.downButton, R.id.leftButton, R.id.rightButton -> {
                 moveCurrentMark(view.id)
@@ -190,7 +191,7 @@ class MainFragment : Fragment(), TileView.TouchListener, FlowerListAdapter.ItemC
             R.id.polygonSwitch ->{
                 if(annotationState.currentFlower != null){
                     annotationState.currentFlower!!.isPolygon = checked
-                    //imageView.invalidate()
+                    tileView.markersView.invalidate()
                 }
             }
         }
@@ -304,12 +305,11 @@ class MainFragment : Fragment(), TileView.TouchListener, FlowerListAdapter.ItemC
             throw FileNotFoundException("There is no metadata file.")
         }
 
-        var tileView = MyTileView(context!!)
+        tileView = MyTileView(context!!, annotationState)
         var tileViewBuilder:TileView.Builder = TileView.Builder(tileView)
             .setSize(metadata.imageWidth, metadata.imageHeight)
             .setStreamProvider(TileStreamProvider(projectDirectory,context!!,metadata))
             .setTileSize(metadata.tileSize)
-            .addReadyListener(this)
             .addTouchListener(this)
         for (zoomlevel in 0..metadata.zoomlevels){
             println(zoomlevel.toString())
@@ -321,6 +321,9 @@ class MainFragment : Fragment(), TileView.TouchListener, FlowerListAdapter.ItemC
         tileView.layoutParams = RelativeLayout.LayoutParams(RelativeLayout.LayoutParams(RelativeLayout.LayoutParams.MATCH_PARENT,RelativeLayout.LayoutParams.MATCH_PARENT))
         tileViewBuilder.build()
 
+        if(annotationState.hasLocationInformation()){
+            startLocationUpdates()
+        }
 
 
         /*
@@ -433,7 +436,7 @@ class MainFragment : Fragment(), TileView.TouchListener, FlowerListAdapter.ItemC
                 annotationState.currentFlower!!.incrementYPos(currentEditIndex)
             }
         }
-        //imageView.invalidate()
+        tileView.markersView.invalidate()
     }
 
 
@@ -502,7 +505,6 @@ class MainFragment : Fragment(), TileView.TouchListener, FlowerListAdapter.ItemC
     }
 
     override fun onTouch(event: MotionEvent) {
-
         when (event.action) {
             MotionEvent.ACTION_DOWN -> {
                 startX = event.x
@@ -514,9 +516,9 @@ class MainFragment : Fragment(), TileView.TouchListener, FlowerListAdapter.ItemC
                 val endY = event.y
                 val endTime = System.currentTimeMillis()
                 if (isAClick(startX, endX, startY, endY, startTime, endTime, context!!)) {
-                    /*
-                    if(imageView.isEditable()){
-                        val editFlower = imageView.clickedOnExistingMark(endX,endY);
+
+                    if(tileView.markersView.isEditable()){
+                        val editFlower = tileView.markersView.clickedOnExistingMark(endX,endY);
                         if(editFlower != null){
                             clickedOnExistingMark(editFlower)
                         }
@@ -524,32 +526,32 @@ class MainFragment : Fragment(), TileView.TouchListener, FlowerListAdapter.ItemC
                             clickedOnNewPosition(event)
                         }
                     }
-                    */
-                    clickedOnNewPosition(event)
                 }
             }
         }
     }
 
-
     private fun clickedOnNewPosition(event: MotionEvent){
+
         if(annotationState.currentFlower != null && annotationState.currentFlower!!.isPolygon){
-            var sourcecoord: PointF = imageView.viewToSourceCoord(PointF(event.x, event.y))!!
-            annotationState.currentFlower!!.addPolygonPoint(Coord(sourcecoord.x,sourcecoord.y))
+
+            var c:Coord = tileView.markersView.convertCoordinates(event.x,event.y)
+            annotationState.currentFlower!!.addPolygonPoint(Coord(c.x,c.y))
             setCurrentEditIndex(annotationState.currentFlower!!.polygon.size-1)
             if(annotationState.currentFlower!!.polygon.size > 1) enableUndoButton(true)
-            imageView.invalidate()
+            tileView.markersView.invalidate()
+
         }
         else{
-            var sourcecoord: PointF = imageView.viewToSourceCoord(PointF(event.x, event.y))!!
-            annotationState.addNewFlowerMarker(sourcecoord.x, sourcecoord.y)
+            var c:Coord = tileView.markersView.convertCoordinates(event.x,event.y)
+            annotationState.addNewFlowerMarker(c.x, c.y)
             setCurrentEditIndex(0)
             updateControlView()
-            imageView.invalidate()
+            tileView.markersView.invalidate()
         }
     }
 
-    /*
+
     private fun clickedOnExistingMark(flower: Pair<Flower,Int>){
         if(annotationState.currentFlower != null && annotationState.currentFlower!!.isPolygon && annotationState.currentFlower!!.polygon.size < 3){
             Snackbar.make(view!!, R.string.to_small_polygon, Snackbar.LENGTH_LONG).show();
@@ -561,13 +563,13 @@ class MainFragment : Fragment(), TileView.TouchListener, FlowerListAdapter.ItemC
             setCurrentEditIndex(flower.second)
             if(annotationState.currentFlower!!.polygon.size > 1) enableUndoButton(true)
             updateControlView()
-            imageView.invalidate()
+            tileView.markersView.invalidate()
         }
         else{
             annotationState.startEditingFlower(flower.first)
             setCurrentEditIndex(0)
             updateControlView()
-            imageView.invalidate()
+            tileView.markersView.invalidate()
         }
     }
 
@@ -577,15 +579,15 @@ class MainFragment : Fragment(), TileView.TouchListener, FlowerListAdapter.ItemC
             setCurrentEditIndex(annotationState.currentFlower!!.polygon.size-1)
             if(annotationState.currentFlower!!.polygon.size > 1) enableUndoButton(true)
             else enableUndoButton(false)
-            imageView.invalidate()
+            tileView.markersView.invalidate()
         }
     }
 
     private fun setCurrentEditIndex(index: Int){
         currentEditIndex = index
-        imageView.currentEditIndex = index
+        tileView.markersView.currentEditIndex = index
     }
 
-*/
+
 
 }

@@ -16,7 +16,7 @@ import com.davemorrissey.labs.subscaleview.ImageSource
 import com.davemorrissey.labs.subscaleview.ImageViewState
 import ru.dimorinny.floatingtextbutton.FloatingTextButton
 
-
+/*
 class MyImageView constructor(context: Context?, var annotationState: AnnotationState,
                               var rightButton: FloatingTextButton,
                               var leftButton: FloatingTextButton,
@@ -273,3 +273,4 @@ class MyImageView constructor(context: Context?, var annotationState: Annotation
     }
 
 }
+*/

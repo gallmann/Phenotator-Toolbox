@@ -12,84 +12,54 @@ import java.io.*
 import kotlin.concurrent.thread
 
 
-class AnnotationState(@Transient var imageUri: Uri, @Transient var projectDirectory: Uri, @Transient var flowerList: MutableList<String>, @Transient var context:Context) {
+class AnnotationState(@Transient var projectDirectory: Uri, @Transient var flowerList: MutableList<String>, @Transient var context:Context) {
 
     var annotatedFlowers: ArrayList<Flower> = ArrayList<Flower>()
     var flowerCount: MutableMap<String,Int> = HashMap<String,Int>()
     var favs: ArrayList<String> = ArrayList<String>()
-    var geoInfo: GeoInfo? = null
-    @Transient var allCounts = HashMap<String,Int>()
+    lateinit var metadata: Metadata
     @Transient var currentFlower: Flower? = null
     @Transient lateinit var annotationFileUri: Uri
-    @Transient var hasTopNeighbour: Boolean = false
-    @Transient var hasLeftNeighbour: Boolean = false
-    @Transient var hasRightNeighbour: Boolean = false
-    @Transient var hasBottomNeighbour: Boolean = false
 
 
     init{
-        annotationFileUri = getAnnotationFileUri(projectDirectory,imageUri,context)
+        annotationFileUri = getAnnotationFileUri(projectDirectory,context)
+        try {
+            metadata = getMetadata(projectDirectory,context)
+        }
+        catch (e:FileNotFoundException){
+            //metadata = Metadata()
+            println("No Metadata file detected.")
+        }
 
-        var geoInfoUri = getGeoInfoUri(projectDirectory,imageUri,context)
         if(!isExternalStorageWritable()){
             throw Exception("External Storage is not Writable")
             //TODO!!!!! handle gracefully
         }
 
-        if(geoInfoUri != null){
-            val gson = Gson()
-            val reader = JsonReader(InputStreamReader(context.contentResolver.openInputStream(geoInfoUri)))
-            val myType = object : TypeToken<GeoInfo>() {}.type
-            geoInfo = gson.fromJson<GeoInfo>(reader, myType)
-        }
-
-        var allAnnotationFileUris = getAllAnnotationFileUris(projectDirectory,context)
-
-        for(annFileUri in allAnnotationFileUris){
-            //Read from the json annotationfiles
-            val gson = Gson()
-            val reader = JsonReader(InputStreamReader(context.contentResolver.openInputStream(annFileUri)))
-            val myType = object : TypeToken<AnnotationState>() {}.type
-            val loadedState = gson.fromJson<AnnotationState>(reader, myType)
-            if(loadedState != null){
-                //if we are reading the current tile, read the annotatedFlowers state, favs and flowerCount fields
-                if(annFileUri.equals(annotationFileUri)){
-                    annotatedFlowers = loadedState.annotatedFlowers
-                    favs = loadedState.favs
-                    flowerCount = loadedState.flowerCount
-                    //if flowerList does not contain some already annotated flowers, add them!
-                    for(flower in annotatedFlowers){
-                        if(!flowerList.contains(flower.name)){
-                            flowerList.add(flower.name)
-                        }
-                    }
-                    flowerList = sortList(flowerList)
-                }
-                //if we are reading another tile's annotation file, just read the flowercounts and add them to allCounts
-                else{
-                    for ((flower, count) in loadedState.flowerCount) {
-                        if(allCounts.containsKey(flower)){
-                            allCounts[flower] = allCounts[flower]!! + count
-                        }
-                        else{
-                            allCounts[flower] = count
-                        }
-                    }
+        val gson = Gson()
+        val reader = JsonReader(InputStreamReader(context.contentResolver.openInputStream(annotationFileUri)))
+        val myType = object : TypeToken<AnnotationState>() {}.type
+        val loadedState = gson.fromJson<AnnotationState>(reader, myType)
+        if(loadedState != null) {
+            annotatedFlowers = loadedState.annotatedFlowers
+            favs = loadedState.favs
+            flowerCount = loadedState.flowerCount
+            //if flowerList does not contain some already annotated flowers, add them!
+            for (flower in annotatedFlowers) {
+                if (!flowerList.contains(flower.name)) {
+                    flowerList.add(flower.name)
                 }
             }
-
-            //add flowers to flowercount that are in user defined flowerList but not yet in flowerCount
-            for(s: String in flowerList){
-                if(!flowerCount.containsKey(s)){
-                    flowerCount[s] = 0
-                }
-            }
+            flowerList = sortList(flowerList)
         }
 
-        checkForNeighbouringTiles()
-
-
-
+        //add flowers to flowercount that are in user defined flowerList but not yet in flowerCount
+        for(s: String in flowerList){
+            if(!flowerCount.containsKey(s)){
+                flowerCount[s] = 0
+            }
+        }
     }
 
     fun updateFlowerList(new_list:MutableList<String>):MutableList<String>{
@@ -233,50 +203,32 @@ class AnnotationState(@Transient var imageUri: Uri, @Transient var projectDirect
     }
 
     fun hasLocationInformation(): Boolean{
-        if(geoInfo != null){
+        if(metadata.lr_lon != 0.0 || metadata.ul_lon != 0.0){
             return true
         }
         return false
     }
 
     fun getTopLeftCoordinates():Pair<Double,Double>{
-        if(geoInfo != null){
-            return Pair(geoInfo!!.ul_lat,geoInfo!!.ul_lon)
+        if(metadata != null){
+            return Pair(metadata.ul_lat,metadata.ul_lon)
         }
         return Pair(0.0,0.0)
     }
 
     fun getBottomRightCoordinates():Pair<Double,Double>{
-        if(geoInfo != null){
-            return Pair(geoInfo!!.lr_lat,geoInfo!!.lr_lon)
+        if(metadata != null){
+            return Pair(metadata.lr_lat,metadata.lr_lon)
         }
         return Pair(0.0,0.0)
     }
 
-    private fun checkForNeighbouringTiles(){
-        val column: Int = getFileName(imageUri,context).substringAfter("col").substringBefore('.').toInt()
-        var regex: Regex = "col([0-9]|[0-9][0-9]|[0-9][0-9][0-9])\\.".toRegex()
-        var neighbourFileName = regex.replace(getFileName(imageUri,context),"col" +(column+1).toString() + ".")
-        hasRightNeighbour = doesFileExist(projectDirectory,neighbourFileName,context)
-
-        neighbourFileName = regex.replace(getFileName(imageUri,context),"col" +(column-1).toString() + ".")
-        hasLeftNeighbour = doesFileExist(projectDirectory,neighbourFileName,context)
-
-        val row: Int = getFileName(imageUri,context).substringAfter("row").substringBefore('_').toInt()
-        regex = "row([0-9]|[0-9][0-9]|[0-9][0-9][0-9])_".toRegex()
-        neighbourFileName = regex.replace(getFileName(imageUri,context),"row" +(row-1).toString() + "_")
-        hasTopNeighbour = doesFileExist(projectDirectory,neighbourFileName,context)
-
-        neighbourFileName = regex.replace(getFileName(imageUri,context),"row" +(row+1).toString() + "_")
-        hasBottomNeighbour = doesFileExist(projectDirectory,neighbourFileName,context)
-    }
-
     fun getFlowerCount(flower:String):Int{
-        if(flowerCount.containsKey(flower) && allCounts.containsKey(flower)){
-            return flowerCount[flower]!! + allCounts[flower]!!
+        if(flowerCount.containsKey(flower)){
+            return flowerCount[flower]!!
         }
         else{
-            return flowerCount[flower]!!
+            return 0
         }
     }
 }
