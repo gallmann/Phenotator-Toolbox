@@ -58,7 +58,7 @@ def preprocess_internal(in_path, out_path, tile_size = 256):
         None, a folder that can bi copied onto the android tablet.
     """
     
-    with ThreadPoolExecutor(max_workers=20) as executor:
+    with ThreadPoolExecutor(max_workers=10) as executor:
 
         #Read the input Coordinate system
         ds = gdal.Open(in_path)
@@ -140,12 +140,11 @@ def preprocess_internal(in_path, out_path, tile_size = 256):
             #Tiling the image
             for x_start in range(0, xsize, original_tilesize):
                 for y_start in range(0, ysize, original_tilesize):
-                    
                     #define paths of image tile and the corresponding json file containing the geo information
                     out_path_image = str(out_path) + str(zoom_level) + "/tile_level" + str(zoom_level) + "_x" + str(int(x_start/original_tilesize)) + "_y" + str(int(y_start/original_tilesize)) + ".png"
                     #out_path_json = str(out_path) + str(output_filename) + "row" + str(int(j/tile_size_y)) + "_col" + str(int(i/tile_size_x)) + "_geoinfo.json"
 
-                    future = executor.submit(crop_image,ds,tile_size, original_tilesize,image_array,y_start,x_start,out_path_image)
+                    future = executor.submit(crop_image,tile_size,ds, original_tilesize,image_array,y_start,x_start,out_path_image)
                     futures_list.append(future)
                     
 
@@ -178,18 +177,17 @@ def preprocess_internal(in_path, out_path, tile_size = 256):
 
 
 def crop_image(tile_size, ds, original_tilesize,image_array,y_start,x_start,out_path_image):
-    
     if not stop:
         if original_tilesize < 10000:
+
                         #crop_image(tile_size, original_tilesize,image_array,y_start,x_start,out_path_image)
             cropped_array = image_array[y_start:y_start+original_tilesize,x_start:x_start+original_tilesize,:]
-            
+
             pad_end_x = original_tilesize - cropped_array.shape[1]
             pad_end_y = original_tilesize - cropped_array.shape[0]
             cropped_array = np.pad(cropped_array,((0,pad_end_y),(0,pad_end_x),(0,0)), mode='constant', constant_values=0)
             cropped_im = Image.fromarray(cropped_array,'RGB')
             cropped_im = cropped_im.resize((tile_size,tile_size), Image.ANTIALIAS)
-            #cropped_im = cropped_im.convert("RGB")
             cropped_im.save(out_path_image)
         else:
             gdal.Translate(out_path_image,ds, options=gdal.TranslateOptions(width=int(tile_size),height=int(tile_size),srcWin=[x_start,y_start,original_tilesize,original_tilesize], bandList=[1,2,3], format='png'))

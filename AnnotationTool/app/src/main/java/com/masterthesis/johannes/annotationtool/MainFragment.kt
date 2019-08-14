@@ -100,13 +100,14 @@ class MainFragment : Fragment(), TileView.TouchListener, FlowerListAdapter.ItemC
                 startLocationUpdates()
             }
         }
+        if(!::tileView.isInitialized){
+            val prefs = context!!.getSharedPreferences(SHARED_PREFERENCES_KEY, MODE_PRIVATE)
+            val restoredProjectUri = prefs.getString(LAST_OPENED_PROJECT_DIR, null)
 
-        val prefs = context!!.getSharedPreferences(SHARED_PREFERENCES_KEY, MODE_PRIVATE)
-        val restoredProjectUri = prefs.getString(LAST_OPENED_PROJECT_DIR, null)
-
-        if (restoredProjectUri != null) {
-            projectDirectory = Uri.parse(restoredProjectUri)
-            myRequestPermissions(arrayOf(Manifest.permission.READ_EXTERNAL_STORAGE, Manifest.permission.WRITE_EXTERNAL_STORAGE), READ_PHONE_STORAGE_RETURN_CODE_STARTUP)
+            if (restoredProjectUri != null) {
+                projectDirectory = Uri.parse(restoredProjectUri)
+                myRequestPermissions(arrayOf(Manifest.permission.READ_EXTERNAL_STORAGE, Manifest.permission.WRITE_EXTERNAL_STORAGE), READ_PHONE_STORAGE_RETURN_CODE_STARTUP)
+            }
         }
     }
 
@@ -287,6 +288,19 @@ class MainFragment : Fragment(), TileView.TouchListener, FlowerListAdapter.ItemC
 
 
     fun initImageView(){
+
+        if(::tileView.isInitialized) {
+            tileView.visibility = View.INVISIBLE
+            tileView.destroy()
+        }
+
+        if(!isExternalStorageWritable()){
+            Snackbar.make(view!!, R.string.could_not_load_image, Snackbar.LENGTH_LONG).show();
+            val editor = context!!.getSharedPreferences(SHARED_PREFERENCES_KEY, MODE_PRIVATE).edit()
+            editor.putString(LAST_OPENED_IMAGE_URI,null)
+            editor.apply()
+            return
+        }
 
 
         val flowerListSize = getFlowerListFromPreferences(context!!).size

@@ -12,7 +12,7 @@ class TileStreamProvider(val projectDirectory: Uri, val context: Context, val me
     var levelRegex: Regex = "_level([0-9]|[0-9][0-9]|[0-9][0-9][0-9]|[0-9][0-9][0-9][0-9])_x".toRegex()
     var xRegex: Regex = "_x([0-9]|[0-9][0-9]|[0-9][0-9][0-9]|[0-9][0-9][0-9][0-9])_y".toRegex()
     var yRegex: Regex = "_y([0-9]|[0-9][0-9]|[0-9][0-9][0-9]|[0-9][0-9][0-9][0-9])\\.".toRegex()
-    var levelFolderRegex: Regex = "%2F([0-9]|[0-9][0-9])%2F".toRegex()
+    var levelFolderRegex: Regex = "%2F([0-9]|[0-9][0-9])%2Ftile".toRegex()
 
 
     init {
@@ -36,7 +36,7 @@ class TileStreamProvider(val projectDirectory: Uri, val context: Context, val me
 
         var tileString = templateUriString
         tileString = levelRegex.replace(tileString,"_level" + level.toString().toInt() + "_x")
-        tileString = levelFolderRegex.replace(tileString,"%2F" + level + "%2F")
+        tileString = levelFolderRegex.replace(tileString,"%2F" + level + "%2Ftile")
         tileString = xRegex.replace(tileString,"_x" + column + "_y")
         tileString = yRegex.replace(tileString,"_y" + row + ".")
         return context.contentResolver.openInputStream(Uri.parse(tileString))
