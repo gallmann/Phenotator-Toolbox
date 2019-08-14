@@ -5,7 +5,9 @@ import android.R.attr.y
 import android.R.attr.x
 import android.content.Context
 import android.graphics.*
+import android.location.Location
 import android.view.View
+import androidx.core.content.ContextCompat
 import com.moagrius.tileview.TileView
 
 
@@ -25,6 +27,8 @@ class MyMarkersView(context: Context, var tileView:MyTileView, var annotationSta
     var ZOOM_THRESH: Float = 0.9F
 
     var currentEditIndex: Int = 0
+
+    private var userLocation: Location? = null
 
 
 
@@ -56,9 +60,37 @@ class MyMarkersView(context: Context, var tileView:MyTileView, var annotationSta
 
     override protected fun onDraw(canvas: Canvas) {
 
-        if(scale<ZOOM_THRESH) return
 
         var viewPort = RectF(x.toFloat(),y.toFloat(),(x+tileView.width).toFloat(),(y+tileView.height).toFloat())
+
+        //DRAW USER POSITION
+        if(userLocation != null){
+            var tlLat = annotationState.getTopLeftCoordinates().first
+            var tlLon = annotationState.getTopLeftCoordinates().second
+            var brLat = annotationState.getBottomRightCoordinates().first
+            var brLon = annotationState.getBottomRightCoordinates().second
+            var uLon = userLocation!!.longitude
+            var uLat = userLocation!!.latitude
+            var imageWidth = annotationState.getImageWidth()
+            var imageHeight = annotationState.getImageHeight()
+            //println("width: $imageWidth height: $imageHeight")
+            var userX = imageWidth*(uLon-tlLon)/(brLon-tlLon);
+            var userY = imageHeight-imageHeight*(uLat-brLat)/(tlLat-brLat);
+
+            if(userX < imageWidth && userX >= 0 && userY < imageHeight && userY >= 0){
+                val paint = Paint()
+                val filter = PorterDuffColorFilter(ContextCompat.getColor(context, R.color.Blue), PorterDuff.Mode.SRC_IN)
+                paint.colorFilter = filter
+                drawPin(userX.toFloat(), userY.toFloat() ,viewPort, canvas, paint, locationPin)
+            }
+        }
+
+
+
+
+
+        if(scale<ZOOM_THRESH) return
+
 
         if(annotationState.currentFlower != null){
             var flower = annotationState.currentFlower!!
@@ -119,6 +151,10 @@ class MyMarkersView(context: Context, var tileView:MyTileView, var annotationSta
         return null
     }
 
+    fun updateLocation(location: Location){
+        this.userLocation = location
+        invalidate()
+    }
 
     private fun drawPolygon(flower: Flower, canvas: Canvas,viewPort:RectF, isCurrentFlower: Boolean = false){
         var color = annotationState.getFlowerColor(flower.name,context)

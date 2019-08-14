@@ -59,7 +59,7 @@ class MainFragment : Fragment(), TileView.TouchListener, FlowerListAdapter.ItemC
             override fun onLocationResult(locationResult: LocationResult?) {
                 locationResult ?: return
                 for (location in locationResult.locations){
-                    //imageView.updateLocation(location)
+                    tileView.markersView.updateLocation(location)
                 }
             }
         }

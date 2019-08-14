@@ -57,49 +57,82 @@ def preprocess_internal(in_path, out_path, tile_size = 256):
     Returns:
         None, a folder that can bi copied onto the android tablet.
     """
-    #Read the input Coordinate system
-    ds = gdal.Open(in_path)
-    inSRS_wkt = ds.GetProjection()  # gives SRS in WKT
-    inSRS_converter = osr.SpatialReference()  # makes an empty spatial ref object
-    inSRS_converter.ImportFromWkt(inSRS_wkt)  # populates the spatial ref object with our WKT SRS
-    inSRS_forPyProj = inSRS_converter.ExportToProj4()  # Exports an SRS ref as a Proj4 string usable by PyProj
     
-    create_geoinfo_file = True
-    try:
-        #swiss represents the coordinate system of the georeferenced image saved at in_path
-        #this should be the swiss coordinate system CH1903+ / LV95 ("+init=EPSG:2056")
-        swiss = pyproj.Proj(inSRS_forPyProj) 
-    except RuntimeError:
-        create_geoinfo_file = False
-    # LatLon with WGS84 datum used by GPS units and Google Earth
-    wgs84=pyproj.Proj("+init=EPSG:4326") 
-    
-    #GetGeoTransform() returns the upper left coordinates in the input (swiss) coordinate system (ulx,uly)
-    #xres and yres denote the width and height of a pixel
-    #xskew and yskew is the tilt. This should be 0
-    ulx, xres, xskew, uly, yskew, yres  = ds.GetGeoTransform()                
-    
-    #get the size of the input image
-    band = ds.GetRasterBand(1)
-    xsize = band.XSize
-    ysize = band.YSize
-    
-    print("Loading input image of size " + str(xsize) + "x" + str(ysize) + "...")
-    image_array = ds.ReadAsArray().astype(np.uint8)
-    image_array = np.swapaxes(image_array,0,1)
-    image_array = np.swapaxes(image_array,1,2)
-    
-    
-    
-    print("Tiling image...")
-    
-    futures_list = []
     with ThreadPoolExecutor(max_workers=20) as executor:
 
+        #Read the input Coordinate system
+        ds = gdal.Open(in_path)
+        inSRS_wkt = ds.GetProjection()  # gives SRS in WKT
+        inSRS_converter = osr.SpatialReference()  # makes an empty spatial ref object
+        inSRS_converter.ImportFromWkt(inSRS_wkt)  # populates the spatial ref object with our WKT SRS
+        inSRS_forPyProj = inSRS_converter.ExportToProj4()  # Exports an SRS ref as a Proj4 string usable by PyProj
+        
+        create_geoinfo_file = True
+        try:
+            #swiss represents the coordinate system of the georeferenced image saved at in_path
+            #this should be the swiss coordinate system CH1903+ / LV95 ("+init=EPSG:2056")
+            swiss = pyproj.Proj(inSRS_forPyProj) 
+        except RuntimeError:
+            create_geoinfo_file = False
+        # LatLon with WGS84 datum used by GPS units and Google Earth
+        wgs84=pyproj.Proj("+init=EPSG:4326") 
+        
+        #GetGeoTransform() returns the upper left coordinates in the input (swiss) coordinate system (ulx,uly)
+        #xres and yres denote the width and height of a pixel
+        #xskew and yskew is the tilt. This should be 0
+        ulx, xres, xskew, uly, yskew, yres  = ds.GetGeoTransform()                
+        
+        lrx = ulx + (ds.RasterXSize * xres)
+        lry = uly + (ds.RasterYSize * yres)
+        
+        lrx,lry = pyproj.transform(swiss, wgs84, lrx, lry)
+        ulx,uly = pyproj.transform(swiss, wgs84, ulx, uly)
+
+
+        
+        
+        
+        
+        
+        
+        
+        
+        #get the size of the input image
+        band = ds.GetRasterBand(1)
+        xsize = band.XSize
+        ysize = band.YSize
+        
+        print("Loading input image of size " + str(xsize) + "x" + str(ysize) + "...")
+        image_array = ds.ReadAsArray().astype(np.uint8)
+        image_array = np.swapaxes(image_array,0,1)
+        image_array = np.swapaxes(image_array,1,2)
     
+
     
+        futures_list = []
         number_of_zoom_levels = int(min(math.floor(math.log(xsize/tile_size,2)), math.floor(math.log(ysize/tile_size,2))))
         
+        
+        
+        #creating meta data file
+        metadata = {"lrx":lrx, "lry": lry, "ulx":ulx, "uly":uly}
+        metadata["zoomlevels"] = number_of_zoom_levels
+        metadata["imageWidth"] = xsize
+        metadata["imageHeight"] = ysize
+        metadata["tileSize"] = tile_size
+        
+        metadata_path = os.path.join(out_path,"metadata.json")
+        #save metadata file
+        with open(metadata_path, 'w') as outfile:
+            json.dump(metadata, outfile)
+
+        
+        
+        
+        
+        
+        
+        print("Tiling image into " + str(number_of_zoom_levels) + " zoom levels...")
         for zoom_level in (range(0,number_of_zoom_levels)):
             
             os.makedirs(os.path.join(out_path,str(zoom_level)),exist_ok=True)
@@ -114,6 +147,8 @@ def preprocess_internal(in_path, out_path, tile_size = 256):
 
                     future = executor.submit(crop_image,ds,tile_size, original_tilesize,image_array,y_start,x_start,out_path_image)
                     futures_list.append(future)
+                    
+
                     
         for i in progressbar.progressbar(range(0,len(futures_list))):
             while not futures_list[i].done():

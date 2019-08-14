@@ -150,17 +150,13 @@ fun getAllAnnotationFileUris(projectDirectory: Uri, context:Context): ArrayList<
 
 fun getAnnotationFileUri(projectDirectory: Uri, context:Context): Uri{
     val documentFile = DocumentFile.fromTreeUri(context, projectDirectory)
-    var imageName = "placeholder"
+    var imageName = "annotations.json"
     for (file in documentFile!!.listFiles()) {
-        if(file.name!!.contains("_annotations.json")){
+        if(file.name!!.contains("annotations.json")){
             return file.uri
         }
-        if (file.isFile && (file.name!!.contains(".tif")||file.name!!.contains(".png")||file.name!!.contains(".jpg"))){
-            imageName = file.name!!
-        }
     }
-
-    return makeFile(projectDirectory,imageName.substring(0,imageName.length-4) + "_annotations.json" ,context)
+    return makeFile(projectDirectory,imageName ,context)
 }
 
 

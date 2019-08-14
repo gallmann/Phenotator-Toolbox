@@ -203,7 +203,7 @@ class AnnotationState(@Transient var projectDirectory: Uri, @Transient var flowe
     }
 
     fun hasLocationInformation(): Boolean{
-        if(metadata.lr_lon != 0.0 || metadata.ul_lon != 0.0){
+        if(metadata.lrx != 0.0 || metadata.ulx != 0.0){
             return true
         }
         return false
@@ -211,16 +211,24 @@ class AnnotationState(@Transient var projectDirectory: Uri, @Transient var flowe
 
     fun getTopLeftCoordinates():Pair<Double,Double>{
         if(metadata != null){
-            return Pair(metadata.ul_lat,metadata.ul_lon)
+            return Pair(metadata.uly,metadata.ulx)
         }
         return Pair(0.0,0.0)
     }
 
     fun getBottomRightCoordinates():Pair<Double,Double>{
         if(metadata != null){
-            return Pair(metadata.lr_lat,metadata.lr_lon)
+            return Pair(metadata.lry,metadata.lrx)
         }
         return Pair(0.0,0.0)
+    }
+
+    fun getImageWidth():Int{
+        return metadata.imageWidth
+    }
+
+    fun getImageHeight():Int{
+        return metadata.imageHeight
     }
 
     fun getFlowerCount(flower:String):Int{
