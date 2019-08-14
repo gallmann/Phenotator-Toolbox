@@ -18,7 +18,7 @@
     <string name="max_zoom_title">Max Zoom</string>
     <string name="max_zoom_detail"></string>
     <string name="annotation_show_title">Show annotations at zoom level</string>
-    <string name="annotation_show_detail">A value smaller than 0.8 may slow down the app!</string>
+    <string name="annotation_show_detail">Small values may slow down the app!</string>
 
 
     <string name="load_from_csv">IMPORT FROM CSV</string>
