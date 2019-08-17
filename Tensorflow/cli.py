@@ -243,7 +243,7 @@ def export_annotations(annotation_folder,output_folder):
 @click.option('--output-image-width', default=constants.output_image_width,type=int, help='The width of the output image, the height is resized such that the width/height ratio is preserved.',show_default=True)
 @click.option('--generate-from-multiple', default=False,type=bool, help='If True, the script takes all predictions in the input folder and generates one heatmap from all of them. For this option, the input folder needs to contain georeferenced images and the background-image option has to be set.',show_default=True)
 @click.option('--background-image', default=None,type=click.Path(), help='The path to the image that should be used as background for the heatmap. (The background can still be deactivated with the --overlay flag but it needs to be provided as a frame for the heatmap.) If generate-from-multiple is set to False, this option is ignored.',show_default=True)
-@click.option('--window', default=None,type=float, help='',show_default=True,nargs=4)
+@click.option('--window', default=None,type=float, help='Four float values indicating the [ulx, uly, lrx, lry] coordinates in the swiss coordinate system LV95+ of the area that should be used for the heatmap.',show_default=True,nargs=4)
 def generate_heatmaps(predictions_folder, background_image, output_folder, heatmap_width, max_val ,flower , min_score, overlay, output_image_width, generate_from_multiple,window):
     """
     Creates heatmaps for all images in the predictions_folder and saves them to

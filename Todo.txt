@@ -1,9 +1,7 @@
-Fix GPS position code on App
-Show tile preview of images on App
 Enable single image annotations in App
-
+Adjust python scripts for new tablet app version
 
 Fix pyproj installation error
-Finish resolution experiment
 fix prediction on large images visualization bug
 Insert default value into flower list
+check if missing the closeby leucanthemum is caused by nun max suppression

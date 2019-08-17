@@ -254,7 +254,7 @@ def are_coordinates_within_image_bounds(x,y,width,height):
     """
 
     #check if the (x,y) coordinates lay within the image bounds
-    if(x < width and y < height and x > 0 and y > 0):
+    if(x < width and y < height and x >= 0 and y >= 0):
         return True
     return False
         

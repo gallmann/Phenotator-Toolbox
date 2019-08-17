@@ -205,7 +205,6 @@ def create_heatmap_internal(input_images, background_image, output_folder, heatm
         predictions = file_utils.read_json_file(image_path[:-4] + "_predictions.json")
         if predictions == None:
             continue
-        
         for prediction in predictions:
             score = prediction["score"]
             if score < min_score:
@@ -227,8 +226,6 @@ def create_heatmap_internal(input_images, background_image, output_folder, heatm
             heatmaps["overall"][heatmap_y][heatmap_x] += 1
             
             
-            
-
     coverage_out_path = output_image[:-4] + "_coverage.png"
     save_heatmap_as_image(coverage_counter,coverage_out_path,background, output_image_width,None)
 
@@ -239,7 +236,7 @@ def create_heatmap_internal(input_images, background_image, output_folder, heatm
         out_path = output_image[:-4] + "_heatmap_" + heatmap_name + ".png"
         
         heatmap = heatmaps[heatmap_name]
-        coverage_counter[coverage_counter==0] = 100
+        coverage_counter[coverage_counter==0] = 100000
         heatmap = np.divide(heatmap,coverage_counter)
         
         print(heatmap_name + ": " + str(np.sum(heatmap)))
@@ -278,7 +275,7 @@ def save_heatmap_as_image(heatmap,output_path,background_image=None, output_imag
         max_val = np.max(heatmap)
     for y in range(0,height):
         for x in range(0,width):
-            if heatmap[y][x] == 0:
+            if heatmap[y][x] < 0.5:
                 color_ramp_index = 0
             else:
                 color_ramp_index = min(math.ceil(heatmap[y][x]/max_val*((len(color_ramp)-1))),len(color_ramp)-1)
@@ -317,14 +314,27 @@ def scale_image(image_to_scale, image_output_path, new_width=1000, window=None):
     
     """
     
-    ds = gdal.Open(image_to_scale)
+    
+    if window:
+        ds = gdal.Open(image_to_scale)
+        temp_image_path = image_output_path[:-4] + "_temp.tif"
+        gdal.Translate(temp_image_path,ds, options=gdal.TranslateOptions(projWin=window))
+        ds = gdal.Open(temp_image_path)
+    else:
+        ds = gdal.Open(image_to_scale)
+    
     band = ds.GetRasterBand(1)
     width = band.XSize
     height = band.YSize
     new_height = int(new_width/width*height)
     
-    gdal.Translate(image_output_path,ds, options=gdal.TranslateOptions(width=int(new_width),height=int(new_height),projWin=window))
-
+    gdal.Translate(image_output_path,ds, options=gdal.TranslateOptions(width=int(new_width),height=int(new_height)))
+    
+    ds = None
+    
+    if os.path.isfile(image_output_path[:-4] + "_temp.tif"):
+        os.remove(image_output_path[:-4] + "_temp.tif")
+    
     return Image.open(image_output_path)
     
     

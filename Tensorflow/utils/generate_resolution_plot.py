@@ -8,7 +8,8 @@ Created on Tue Aug 13 16:12:50 2019
 import matplotlib.pyplot as plt
 from matplotlib.ticker import FuncFormatter
 import numpy as np
-
+import custom_evaluations
+from utils import constants
 
 
 def y_fmt(y, pos):
@@ -48,11 +49,11 @@ def plot(x_indices, data, errors, data_labels, x_axis_label, y_axis_label, out_p
     
     #plt.plot(x_indices,data, "-o") #,"b-o"
     plt.legend(data_labels)
-    plt.xticks(1/x_indices)
+    #plt.xticks(1/x_indices)
     ax.yaxis.set_major_formatter(FuncFormatter(y_fmt))
 
     top = None
-    label_datapoints = True
+    label_datapoints = False
 
     plt.gca().set_ylim(bottom=0, top=top)
     plt.gca().set_xlim(left=0)
@@ -71,18 +72,13 @@ def plot(x_indices, data, errors, data_labels, x_axis_label, y_axis_label, out_p
 
 
 
-def plot1(x_indices, data, errors, data_labels, x_axis_label, y_axis_label, out_path):
-        
-    plt.plot(x_indices, data[0],"-o")
-    #plt.axis(x_indices)
-    plt.ylabel(y_axis_label)
-    plt.xlabel(x_axis_label)
-    plt.show()
-
-
-
-
-
+def get_data_from_experiments():
+    folders = [26,27,28,29,30,31,32,33,34,35]
+    for experiment_number in folders:
+        project_folder = "G:/Johannes/Experiments/0" + str(experiment_number) + "/output/"
+        predictions_folder = project_folder + "predictions"
+        stats = custom_evaluations.evaluate(project_folder, predictions_folder, "" ,iou_threshold=constants.iou_threshold,generate_visualizations=False,should_print_confusion_matrix=False,min_score=0.2)
+        print(stats)
 
 
 
@@ -90,10 +86,10 @@ x_indices = np.array([1.0,0.9,0.8,0.7,0.6,0.5,0.4,0.3,0.2,0.1,0.05])
 
 data = np.array([[0.3,0.6,3,4,5,6,7,8,9,3,4],[1,1,1,1,1,1,1,1,1,1,1]])
 errors = np.array([[0,0,0,0,0,0,0,0,0,0,0]])
-data_labels = np.array(["bla"])
+data_labels = np.array(["bla","bb"])
 
-x_axis_label = "fff"
-y_axis_label = "yyy"
+x_axis_label = "Ground Resolution (mm/pixel)"
+y_axis_label = "mAP"
 out_path = "G:/Johannes/test/test.png"
 
 plot(x_indices, data, errors, data_labels, x_axis_label, y_axis_label, out_path)

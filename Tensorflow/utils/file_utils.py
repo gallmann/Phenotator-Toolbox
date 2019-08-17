@@ -350,4 +350,24 @@ def strip_image(input_image_path, roi_file, output_image_path):
     print("Pixels inside polygons: "+ str( np.count_nonzero(mask)))
     
     
+def get_annotation_count_in_folder(folder_path):
+    count = {}
+    all_images = get_all_images_in_folder(folder_path)
+    for image_path in all_images:
+        annotations = get_annotations(image_path)
+        for annotation in annotations:
+            name = annotation["name"]
+            if(count.get(name) == None):
+                count[name] = 1
+            else:
+                count[name] = count[name] + 1
+    return count
+    
+    
+    
+    
+    
+    
+    
+    
     
