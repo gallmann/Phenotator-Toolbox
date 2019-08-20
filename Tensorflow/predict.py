@@ -210,8 +210,8 @@ def draw_bounding_box_onto_array(array,top,left,bottom,right,color=[0,0,0]):
         color = np.array(color).astype(np.uint8)
         top = max(0,int(top))
         left = max(0,int(left))
-        bottom = min(array.shape[1]-1,int(bottom))
-        right = min(array.shape[0]-1,int(right))
+        bottom = min(array.shape[0]-1,int(bottom))
+        right = min(array.shape[1]-1,int(right))
         for i in range(top,bottom+1,1):
             array[i,left] = color
             array[i,right] = color
