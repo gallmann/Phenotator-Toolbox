@@ -36,7 +36,7 @@ if StrictVersion(tf.__version__) < StrictVersion('1.9.0'):
 from object_detection.utils import label_map_util
 
 
-def predict(project_dir,images_to_predict,output_folder,tile_size,prediction_overlap,min_confidence_score=0.5,visualize_predictions=True,visualize_groundtruths=False, visualize_names=False,max_iou=0.3):
+def predict(project_dir,images_to_predict,output_folder,tile_size,prediction_overlap,min_confidence_score=0.5,visualize_predictions=True,visualize_groundtruths=False, visualize_scores=False, visualize_names=False, max_iou=0.3):
   """
   Makes predictions on all images in the images_to_predict folder and saves them to the
   output_folder with the prediction bounding boxes drawn onto the images. Additionally
@@ -175,10 +175,11 @@ def predict(project_dir,images_to_predict,output_folder,tile_size,prediction_ove
                 [top,left,bottom,right] = detection["bounding_box"]
                 score_string = str('{0:.2f}'.format(detection["score"]))
                 if not large_image:
+                    vis_string_list = []
+                    if visualize_scores:
+                        vis_string_list.append(score_string)
                     if visualize_names:
-                        vis_string_list =[score_string,detection["name"]]
-                    else:
-                        vis_string_list = []
+                        vis_string_list.append(detection["name"])                            
                     visualization_utils.draw_bounding_box_on_image(image,top,left,bottom,right,display_str_list=vis_string_list,thickness=1, color=col, use_normalized_coordinates=False)          
                 else:
                     col = flower_info.get_color_for_flower(detection["name"],get_rgb_value=True)[0:3]

@@ -101,13 +101,16 @@ def export_inference_graph(project_dir,model_selection_criterion,checkpoint):
 @click.option('--min-score', default=constants.min_confidence_score,type=float, help='Float between 0 and 1 indicating the minimum confidence a prediction must have to be considered.',show_default=True)
 @click.option('--visualize-predictions', default=constants.visualize_predictions,type=bool, help='If True, the prediction bounding boxes are painted onto copies of the input images and are saved to the predictions-folder.',show_default=True)
 @click.option('--visualize-groundtruth', default=constants.visualize_groundtruth,type=bool, help='If True, the groundtruth bounding boxes are painted onto copies of the input images and are saved to the predictions-folder.',show_default=True)
-def predict(project_dir,images_to_predict,predictions_folder,tile_size,prediction_overlap,min_score, visualize_predictions,visualize_groundtruth):
+@click.option('--visualize-score', default=constants.visualize_score,type=bool, help='If true, the score is printed above each bounding box.',show_default=True)
+@click.option('--visualize-name', default=constants.visualize_name,type=bool, help='If true, the class name is printed above each bounding box.',show_default=True)
+@click.option('--max-iou', default=constants.visualize_name,type=float, help='Float between 0 and 1 indicating the maximal iou for the non maximum suppression algorithm. For all predictions with an iou greater than max-iou, only the one with the better score is kept.',show_default=True)
+def predict(project_dir,images_to_predict,predictions_folder,tile_size,prediction_overlap,min_score, visualize_predictions,visualize_groundtruth,visualize_score,visualize_name,max_iou):
     """
         Runs the prediction algorithm on images (png, jpg and tif) of any size.
     """
     if check_inputs(folders=[project_dir,images_to_predict,predictions_folder]):
         import predict
-        predict.predict(project_dir,images_to_predict,predictions_folder,tile_size,prediction_overlap,min_score,visualize_predictions,visualize_groundtruth)
+        predict.predict(project_dir,images_to_predict,predictions_folder,tile_size,prediction_overlap,min_score,visualize_predictions,visualize_groundtruth,visualize_score,visualize_name,max_iou)
     
 
 

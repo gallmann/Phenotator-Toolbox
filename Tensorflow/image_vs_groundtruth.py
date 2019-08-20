@@ -15,7 +15,7 @@ from utils import constants
 
 
 
-input_folders = constants.input_folders
+input_folders = ["G:/Johannes/Data/June_14/MaskedAnnotatedSquaresOnSingleImages"]
 
 
 #small helper function to keep track of how many flowers of each species have been annotated 
@@ -73,11 +73,16 @@ for folder in input_folders:
      
 #print the summed up statistics to the console in a format that can directly
 #be imported into a latex table
-for key,value in sum_annotations.items():
+
+
+all_items = sorted(sum_annotations.items(), key=lambda k: k[0]) 
+
+
+for key,value in all_items:
     if key in sum_ground_truth:
         value_g = sum_ground_truth[key]
         if value_g != 0 or value != 0:
-            print(key + "  &  " + str(value_g) + "  &  " + str(value) + "  \\\\ ")
+            print(key + "  &  " + str(value) + "  &  " + str(int(value_g*56.1358707695)) + "  \\\\ ")
             #print("   " + key + ": "+ str(value) + " vs. " + str(value_g))
         sum_ground_truth.pop(key)
     else:

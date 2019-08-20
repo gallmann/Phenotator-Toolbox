@@ -75,7 +75,7 @@ def evaluate(project_folder, input_folder, output_folder,iou_threshold=constants
 
         ground_truths = filter_ground_truth(ground_truths,flower_names)
         predictions = filter_predictions(predictions,min_score)
-        predictions = eval_utils.non_max_suppression(predictions,0.3)
+        #predictions = eval_utils.non_max_suppression(predictions,0.3)
         
         for gt in ground_truths:
             gt["hits"] = 0
@@ -383,6 +383,7 @@ def filter_predictions(predictions, min_score):
     filtered_predictions = []
     for prediction in predictions:
         if prediction["score"] >= min_score:
+            #if prediction["name"] != "lotus corniculatus" and prediction["name"] != "leucanthemum vulgare" and prediction["name"] != "knautia arvensis":
             filtered_predictions.append(prediction)
     return filtered_predictions
 
