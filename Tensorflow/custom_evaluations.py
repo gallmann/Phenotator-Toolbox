@@ -25,7 +25,7 @@ from utils import eval_utils
 
 
 
-def evaluate(project_folder, input_folder, output_folder,iou_threshold=constants.iou_threshold,generate_visualizations=False,should_print_confusion_matrix=False,min_score=0.5):
+def evaluate(project_folder, input_folder, output_folder,iou_threshold=constants.iou_threshold,generate_visualizations=False,should_print_confusion_matrix=False,min_score=0.5,visualize_info=False):
     """
     Evaluates all predictions within the input_folder. The input folder should contain images
     alongside with prediction (imagename_prediction.json) and ground truth (imagename_ground_truth.json)
@@ -174,7 +174,10 @@ def evaluate(project_folder, input_folder, output_folder,iou_threshold=constants
                     if prediction["label"] == "fp" and gt["label"] == "fn":
                         if eval_utils.iou(prediction["bounding_box"], gt["bounding_box"])>iou_threshold:
                             [top,left,bottom,right] = gt["bounding_box"]
-                            visualization_utils.draw_bounding_box_on_image(image,top,left,bottom,right,display_str_list=["Misclassification", "is: " + gt["name"] , "pred: " + prediction["name"]],thickness=2, color="DarkOrange", use_normalized_coordinates=False)          
+                            vis_string = []
+                            if visualize_info:
+                                vis_string = ["Misclassification", "is: " + gt["name"] , "pred: " + prediction["name"]]
+                            visualization_utils.draw_bounding_box_on_image(image,top,left,bottom,right,display_str_list=vis_string,thickness=3, color="DarkOrange", use_normalized_coordinates=False)          
                             ground_truths.remove(gt)
                             predictions.remove(prediction)
             
@@ -182,11 +185,17 @@ def evaluate(project_folder, input_folder, output_folder,iou_threshold=constants
             for prediction in predictions:
                 [top,left,bottom,right] = prediction["bounding_box"]
                 if prediction["label"] == "fp":
-                    visualization_utils.draw_bounding_box_on_image(image,top,left,bottom,right,display_str_list=["FP", prediction["name"]],thickness=2, color="red", use_normalized_coordinates=False)          
+                    vis_string = []
+                    if visualize_info:
+                        vis_string = ["FP", prediction["name"]]
+                    visualization_utils.draw_bounding_box_on_image(image,top,left,bottom,right,display_str_list=vis_string,thickness=3, color="red", use_normalized_coordinates=False)          
             for gt in ground_truths:
                 if gt["label"] == "fn":
                     [top,left,bottom,right] = gt["bounding_box"]
-                    visualization_utils.draw_bounding_box_on_image(image,top,left,bottom,right,display_str_list=["FN", gt["name"]],thickness=2, color="MediumVioletRed", use_normalized_coordinates=False)          
+                    vis_string = []
+                    if visualize_info:
+                        vis_string = ["FN", gt["name"]]
+                    visualization_utils.draw_bounding_box_on_image(image,top,left,bottom,right,display_str_list=vis_string,thickness=3, color="MediumVioletRed", use_normalized_coordinates=False)          
             image_output_path = os.path.join(output_folder, os.path.basename(image_path))
             image.save(image_output_path)
 
