@@ -39,12 +39,9 @@ import java.nio.file.Files.isDirectory
 import androidx.documentfile.provider.DocumentFile
 import android.provider.DocumentsContract.Document.MIME_TYPE_DIR
 import android.content.Intent
-
-
-
-
-
-
+import com.google.gson.Gson
+import com.google.gson.reflect.TypeToken
+import com.google.gson.stream.JsonReader
 
 
 val SHARED_PREFERENCES_KEY = "Shared_Preferences_Key"
@@ -53,7 +50,7 @@ val LAST_OPENED_PROJECT_DIR = "projectDir"
 val USER_FLOWER_LIST = Pair(mutableSetOf("Sonnenblume", "Löwenzahn"),"flowerListKey")
 
 val DEFAULT_MAX_ZOOM_VALUE = Pair(30F,"MAX_ZOOM_KEY")
-val DEFAULT_ANNOTATION_SHOW_VALUE = Pair(0.9F,"ANNOTATION_SHOW_KEY")
+val DEFAULT_ANNOTATION_SHOW_VALUE = Pair(0.001F,"ANNOTATION_SHOW_KEY")
 val LOCATION_PERMISSION_REQUEST = 349
 val TURN_ON_LOCATION_USER_REQUEST = 347
 val OPEN_IMAGE_REQUEST_CODE: Int = 42
@@ -96,15 +93,6 @@ public fun isAClick(startX: Float, endX: Float, startY: Float, endY: Float, star
     return !(differenceX > CLICK_ACTION_THRESHOLD || differenceY > CLICK_ACTION_THRESHOLD)
 }
 
-public fun isCoordinateVisible(canvas: Canvas, x: Float, y:Float, margin: Float): Boolean{
-    if(x < 0 - margin || y < 0-margin){
-        return false
-    }
-    if(x>canvas.width+margin || y > canvas.height+margin){
-        return false
-    }
-    return true
-}
 
 fun isExternalStorageWritable(): Boolean {
     return Environment.getExternalStorageState() == Environment.MEDIA_MOUNTED
@@ -160,18 +148,104 @@ fun getAllAnnotationFileUris(projectDirectory: Uri, context:Context): ArrayList<
 }
 
 
-fun getAnnotationFileUri(projectDirectory: Uri, imageUri:Uri, context:Context): Uri{
+fun getAnnotationFileUri(projectDirectory: Uri, context:Context): Uri{
     val documentFile = DocumentFile.fromTreeUri(context, projectDirectory)
-    val imageFileName = getFileName(imageUri,context)
-    val annotationFileName = imageFileName.dropLast(4).plus("_annotations.json")
+    var imageName = "annotations.json"
     for (file in documentFile!!.listFiles()) {
-        if(file.name.equals(annotationFileName)){
+        if(file.name!!.contains("annotations.json")){
             return file.uri
         }
     }
-
-    return makeFile(projectDirectory,annotationFileName,context)
+    return makeFile(projectDirectory,imageName ,context)
 }
+
+
+
+
+
+
+
+
+
+
+fun findFile(projectDirectory: Uri,context: Context,fileName:String):Uri?{
+    println(fileName)
+    val documentFile = DocumentFile.fromTreeUri(context, projectDirectory)
+    for (subdir in documentFile!!.listFiles()) {
+        println(subdir.name)
+        if (subdir.isDirectory) {
+            println(subdir.listFiles().size)
+            var file = subdir.findFile(fileName)
+            if (file != null){
+                return file.uri
+            }
+        }
+    }
+    return null
+}
+
+
+
+
+fun fillTileUriMatrix(matrix:Array<Array<Array<Uri?>>>,projectDirectory: Uri, context: Context){
+    val documentFile = DocumentFile.fromTreeUri(context, projectDirectory)
+    var levelRegex: Regex = "_level([0-9]|[0-9][0-9]|[0-9][0-9][0-9]|[0-9][0-9][0-9][0-9])_x".toRegex()
+    var xRegex: Regex = "_x([0-9]|[0-9][0-9]|[0-9][0-9][0-9]|[0-9][0-9][0-9][0-9])_y".toRegex()
+    var yRegex: Regex = "_y([0-9]|[0-9][0-9]|[0-9][0-9][0-9]|[0-9][0-9][0-9][0-9])\\.".toRegex()
+
+
+    for (file in documentFile!!.listFiles()) {
+        if (file.isDirectory){
+            for (tile in file.listFiles()){
+                val level:Int = levelRegex.find(file.name!!)!!.value.substringAfterLast("_level").substringBeforeLast("_x").toInt()
+                val x:Int = xRegex.find(file.name!!)!!.value.substringAfterLast("_x").substringBeforeLast("_y").toInt()
+                val y:Int = yRegex.find(file.name!!)!!.value.substringAfterLast("_y").substringBeforeLast(".").toInt()
+                matrix[level][x][y] = file.uri
+            }
+        }
+    }
+}
+
+fun hasMetadata(projectDirectory: Uri,context: Context):Boolean{
+    val documentFile = DocumentFile.fromTreeUri(context, projectDirectory)
+    for (file in documentFile!!.listFiles()) {
+        if (file.name.equals("metadata.json")){
+            return true
+        }
+    }
+    return false
+}
+
+fun getMetadata(projectDirectory: Uri,context: Context):Metadata{
+    val documentFile = DocumentFile.fromTreeUri(context, projectDirectory)
+    for (file in documentFile!!.listFiles()) {
+        if (file.name.equals("metadata.json")){
+            val gson = Gson()
+            val reader = JsonReader(InputStreamReader(context.contentResolver.openInputStream(file.uri)))
+            val myType = object : TypeToken<Metadata>() {}.type
+            var metadata = gson.fromJson<Metadata>(reader, myType)
+            return metadata
+        }
+    }
+    throw FileNotFoundException("There seems to be no metadata file present.")
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 fun getGeoInfoUri(projectDirectory: Uri, imageUri:Uri, context:Context): Uri?{
     val documentFile = DocumentFile.fromTreeUri(context, projectDirectory)

@@ -11,36 +11,31 @@ import android.content.pm.PackageManager
 import android.widget.LinearLayout
 import android.content.Context.MODE_PRIVATE
 import android.content.IntentSender
+import android.graphics.Bitmap
 import com.google.android.material.snackbar.Snackbar
 import androidx.core.content.ContextCompat
 import com.google.android.gms.common.api.ResolvableApiException
 import com.google.android.gms.location.*
 import com.google.android.gms.tasks.Task
-import java.io.File
-import com.davemorrissey.labs.subscaleview.ImageViewState
-import android.graphics.PointF
 import android.net.Uri
-import androidx.annotation.NonNull
 import androidx.recyclerview.widget.DividerItemDecoration
 import androidx.recyclerview.widget.LinearLayoutManager
-import androidx.recyclerview.widget.RecyclerView
 import com.davemorrissey.labs.subscaleview.SubsamplingScaleImageView
+import com.moagrius.tileview.TileView
+import com.moagrius.tileview.io.StreamProviderFiles
+import com.moagrius.tileview.plugins.MarkerPlugin
 import com.simplecityapps.recyclerview_fastscroll.views.FastScrollRecyclerView
+import kotlinx.android.synthetic.main.nav_header_main.*
 import ru.dimorinny.floatingtextbutton.FloatingTextButton
+import java.io.FileNotFoundException
 import java.lang.Exception
 
 
-class MainFragment : Fragment(), FlowerListAdapter.ItemClickListener, View.OnTouchListener, View.OnClickListener, SubsamplingScaleImageView.OnImageEventListener, CompoundButton.OnCheckedChangeListener {
+class MainFragment : Fragment(), TileView.TouchListener, FlowerListAdapter.ItemClickListener, View.OnClickListener, CompoundButton.OnCheckedChangeListener {
     private lateinit var flowerListView: FastScrollRecyclerView
     private lateinit var polygonSwitch: Switch
     private lateinit var annotationState: AnnotationState
-    private lateinit var imageView: MyImageView
-    private lateinit var rightButton: FloatingTextButton
-    private lateinit var leftButton: FloatingTextButton
-    private lateinit var topButton: FloatingTextButton
-    private lateinit var bottomButton: FloatingTextButton
 
-    var restoredImageViewState: ImageViewState? = null
     private var currentEditIndex: Int = 0
     lateinit private var undoButton: MenuItem
 
@@ -52,7 +47,7 @@ class MainFragment : Fragment(), FlowerListAdapter.ItemClickListener, View.OnTou
     private lateinit var locationCallback: LocationCallback
 
     private lateinit var projectDirectory: Uri
-    private lateinit var currImageUri: Uri
+    private lateinit var tileView: MyTileView
 
 
     /** FRAGMENT LIFECYCLE FUNCTIONS **/
@@ -64,11 +59,10 @@ class MainFragment : Fragment(), FlowerListAdapter.ItemClickListener, View.OnTou
             override fun onLocationResult(locationResult: LocationResult?) {
                 locationResult ?: return
                 for (location in locationResult.locations){
-                    imageView.updateLocation(location)
+                    tileView.markersView.updateLocation(location)
                 }
             }
         }
-
     }
 
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View? {
@@ -93,27 +87,10 @@ class MainFragment : Fragment(), FlowerListAdapter.ItemClickListener, View.OnTou
         polygonSwitch = fragmentView.findViewById<Switch>(R.id.polygonSwitch)
         polygonSwitch.setOnCheckedChangeListener(this)
 
-        rightButton = fragmentView.findViewById<FloatingTextButton>(R.id.floating_button_right)
-        leftButton = fragmentView.findViewById<FloatingTextButton>(R.id.floating_button_left)
-        topButton = fragmentView.findViewById<FloatingTextButton>(R.id.floating_button_top)
-        bottomButton = fragmentView.findViewById<FloatingTextButton>(R.id.floating_button_bottom)
-        rightButton.setOnClickListener(object : View.OnClickListener { override fun onClick(view: View) {loadNextTile(R.id.floating_button_right)} })
-        leftButton.setOnClickListener(object : View.OnClickListener { override fun onClick(view: View) {loadNextTile(R.id.floating_button_left)} })
-        bottomButton.setOnClickListener(object : View.OnClickListener { override fun onClick(view: View) {loadNextTile(R.id.floating_button_bottom)} })
-        topButton.setOnClickListener(object : View.OnClickListener { override fun onClick(view: View) {loadNextTile(R.id.floating_button_top)} })
 
 
         return fragmentView
     }
-
-    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
-        super.onViewCreated(view, savedInstanceState)
-        if(savedInstanceState != null && savedInstanceState.containsKey(IMAGE_VIEW_STATE_KEY)) {
-            restoredImageViewState = savedInstanceState.getSerializable(IMAGE_VIEW_STATE_KEY) as ImageViewState
-        }
-
-    }
-
 
     override fun onResume() {
         super.onResume()
@@ -123,15 +100,14 @@ class MainFragment : Fragment(), FlowerListAdapter.ItemClickListener, View.OnTou
                 startLocationUpdates()
             }
         }
-        val prefs = context!!.getSharedPreferences(SHARED_PREFERENCES_KEY, MODE_PRIVATE)
-        val restoredImageUri = prefs.getString(LAST_OPENED_IMAGE_URI, null)
-        val restoredProjectUri = prefs.getString(LAST_OPENED_PROJECT_DIR, null)
+        if(!::tileView.isInitialized){
+            val prefs = context!!.getSharedPreferences(SHARED_PREFERENCES_KEY, MODE_PRIVATE)
+            val restoredProjectUri = prefs.getString(LAST_OPENED_PROJECT_DIR, null)
 
-        if (restoredImageUri != null && restoredProjectUri != null) {
-            currImageUri = Uri.parse(restoredImageUri)
-            projectDirectory = Uri.parse(restoredProjectUri)
-
-            myRequestPermissions(arrayOf(Manifest.permission.READ_EXTERNAL_STORAGE, Manifest.permission.WRITE_EXTERNAL_STORAGE), READ_PHONE_STORAGE_RETURN_CODE_STARTUP)
+            if (restoredProjectUri != null) {
+                projectDirectory = Uri.parse(restoredProjectUri)
+                myRequestPermissions(arrayOf(Manifest.permission.READ_EXTERNAL_STORAGE, Manifest.permission.WRITE_EXTERNAL_STORAGE), READ_PHONE_STORAGE_RETURN_CODE_STARTUP)
+            }
         }
     }
 
@@ -140,30 +116,6 @@ class MainFragment : Fragment(), FlowerListAdapter.ItemClickListener, View.OnTou
         stopLocationUpdates()
     }
 
-    override fun onSaveInstanceState(outState: Bundle) {
-        if(::imageView.isInitialized) {
-            val state = imageView.state
-            if (state != null) {
-                outState.putSerializable(IMAGE_VIEW_STATE_KEY, imageView.state)
-            }
-            imageView.recycle()
-        }
-    }
-
-    override fun onDestroyView() {
-        if(::imageView.isInitialized) {
-            val imageViewContainer: RelativeLayout = view!!.findViewById<RelativeLayout>(R.id.imageViewContainer)
-            imageViewContainer.removeView(imageView)
-        }
-        super.onDestroyView()
-    }
-
-    override fun onDestroy() {
-        super.onDestroy()
-        if(::imageView.isInitialized) {
-            imageView.recycle()
-        }
-    }
 
 
     /** OPTIONS MENU FUNCTIONS **/
@@ -180,7 +132,7 @@ class MainFragment : Fragment(), FlowerListAdapter.ItemClickListener, View.OnTou
         // as you specify a parent activity in AndroidManifest.xml.
         when (item.itemId) {
             R.id.action_import_image ->{
-                openImage()
+                openProject()
                 return false
             }
             R.id.action_undo -> {
@@ -207,9 +159,8 @@ class MainFragment : Fragment(), FlowerListAdapter.ItemClickListener, View.OnTou
 
 
     override fun onItemClick(view: View, position: Int) {
-        //TODO
         (flowerListView.adapter as FlowerListAdapter).selectedIndex(position)
-        imageView.invalidate()
+        tileView.markersView.invalidate()
     }
 
     override fun onClick(view: View) {
@@ -221,14 +172,14 @@ class MainFragment : Fragment(), FlowerListAdapter.ItemClickListener, View.OnTou
                 else{
                     annotationState.permanentlyAddCurrentFlower()
                     updateControlView()
-                    imageView.invalidate()
+                    tileView.markersView.invalidate()
                     polygonSwitch.isChecked = false
                 }
             }
             R.id.cancel_button -> {
                 annotationState.cancelCurrentFlower()
                 updateControlView()
-                imageView.invalidate()
+                tileView.markersView.invalidate()
             }
             R.id.upButton, R.id.downButton, R.id.leftButton, R.id.rightButton -> {
                 moveCurrentMark(view.id)
@@ -241,7 +192,7 @@ class MainFragment : Fragment(), FlowerListAdapter.ItemClickListener, View.OnTou
             R.id.polygonSwitch ->{
                 if(annotationState.currentFlower != null){
                     annotationState.currentFlower!!.isPolygon = checked
-                    imageView.invalidate()
+                    tileView.markersView.invalidate()
                 }
             }
         }
@@ -266,7 +217,7 @@ class MainFragment : Fragment(), FlowerListAdapter.ItemClickListener, View.OnTou
             }
         }
     }
-
+    /*
 
     /** IMAGE VIEW FUNCTIONS **/
     fun loadNextTile(id:Int){
@@ -333,9 +284,15 @@ class MainFragment : Fragment(), FlowerListAdapter.ItemClickListener, View.OnTou
             }
         }
     }
+*/
+
 
     fun initImageView(){
 
+        if(::tileView.isInitialized) {
+            tileView.visibility = View.INVISIBLE
+            tileView.destroy()
+        }
 
         if(!isExternalStorageWritable()){
             Snackbar.make(view!!, R.string.could_not_load_image, Snackbar.LENGTH_LONG).show();
@@ -345,36 +302,99 @@ class MainFragment : Fragment(), FlowerListAdapter.ItemClickListener, View.OnTou
             return
         }
 
-        view!!.findViewById<ProgressBar>(R.id.progress_circular).visibility = View.VISIBLE
-        view!!.findViewById<ProgressBar>(R.id.progress_circular).bringToFront()
+
         val flowerListSize = getFlowerListFromPreferences(context!!).size
-        annotationState = AnnotationState(currImageUri, projectDirectory, getFlowerListFromPreferences(context!!),context!!)
+        annotationState = AnnotationState(projectDirectory, getFlowerListFromPreferences(context!!),context!!)
         if(flowerListSize< annotationState.flowerList.size){
             Snackbar.make(view!!, R.string.added_flowers_to_list, Snackbar.LENGTH_LONG).show();
         }
         putFlowerListToPreferences(annotationState.flowerList,context!!)
-        val imageViewContainer: RelativeLayout = view!!.findViewById<RelativeLayout>(R.id.imageViewContainer)
 
 
-
-        if(::imageView.isInitialized){
-            imageView.recycle()
-            imageViewContainer.removeView(imageView)
-            updateControlView()
+        var metadata = Metadata()
+        if(hasMetadata(projectDirectory,context!!)){
+            metadata = getMetadata(projectDirectory,context!!)
+        }
+        else{
+            throw FileNotFoundException("There is no metadata file.")
         }
 
-        imageView = MyImageView(context!!,annotationState,rightButton,leftButton,topButton,bottomButton, stateToRestore = restoredImageViewState)
-        imageView.setOnTouchListener(this)
-        imageView.setOnImageEventListener(this)
-        imageViewContainer.addView(imageView)
+        tileView = MyTileView(context!!, annotationState)
+        var tileViewBuilder:TileView.Builder = TileView.Builder(tileView)
+            .setSize(metadata.imageWidth, metadata.imageHeight)
+            .setStreamProvider(TileStreamProvider(projectDirectory,context!!,metadata))
+            .setTileSize(metadata.tileSize)
+            .addTouchListener(this)
+        for (zoomlevel in 0..metadata.zoomlevels){
+            println(zoomlevel.toString())
+            tileViewBuilder = tileViewBuilder.defineZoomLevel(zoomlevel,zoomlevel.toString())
+        }
+        tileView.setMaximumScale(100f)
+        tileView.smoothScaleAndScrollTo(metadata.imageWidth/2,metadata.imageHeight/2,0f)
+        view!!.findViewById<RelativeLayout>(R.id.imageViewContainer).addView(tileView)
+        tileView.layoutParams = RelativeLayout.LayoutParams(RelativeLayout.LayoutParams(RelativeLayout.LayoutParams.MATCH_PARENT,RelativeLayout.LayoutParams.MATCH_PARENT))
+        tileViewBuilder.build()
 
-        val editor = context!!.getSharedPreferences(SHARED_PREFERENCES_KEY, MODE_PRIVATE).edit()
-        editor.putString(LAST_OPENED_IMAGE_URI,currImageUri.toString())
-        editor.putString(LAST_OPENED_PROJECT_DIR,projectDirectory.toString())
-        editor.apply()
         if(annotationState.hasLocationInformation()){
             startLocationUpdates()
         }
+
+
+        /*
+        val density = resources.displayMetrics.densityDpi.toFloat()
+        var locationPin = getBitmapFromVectorDrawable(context!!,R.drawable.my_location)
+        var w = density / 200f * locationPin.width
+        var h = density / 200f * locationPin.height
+        locationPin = Bitmap.createScaledBitmap(locationPin, w.toInt(), h.toInt(), true)
+        for (i in 0..2560) {
+            //tileView.addMarker(locationPin, i.toFloat()*2f, 500f)
+        }
+
+        */
+
+
+
+    /*
+    if(!isExternalStorageWritable()){
+        Snackbar.make(view!!, R.string.could_not_load_image, Snackbar.LENGTH_LONG).show();
+        val editor = context!!.getSharedPreferences(SHARED_PREFERENCES_KEY, MODE_PRIVATE).edit()
+        editor.putString(LAST_OPENED_IMAGE_URI,null)
+        editor.apply()
+        return
+    }
+
+    view!!.findViewById<ProgressBar>(R.id.progress_circular).visibility = View.VISIBLE
+    view!!.findViewById<ProgressBar>(R.id.progress_circular).bringToFront()
+    val flowerListSize = getFlowerListFromPreferences(context!!).size
+    annotationState = AnnotationState(currImageUri, projectDirectory, getFlowerListFromPreferences(context!!),context!!)
+    if(flowerListSize< annotationState.flowerList.size){
+        Snackbar.make(view!!, R.string.added_flowers_to_list, Snackbar.LENGTH_LONG).show();
+    }
+    putFlowerListToPreferences(annotationState.flowerList,context!!)
+    val imageViewContainer: RelativeLayout = view!!.findViewById<RelativeLayout>(R.id.imageViewContainer)
+
+
+
+    if(::imageView.isInitialized){
+        imageView.recycle()
+        imageViewContainer.removeView(imageView)
+        updateControlView()
+    }
+
+    imageView = MyImageView(context!!,annotationState,rightButton,leftButton,topButton,bottomButton, stateToRestore = restoredImageViewState)
+    imageView.setOnTouchListener(this)
+    imageView.setOnImageEventListener(this)
+    imageViewContainer.addView(imageView)
+
+    val editor = context!!.getSharedPreferences(SHARED_PREFERENCES_KEY, MODE_PRIVATE).edit()
+    editor.putString(LAST_OPENED_IMAGE_URI,currImageUri.toString())
+    editor.putString(LAST_OPENED_PROJECT_DIR,projectDirectory.toString())
+    editor.apply()
+    if(annotationState.hasLocationInformation()){
+        startLocationUpdates()
+    }
+
+    */
     }
 
     private fun stopLocationUpdates() {
@@ -430,7 +450,7 @@ class MainFragment : Fragment(), FlowerListAdapter.ItemClickListener, View.OnTou
                 annotationState.currentFlower!!.incrementYPos(currentEditIndex)
             }
         }
-        imageView.invalidate()
+        tileView.markersView.invalidate()
     }
 
 
@@ -446,7 +466,7 @@ class MainFragment : Fragment(), FlowerListAdapter.ItemClickListener, View.OnTou
         onRequestPermissionsResult(requestCode,permissions,grantResults = IntArray(permissions.size,{_ -> PackageManager.PERMISSION_GRANTED}))
     }
 
-    private fun openImage(){
+    private fun openProject(){
         myRequestPermissions(arrayOf(Manifest.permission.READ_EXTERNAL_STORAGE, Manifest.permission.WRITE_EXTERNAL_STORAGE), READ_PHONE_STORAGE_RETURN_CODE)
     }
 
@@ -478,10 +498,6 @@ class MainFragment : Fragment(), FlowerListAdapter.ItemClickListener, View.OnTou
         }
     }
 
-    override fun onReady() {
-        view!!.findViewById<ProgressBar>(R.id.progress_circular).visibility = View.INVISIBLE
-    }
-
     override fun onActivityResult(requestCode: Int, resultCode: Int, resultData: Intent?) {
 
         if (requestCode == OPEN_IMAGE_REQUEST_CODE && resultCode == AppCompatActivity.RESULT_OK) {
@@ -491,8 +507,9 @@ class MainFragment : Fragment(), FlowerListAdapter.ItemClickListener, View.OnTou
                         (Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION)
                 context!!.contentResolver.takePersistableUriPermission(uri, takeFlags)
                 projectDirectory = uri
-                currImageUri = getFirstImageTile(uri,context!!)
-                restoredImageViewState = null
+                val editor = context!!.getSharedPreferences(SHARED_PREFERENCES_KEY, MODE_PRIVATE).edit()
+                editor.putString(LAST_OPENED_PROJECT_DIR,projectDirectory.toString())
+                editor.apply()
                 initImageView()
             }
         }
@@ -501,8 +518,7 @@ class MainFragment : Fragment(), FlowerListAdapter.ItemClickListener, View.OnTou
         }
     }
 
-    override fun onTouch(view: View, event: MotionEvent): Boolean {
-
+    override fun onTouch(event: MotionEvent) {
         when (event.action) {
             MotionEvent.ACTION_DOWN -> {
                 startX = event.x
@@ -514,8 +530,9 @@ class MainFragment : Fragment(), FlowerListAdapter.ItemClickListener, View.OnTou
                 val endY = event.y
                 val endTime = System.currentTimeMillis()
                 if (isAClick(startX, endX, startY, endY, startTime, endTime, context!!)) {
-                    if(imageView.isEditable()){
-                        val editFlower = imageView.clickedOnExistingMark(endX,endY);
+
+                    if(tileView.markersView.isEditable()){
+                        val editFlower = tileView.markersView.clickedOnExistingMark(endX,endY);
                         if(editFlower != null){
                             clickedOnExistingMark(editFlower)
                         }
@@ -526,25 +543,28 @@ class MainFragment : Fragment(), FlowerListAdapter.ItemClickListener, View.OnTou
                 }
             }
         }
-        return false
     }
 
     private fun clickedOnNewPosition(event: MotionEvent){
+
         if(annotationState.currentFlower != null && annotationState.currentFlower!!.isPolygon){
-            var sourcecoord: PointF = imageView.viewToSourceCoord(PointF(event.x, event.y))!!
-            annotationState.currentFlower!!.addPolygonPoint(Coord(sourcecoord.x,sourcecoord.y))
+
+            var c:Coord = tileView.markersView.convertCoordinates(event.x,event.y)
+            annotationState.currentFlower!!.addPolygonPoint(Coord(c.x,c.y))
             setCurrentEditIndex(annotationState.currentFlower!!.polygon.size-1)
             if(annotationState.currentFlower!!.polygon.size > 1) enableUndoButton(true)
-            imageView.invalidate()
+            tileView.markersView.invalidate()
+
         }
         else{
-            var sourcecoord: PointF = imageView.viewToSourceCoord(PointF(event.x, event.y))!!
-            annotationState.addNewFlowerMarker(sourcecoord.x, sourcecoord.y)
+            var c:Coord = tileView.markersView.convertCoordinates(event.x,event.y)
+            annotationState.addNewFlowerMarker(c.x, c.y)
             setCurrentEditIndex(0)
             updateControlView()
-            imageView.invalidate()
+            tileView.markersView.invalidate()
         }
     }
+
 
     private fun clickedOnExistingMark(flower: Pair<Flower,Int>){
         if(annotationState.currentFlower != null && annotationState.currentFlower!!.isPolygon && annotationState.currentFlower!!.polygon.size < 3){
@@ -557,13 +577,13 @@ class MainFragment : Fragment(), FlowerListAdapter.ItemClickListener, View.OnTou
             setCurrentEditIndex(flower.second)
             if(annotationState.currentFlower!!.polygon.size > 1) enableUndoButton(true)
             updateControlView()
-            imageView.invalidate()
+            tileView.markersView.invalidate()
         }
         else{
             annotationState.startEditingFlower(flower.first)
             setCurrentEditIndex(0)
             updateControlView()
-            imageView.invalidate()
+            tileView.markersView.invalidate()
         }
     }
 
@@ -573,27 +593,15 @@ class MainFragment : Fragment(), FlowerListAdapter.ItemClickListener, View.OnTou
             setCurrentEditIndex(annotationState.currentFlower!!.polygon.size-1)
             if(annotationState.currentFlower!!.polygon.size > 1) enableUndoButton(true)
             else enableUndoButton(false)
-            imageView.invalidate()
+            tileView.markersView.invalidate()
         }
     }
 
     private fun setCurrentEditIndex(index: Int){
         currentEditIndex = index
-        imageView.currentEditIndex = index
+        tileView.markersView.currentEditIndex = index
     }
 
 
 
-
-    /** UNUSED STUBS **/
-
-    override fun onImageLoaded() {}
-
-    override fun onTileLoadError(e: Exception?) {}
-
-    override fun onPreviewReleased() {}
-
-    override fun onImageLoadError(e: Exception?) {}
-
-    override fun onPreviewLoadError(e: Exception?) {}
 }

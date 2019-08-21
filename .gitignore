@@ -83,6 +83,7 @@ Tensorflow/utils/constants.py
 Data - Kopie/
 Tensorflow/__pycache__/select_region.cpython-36.pyc
 Tensorflow/__pycache__/
+
 Tensorflow/object_detection/__pycache__/
 Tensorflow/object_detection/anchor_generators/__pycache__/__init__.cpython-36.pyc
 Tensorflow/object_detection/anchor_generators/__pycache__/grid_anchor_generator.cpython-36.pyc
@@ -106,3 +107,5 @@ Tensorflow/slim/nets/__pycache__/
 Tensorflow/slim/nets/mobilenet/__pycache__/
 Tensorflow/slim/nets/nasnet/__pycache__/
 Tensorflow/object_detection/anchor_generators/__pycache__/
+AnnotationTool/my-key.keystore
+AnnotationTool/app/release/
