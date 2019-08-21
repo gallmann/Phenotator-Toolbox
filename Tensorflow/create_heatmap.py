@@ -16,6 +16,10 @@ import os
 import gdal
 from utils import apply_annotations
 import progressbar
+import matplotlib.pyplot as plt
+import matplotlib as mpl
+import matplotlib.image as mpimg
+
 
 def get_height_width_of_image(image_path):
     max_pixels = Image.MAX_IMAGE_PIXELS
@@ -292,6 +296,30 @@ def save_heatmap_as_image(heatmap,output_path,background_image=None, output_imag
         newIm = overlay_images(background_image,newIm)
         
     newIm.save(output_path)
+    
+    
+    
+    #save with colorbar
+    float_color_ramp = np.array(color_ramp)/255
+
+    cmap = mpl.colors.ListedColormap(float_color_ramp,N=len(float_color_ramp)-1)
+    cmap.set_over('red',100/255)
+    
+    
+    
+    fig, axs = plt.subplots()
+    
+    img = mpimg.imread(output_path)
+    imgplot = plt.imshow(img)
+    plt.axis('off')
+    
+    imgplot.set_cmap(cmap)
+    imgplot.set_clim(0,max_val)
+    
+    plt.colorbar(extend='max')
+    
+    plt.savefig(output_path,dpi=1000)
+
     
     #newIm.show()
 
