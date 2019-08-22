@@ -12,6 +12,7 @@
     <string name="cancel_button">CANCEL/DELETE</string>
     <string name="done_button">SAVE</string>
     <string name="could_not_load_image">An Error occured while trying to load the Image. Please try again!</string>
+    <string name="is_not_valid_directory">The provided project directory was not found!</string>
     <string name="action_restore_defaults">Restore Default Values</string>
 
 

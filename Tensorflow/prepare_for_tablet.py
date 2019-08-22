@@ -77,17 +77,19 @@ def preprocess_internal(in_path, out_path, tile_size = 256):
         # LatLon with WGS84 datum used by GPS units and Google Earth
         wgs84=pyproj.Proj("+init=EPSG:4326") 
         
-        #GetGeoTransform() returns the upper left coordinates in the input (swiss) coordinate system (ulx,uly)
-        #xres and yres denote the width and height of a pixel
-        #xskew and yskew is the tilt. This should be 0
-        ulx, xres, xskew, uly, yskew, yres  = ds.GetGeoTransform()                
-        
-        lrx = ulx + (ds.RasterXSize * xres)
-        lry = uly + (ds.RasterYSize * yres)
-        
-        lrx,lry = pyproj.transform(swiss, wgs84, lrx, lry)
-        ulx,uly = pyproj.transform(swiss, wgs84, ulx, uly)
-
+        if create_geoinfo_file:
+            #GetGeoTransform() returns the upper left coordinates in the input (swiss) coordinate system (ulx,uly)
+            #xres and yres denote the width and height of a pixel
+            #xskew and yskew is the tilt. This should be 0
+            ulx, xres, xskew, uly, yskew, yres  = ds.GetGeoTransform()                
+            
+            lrx = ulx + (ds.RasterXSize * xres)
+            lry = uly + (ds.RasterYSize * yres)
+            
+            lrx,lry = pyproj.transform(swiss, wgs84, lrx, lry)
+            ulx,uly = pyproj.transform(swiss, wgs84, ulx, uly)
+        else:
+            lrx = lry = ulx = uly = 0.0
 
         
         

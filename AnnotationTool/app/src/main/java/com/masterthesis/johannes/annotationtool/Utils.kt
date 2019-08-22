@@ -45,7 +45,6 @@ import com.google.gson.stream.JsonReader
 
 
 val SHARED_PREFERENCES_KEY = "Shared_Preferences_Key"
-val LAST_OPENED_IMAGE_URI = "imageURI"
 val LAST_OPENED_PROJECT_DIR = "projectDir"
 val USER_FLOWER_LIST = Pair(mutableSetOf("Sonnenblume", "Löwenzahn"),"flowerListKey")
 
@@ -184,6 +183,10 @@ fun findFile(projectDirectory: Uri,context: Context,fileName:String):Uri?{
     return null
 }
 
+
+fun isValidProjectDirectory(projectDirectory: Uri,context: Context):Boolean{
+    return DocumentsContract.isDocumentUri(context,projectDirectory) || DocumentsContract.isTreeUri(projectDirectory)
+}
 
 
 
