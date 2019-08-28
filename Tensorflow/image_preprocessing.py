@@ -39,6 +39,7 @@ import urllib.request
 import tarfile
 import shutil
 from object_detection.protos import preprocessor_pb2
+import numpy as np
 
 
 
@@ -167,20 +168,32 @@ def tile_image_and_annotations(image_path, output_folder,labels,input_folder_ind
         that contain any flowers.
     """
     
-    image = Image.open(image_path)
+    #image = Image.open(image_path)
+    image_array = file_utils.get_image_array(image_path)
+    height = image_array.shape[0]
+    width = image_array.shape[1]
     image_name = os.path.basename(image_path)
     for tile_size in tile_sizes:
         counter = 0
         currentx = 0
         currenty = 0
-        while currenty < image.size[1]:
-            while currentx < image.size[0]:
+        while currenty < height:
+            while currentx < width:
                 filtered_annotations = get_flowers_within_bounds(image_path, currentx,currenty,tile_size)
                 if len(filtered_annotations) == 0:
                     #Ignore image tiles without any annotations
                     currentx += tile_size-overlap
                     continue
-                tile = image.crop((currentx,currenty,currentx + tile_size,currenty + tile_size))
+                
+                #crop the image using gdal
+                cropped_array = image_array[currenty:currenty+tile_size,currentx:currentx+tile_size,:]
+                
+                pad_end_x = tile_size - cropped_array.shape[1]
+                pad_end_y = tile_size - cropped_array.shape[0]
+                cropped_array = np.pad(cropped_array,((0,pad_end_y),(0,pad_end_x),(0,0)), mode='constant', constant_values=0)
+                tile = Image.fromarray(cropped_array)
+
+                #tile = image.crop((currentx,currenty,currentx + tile_size,currenty + tile_size))
                 output_image_path = os.path.join(output_folder, image_name + "_subtile_" + "x" + str(currentx) + "y" + str(currenty) + "size" + str(tile_size) + "_inputdir" + str(input_folder_index) + ".png")
                 tile.save(output_image_path,"PNG")
                 
