@@ -155,6 +155,14 @@ fun getAnnotationFileUri(projectDirectory: Uri, context:Context): Uri{
             return file.uri
         }
     }
+
+    for (file in documentFile!!.listFiles()) {
+        if(file.type.equals("image/png") || file.type.equals("image/jpg")|| file.type.equals("image/tif")) {
+            imageName = file.name!!
+            return makeFile(projectDirectory,imageName.substring(0,imageName.length-4) + "_annotations.json",context)
+        }
+    }
+
     return makeFile(projectDirectory,imageName ,context)
 }
 
