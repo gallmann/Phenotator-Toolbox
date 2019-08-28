@@ -19,6 +19,7 @@ import progressbar
 import matplotlib.pyplot as plt
 import matplotlib as mpl
 import matplotlib.image as mpimg
+from matplotlib.colors import LinearSegmentedColormap
 
 
 def get_height_width_of_image(image_path):
@@ -32,7 +33,7 @@ def get_height_width_of_image(image_path):
 
 
 
-def create_heatmap_from_multiple(predictions_folder, background_image, output_folder, heatmap_width=100, max_val=None ,flower_list=None, min_score=0.5, overlay=True, output_image_width=1000, window=None):
+def create_heatmap_from_multiple(predictions_folder, background_image, output_folder, heatmap_width=100, max_val=None ,flower_list=None, min_score=0.5, overlay=True, output_image_width=1000, window=None, with_colorbar=True):
     """
     Creates heatmaps for the background_image using all georeferenced images in the
     predictions_folder and saves them to the output_folder. The input images must
@@ -67,12 +68,12 @@ def create_heatmap_from_multiple(predictions_folder, background_image, output_fo
     
     """
     all_images = file_utils.get_all_images_in_folder(predictions_folder)
-    create_heatmap_internal(all_images, background_image, output_folder, heatmap_width, max_val, flower_list, min_score, overlay, output_image_width, window)
+    create_heatmap_internal(all_images, background_image, output_folder, heatmap_width, max_val, flower_list, min_score, overlay, output_image_width, window,with_colorbar)
 
 
 
 
-def create_heatmap(predictions_folder, output_folder, heatmap_width=100, max_val=None ,flower_list=None, min_score=0.5, overlay=True, output_image_width=1000,window=None):
+def create_heatmap(predictions_folder, output_folder, heatmap_width=100, max_val=None ,flower_list=None, min_score=0.5, overlay=True, output_image_width=1000,window=None,with_colorbar=True):
     """
     Creates heatmaps for all images in the predictions_folder and saves them to
     the output_folder.
@@ -106,14 +107,14 @@ def create_heatmap(predictions_folder, output_folder, heatmap_width=100, max_val
     
     all_images = file_utils.get_all_images_in_folder(predictions_folder)
     for image_path in all_images:
-        create_heatmap_internal([image_path], image_path, output_folder, heatmap_width, max_val, flower_list, min_score, overlay, output_image_width, window)
+        create_heatmap_internal([image_path], image_path, output_folder, heatmap_width, max_val, flower_list, min_score, overlay, output_image_width, window,with_colorbar)
     return
     
     
     
     
 
-def create_heatmap_internal(input_images, background_image, output_folder, heatmap_width=100, max_val=None ,flower_list=None, min_score=0.5, overlay=True, output_image_width=1000, window=None):
+def create_heatmap_internal(input_images, background_image, output_folder, heatmap_width=100, max_val=None ,flower_list=None, min_score=0.5, overlay=True, output_image_width=1000, window=None,with_colorbar=True):
     """
     Creates heatmaps for the background_image using all georeferenced images in the
     predictions_folder and saves them to the output_folder. The input images must
@@ -226,12 +227,17 @@ def create_heatmap_internal(input_images, background_image, output_folder, heatm
             heatmap_x = int(math.ceil(center_x/stride))-1
             if not apply_annotations.are_coordinates_within_image_bounds(heatmap_x,heatmap_y,heatmap_size_x,heatmap_size_y):
                 continue
-            heatmaps[name][heatmap_y][heatmap_x] += 1
-            heatmaps["overall"][heatmap_y][heatmap_x] += 1
+            
+            if name == "lotus corniculatus":
+                heatmaps[name][heatmap_y][heatmap_x] += 2.6
+                heatmaps["overall"][heatmap_y][heatmap_x] += 2.6
+            else: 
+                heatmaps[name][heatmap_y][heatmap_x] += 1
+                heatmaps["overall"][heatmap_y][heatmap_x] += 1
             
             
     coverage_out_path = output_image[:-4] + "_coverage.png"
-    save_heatmap_as_image(coverage_counter,coverage_out_path,background, output_image_width,None)
+    save_heatmap_as_image(coverage_counter,coverage_out_path,background, output_image_width,None,with_colorbar)
 
 
     for heatmap_name in heatmaps:
@@ -244,13 +250,12 @@ def create_heatmap_internal(input_images, background_image, output_folder, heatm
         heatmap = np.divide(heatmap,coverage_counter)
         
         print(heatmap_name + ": " + str(np.sum(heatmap)))
-        
-        save_heatmap_as_image(heatmap,out_path,background, output_image_width,max_val)
+        save_heatmap_as_image(heatmap,out_path,background, output_image_width,max_val,with_colorbar)
 
                 
 
 
-def save_heatmap_as_image(heatmap,output_path,background_image=None, output_image_width=1000, max_val=None):
+def save_heatmap_as_image(heatmap,output_path,background_image=None, output_image_width=1000, max_val=None,with_colorbar=True):
     """
     Saves a heatmap numpy array as an image.
     
@@ -271,19 +276,28 @@ def save_heatmap_as_image(heatmap,output_path,background_image=None, output_imag
     
     """
     
-    
+
     height = heatmap.shape[0]
     width = heatmap.shape[1]
     image_array = np.zeros((height,width,4), dtype=np.uint8)
     if max_val == None:
         max_val = np.max(heatmap)
+    print(max_val)
+    float_color_ramp = np.array(color_ramp)/255
+    #cmap = mpl.colors.ListedColormap(float_color_ramp,N=len(float_color_ramp)-1)
+    cmap = LinearSegmentedColormap.from_list("bla", float_color_ramp, N=max(2,max_val))
+    cmap.set_over('red',100/255)
+        
+        
     for y in range(0,height):
         for x in range(0,width):
             if heatmap[y][x] < 0.5:
                 color_ramp_index = 0
             else:
                 color_ramp_index = min(math.ceil(heatmap[y][x]/max_val*((len(color_ramp)-1))),len(color_ramp)-1)
-            [r,g,b,a] = color_ramp[color_ramp_index]
+                color_ramp_index = heatmap[y][x]/max_val
+            #[r,g,b,a] = color_ramp[color_ramp_index]
+            [r,g,b,a] = np.array(list(cmap(color_ramp_index)))*255
             image_array[y][x] = [r,g,b,a]
     
     newIm = Image.fromarray(image_array, "RGBA")
@@ -299,32 +313,35 @@ def save_heatmap_as_image(heatmap,output_path,background_image=None, output_imag
     
     
     
-    #save with colorbar
-    float_color_ramp = np.array(color_ramp)/255
+    #save with colorbar  
+        
 
-    cmap = mpl.colors.ListedColormap(float_color_ramp,N=len(float_color_ramp)-1)
-    cmap.set_over('red',100/255)
+    if with_colorbar:
+        plt.figure(figsize = (output_image_width/300,int(output_image_width/width*height)/300))
+        ax = plt.gca()
     
+        img = mpimg.imread(output_path)
+        imgplot = plt.imshow(img)
+        plt.axis('off')
+        
+        imgplot.set_cmap(cmap)
+        imgplot.set_clim(0,max_val)
+        
+        
+        from mpl_toolkits.axes_grid1 import make_axes_locatable
     
+        divider = make_axes_locatable(ax)
+        cax = divider.append_axes("right", size="5%", pad=0.05)
+        
     
-    fig, axs = plt.subplots()
+        colorbar = plt.colorbar(imgplot,extend='max',cax=cax)
+        colorbar.ax.set_ylabel('Flowers per square meter')
     
-    img = mpimg.imread(output_path)
-    imgplot = plt.imshow(img)
-    plt.axis('off')
+        plt.savefig(output_path,dpi=300,bbox_inches='tight')
+        
+        #newIm.show()
     
-    imgplot.set_cmap(cmap)
-    imgplot.set_clim(0,max_val)
-    
-    plt.colorbar(extend='max')
-    
-    plt.savefig(output_path,dpi=1000)
-
-    
-    #newIm.show()
-
-    #file_utils.save_array_as_image(output_path,image_array)
- 
+        #file_utils.save_array_as_image(output_path,image_array)
     
     
 
@@ -445,7 +462,7 @@ color_ramp = [
    [255,63,0,100], #FF3F00
    [255,0,0,100]
 ]
- 
+
     
 
 '''
