@@ -20,7 +20,6 @@ import os
 import pyproj
 import progressbar
 import math
-from utils import file_utils
 import numpy as np
 from PIL import Image
 from concurrent.futures import ThreadPoolExecutor
