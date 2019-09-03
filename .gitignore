@@ -79,7 +79,6 @@ Tensorflow/workspace/
 AnnotationTool/build.gradle
 AnnotationTool/gradle/wrapper/gradle-wrapper.properties
 Data/
-Tensorflow/utils/constants.py
 Data - Kopie/
 Tensorflow/__pycache__/select_region.cpython-36.pyc
 Tensorflow/__pycache__/
