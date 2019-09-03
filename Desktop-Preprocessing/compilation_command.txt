@@ -1,1 +1,3 @@
-pyinstaller -y -F -w --add-data "flower.ico";"." -i flower.ico main.py
+pyinstaller -y -F -w --exclude-module PyQt5 --add-data "flower.ico";"." -i flower.ico main.py
+
+(use inside imageprocessing env)

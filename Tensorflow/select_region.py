@@ -82,6 +82,7 @@ def select_roi_in_images(folder):
             scale = scale_image_down(temp_image_path,folder)
             scale_map[temp_image_path] = scale
             scale_annotation_file(image_path,scale)
+            
         
         annotations = file_utils.get_annotations(image_path)
         #if not os.path.isfile(image_path[:-4] + ".json"):
@@ -92,21 +93,23 @@ def select_roi_in_images(folder):
     root.withdraw()
     # message box display
     messagebox.showinfo("Information","A window will open with the LabelMe Program. Within that program click through all images by using the 'Next Image' button. On each image draw one or more Polygons around the region of interest and label them 'roi'. Once done simply close the labelme program. All your selections will be saved and further processed. \n\nAdditionally all annotations are displayed as bounding boxes. If necessary these can be adjusted.")
-    subprocess.call(["labelme", folder, "--nodata", "--autosave", "--labels", "roi"])
-    
-    
+    if len(image_paths) == 1:
+        subprocess.call(["labelme", image_paths[0], "--nodata", "--autosave", "--labels", "roi"])
+    else:
+        subprocess.call(["labelme", folder, "--nodata", "--autosave", "--labels", "roi"])
+
     if os.path.isdir(temp_folder):
         temp_images = file_utils.get_all_images_in_folder(temp_folder)
         for temp_image_path in temp_images:
             dest_image_path = os.path.join(folder,os.path.basename(temp_image_path))
             shutil.move(temp_image_path, dest_image_path)
+            copy_labelme_annotations_to_tablet_annotation_file(image_path)
             scale_annotation_file(dest_image_path,1.0/scale_map[temp_image_path])
         os.rmdir(temp_folder)
 
     
     
 def scale_annotation_file(image_path,scale):
-    copy_labelme_annotations_to_tablet_annotation_file(image_path)
     annotations = file_utils.get_annotations(image_path)
     for annotation in annotations:
         for coord in annotation["polygon"]:

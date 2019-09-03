@@ -206,9 +206,9 @@ tabControl.pack(expand=True, fill="both")  # Pack to make visible
 
 
 '''
-in_path = 'C:/Users/johan/Desktop/Resources/orthoJPEG.tif'
+in_path = 'C:/Users/johan/Desktop/test/ortho_june06.tif'
 tif_path_input.insert(0,in_path)
-out_path = 'C:/Users/johan/Desktop/Resources/Test/'
+out_path = 'C:/Users/johan/Desktop/test1'
 output_path_input.insert(0,out_path)
 '''
 
