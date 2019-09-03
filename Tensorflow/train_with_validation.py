@@ -70,7 +70,7 @@ def train_with_validation(project_dir,max_steps,stopping_criterion="f1"):
         
         predict.predict(project_dir,validation_images_folder,validation_folder,constants.prediction_tile_size,constants.prediction_overlap)
         
-        stats = custom_evaluations.evaluate(project_dir, validation_folder, evaluation_folder)
+        stats = custom_evaluations.evaluate(project_dir, validation_folder, evaluation_folder)["overall"]
         (precision,recall,mAP,f1) = get_precision_and_recall_from_stat(stats)
         precision_recall_list.append((precision,recall,mAP,f1,learning_rate))
         

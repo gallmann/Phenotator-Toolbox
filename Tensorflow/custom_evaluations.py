@@ -217,10 +217,11 @@ def evaluate(project_folder, input_folder, output_folder,iou_threshold=constants
     if should_print_confusion_matrix:
         print_confusion_matrix(confusion_matrix,labelmap)
     
-    return stat_overall
+    stats["overall"] = stat_overall
+    return stats
 
 
-def print_confusion_matrix(confusion_matrix, categories, percentage=False):
+def print_confusion_matrix(confusion_matrix, categories, percentage=True):
     """
     Prints the confusion matrix to the console in latex format
     
@@ -269,7 +270,7 @@ def print_confusion_matrix(confusion_matrix, categories, percentage=False):
             value = confusion_matrix[id_side][id_top]
             percentage_value = 0
             for c in categories:
-                percentage_value += confusion_matrix[id_side][c["id"]]
+                percentage_value += confusion_matrix[c["id"]][id_top]
             if percentage_value != 0:
                 percentage_value = value/percentage_value
             
