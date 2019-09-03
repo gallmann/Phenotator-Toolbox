@@ -1,5 +1,6 @@
 name: tf_gpu
 channels:
+  - https://repo.anaconda.com/pkgs/free
   - defaults
 dependencies:
   - _tflow_select=2.1.0=gpu
