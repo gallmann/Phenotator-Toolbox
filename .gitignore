@@ -108,3 +108,4 @@ Tensorflow/slim/nets/nasnet/__pycache__/
 Tensorflow/object_detection/anchor_generators/__pycache__/
 AnnotationTool/my-key.keystore
 AnnotationTool/app/release/
+Tensorflow/object_detection/metrics/__pycache__/

@@ -8,44 +8,16 @@ Created on Fri Jun  7 14:17:19 2019
 
 
 '''MOST IMPORTANT SETTINGS'''
-project_folder = "G:/Johannes/Experiments/104"
+project_folder = "INSERT PROJECT FOLDER PATH"
 pretrained_model_link = "http://download.tensorflow.org/models/object_detection/faster_rcnn_resnet101_coco_2018_01_28.tar.gz"
-#pretrained_model_link = "http://download.tensorflow.org/models/object_detection/ssd_inception_v2_coco_2018_01_28.tar.gz"
 
 
 '''image-preprocessing command parameters'''
-input_folders = ["G:/Johannes/Data//May_23/MaskedAnnotationData",
-                 "G:/Johannes/Data/June_06/MaskedAnnotationData",
-                 "G:/Johannes/Data/June_14/MaskedAnnotatedSquaresOnSingleImages",
-                 "G:/Johannes/Data/June_14/MaskedAnnotatedSingleOrthoPhotos",
-                 "G:/Johannes/Data/June_14/MaskedAnnotatedAdditionalRegions",
-                 "G:/Johannes/Data/June_14/MaskedAnnotationData",
-                 "G:/Johannes/Data/June_29/flight2/MaskedAnnotationData",
-                 "G:/Johannes/Data/July_03/MaskedAnnotatedSingleOrthoPhotos",
-                 "G:/Johannes/Data/July_03/MaskedAnnotationData"
-                 ]
+input_folders = []
 
-test_splits = [0.2,
-                        0.2,
-                        0.2,
-                        0.2,
-                        0.2,
-                        0.2,
-                        0.2,
-                        0.2,
-                        0.2,
-        ]
+test_splits = []
 
-validation_splits = [0.1,
-                        0.1,
-                        0.1,
-                        0.1,
-                        0.1,
-                        0.1,
-                        0.1,
-                        0.1,
-                        0.1,
-        ]
+validation_splits = []
 
 split_mode = "deterministic"
 train_tile_sizes =[450]
@@ -67,7 +39,7 @@ images_to_predict = project_folder + "/images/test_full_size"
 predictions_folder = project_folder + "/predictions"
 prediction_tile_size = 450
 prediction_overlap = 50
-min_confidence_score = 0.5 #also used by evaluate command
+min_confidence_score = 0.2 #also used by evaluate command
 visualize_predictions = True
 visualize_groundtruth = False
 visualize_name = False
@@ -88,7 +60,7 @@ clean_output_folder = True
 one_by_one = True
 
 '''prepare-for-tablet command parameters'''
-prepare_for_tablet_tile_size = 5000
+prepare_for_tablet_tile_size = 256
 
 
 '''generate-heatmap command parameters'''
