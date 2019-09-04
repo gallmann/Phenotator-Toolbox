@@ -40,7 +40,7 @@ def train_with_validation(project_dir,max_steps,stopping_criterion="f1"):
 
 
     images_folder = os.path.join(project_dir,"images")
-    validation_images_folder = os.path.join(images_folder,"validation_full_size")
+    validation_images_folder = os.path.join(images_folder,"validation")
     validation_folder = os.path.join(project_dir,"validation")
     evaluation_folder = os.path.join(validation_folder,"evaluation")
     training_folder = os.path.join(project_dir,"training")

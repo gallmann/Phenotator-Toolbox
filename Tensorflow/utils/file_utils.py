@@ -75,7 +75,7 @@ def get_all_images_in_folder(folder_path):
     if not os.path.isdir(folder_path):
         return images
     for file in os.listdir(folder_path):
-        if file.endswith(".png") or file.endswith(".jpg") or file.endswith(".tif"):
+        if file.lower().endswith(".png") or file.lower().endswith(".jpg") or file.lower().endswith(".tif"):
             images.append(os.path.join(folder_path, file))
     return images
 

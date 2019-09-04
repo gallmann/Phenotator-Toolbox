@@ -41,11 +41,13 @@ def class_text_to_weight(row_label, labels):
     Returns:
         float: The class weight used to write to the tfrecord file
     """
+    if(len(labels) == 1):
+        return 1
+    
     total_flower_count = 0
     for key, value in labels.items():
         total_flower_count += value
     weight = 1 - labels[row_label]/total_flower_count
-    
     #weight = 1
     return weight
 

@@ -223,8 +223,8 @@ def create_heatmap_internal(input_images, background_image, output_folder, heatm
                 heatmaps[name] = np.zeros((heatmap_size_y,heatmap_size_x))
             
             (center_x,center_y)=apply_annotations.translate_pixel_coordinates(center_x,center_y,height,width,image_coords,background_image_coords,background_height,background_width)
-            heatmap_y = int(math.ceil(center_y/stride))-1
-            heatmap_x = int(math.ceil(center_x/stride))-1
+            heatmap_y = round(center_y/stride)
+            heatmap_x = round(center_x/stride)
             if not apply_annotations.are_coordinates_within_image_bounds(heatmap_x,heatmap_y,heatmap_size_x,heatmap_size_y):
                 continue
             

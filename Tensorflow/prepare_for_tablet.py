@@ -25,7 +25,7 @@ from PIL import Image
 from concurrent.futures import ThreadPoolExecutor
 import time
 import signal                         
-
+from utils import file_utils
 
 stop = False
 
@@ -107,7 +107,7 @@ def preprocess_internal(in_path, out_path, tile_size = 256):
         image_array = ds.ReadAsArray().astype(np.uint8)
         image_array = np.swapaxes(image_array,0,1)
         image_array = np.swapaxes(image_array,1,2)
-    
+        file_utils.save_array_as_image(os.path.join(out_path,"image.png"),image_array)
 
     
         futures_list = []
