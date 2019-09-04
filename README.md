@@ -19,4 +19,4 @@ This folder contains all code of the command line tool. It is self contained mea
 For installation instructions refer to appendix B in the [thesis pdf](Documentation/MasterThesis.pdf).
 
 ## Usage
-For usage instructions for the command line tool refer to appendix C in the [thesis pdf](Documentation/MasterThesis.pdf) or to the [tutorial videos](Documentation/Tutorial Videos).
+For usage instructions for the command line tool refer to appendix C in the [thesis pdf](Documentation/MasterThesis.pdf) or to the [tutorial videos](Documentation/Tutorial_Videos).
