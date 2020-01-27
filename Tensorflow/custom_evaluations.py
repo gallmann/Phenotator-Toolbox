@@ -53,7 +53,9 @@ def evaluate(project_folder, input_folder, output_folder,iou_threshold=constants
     object_detection_evaluator = object_detection_evaluation.ObjectDetectionEvaluator(labelmap, matching_iou_threshold=iou_threshold,evaluate_precision_recall=True,use_weighted_mean_ap=False)
     confusion_matrix = np.zeros(shape=(len(flower_names) + 1, len(flower_names) + 1))
     log_file = os.path.join(output_folder,"results.txt")
-    
+    if os.path.exists(log_file):
+        os.remove(log_file)
+
     stats = {}
     for flower_name in flower_names:
         stats[flower_name] = {"tp": 0, "fp": 0, "fn": 0, "mAP": 0}
