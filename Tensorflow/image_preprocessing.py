@@ -40,9 +40,7 @@ import tarfile
 import shutil
 from object_detection.protos import preprocessor_pb2
 import numpy as np
-
-
-
+import colorsys
 
 
 def convert_annotation_folders(input_folders, test_splits, validation_splits, project_dir, tile_sizes, split_mode, min_flowers, overlap = 0, model_link=constants.pretrained_model_link,tensorflow_tile_size = constants.tensorflow_tile_size):
@@ -192,7 +190,6 @@ def tile_image_and_annotations(image_path, output_folder,labels,input_folder_ind
                 pad_end_y = tile_size - cropped_array.shape[0]
                 cropped_array = np.pad(cropped_array,((0,pad_end_y),(0,pad_end_x),(0,0)), mode='constant', constant_values=0)
                 tile = Image.fromarray(cropped_array)
-
                 #tile = image.crop((currentx,currenty,currentx + tile_size,currenty + tile_size))
                 output_image_path = os.path.join(output_folder, image_name + "_subtile_" + "x" + str(currentx) + "y" + str(currenty) + "size" + str(tile_size) + "_inputdir" + str(input_folder_index) + ".png")
                 tile.save(output_image_path,"PNG")
@@ -206,6 +203,54 @@ def tile_image_and_annotations(image_path, output_folder,labels,input_folder_ind
             currentx = 0
             counter = counter + 1
 
+
+
+def rgb2hsv(img):
+    if isinstance(img,Image.Image):
+        r,g,b = img.split()
+        Hdat = []
+        Sdat = []
+        Vdat = [] 
+        for rd,gn,bl in zip(r.getdata(),g.getdata(),b.getdata()) :
+            h,s,v = colorsys.rgb_to_hsv(rd/255.,gn/255.,bl/255.)
+            Hdat.append(int(h*255.))
+            Sdat.append(int(s*255.))
+            Vdat.append(int(v*255.))
+        r.putdata(Hdat)
+        g.putdata(Sdat)
+        b.putdata(Vdat)
+        return Image.merge('RGB',(r,g,b))
+    else:
+        return None
+
+def rgb2lab(image):
+    from colormath.color_objects import sRGBColor, LabColor
+    from colormath.color_conversions import convert_color
+    
+    out = Image.new('RGB', image.size, 0xffffff)
+    
+    width, height = image.size
+    for x in range(width):
+        for y in range(height):
+            r,g,b = image.getpixel((x,y))
+            if not r == 0 and not g == 0 and not b == 0:
+                rgb = sRGBColor(r, g, b, is_upscaled=True)
+                lab = convert_color(rgb, LabColor)
+                (l,a,b) = lab.get_value_tuple()
+                out.putpixel((x,y),(int(l)+128,int(a)+128,int(b)+128))
+    
+    return out
+
+
+def excess_green(image):
+    
+    out = Image.new('RGB', image.size, 0xffffff)
+    
+    width, height = image.size
+    for x in range(width):
+        for y in range(height):
+            r,g,b = image.getpixel((x,y))
+            out.putpixel((x,y),(2*g-r-b),0,0)
 
 
 def get_flowers_within_bounds(image_path, x_offset, y_offset, tile_size):
@@ -328,7 +373,8 @@ def split_train_dir(src_dir,dst_dir,labels, labels_dst,split_mode,input_folders,
                 if split_counter >= 1:
                     if full_size_splitted_dir:
                         original_image_name = os.path.join(input_folders[input_folder_index], image_name)
-                        copy(original_image_name,os.path.join(full_size_splitted_dir,"inputdir" + str(input_folder_index) + "_" +image_name))
+                        dest_path = os.path.join(full_size_splitted_dir,"inputdir" + str(input_folder_index) + "_" +image_name)
+                        copy(original_image_name,dest_path)
                         copy(original_image_name[:-4] + "_annotations.json",os.path.join(full_size_splitted_dir,"inputdir" + str(input_folder_index) + "_" +image_name[:-4] + "_annotations.json"))
 
                     for image_tile in images_in_current_folder:
@@ -567,26 +613,27 @@ def set_config_file_parameters(project_dir,num_classes,tensorflow_tile_size=900)
 
 
     #set data augmentation options
-    for i in range(len(pipeline_config.train_config.data_augmentation_options)):
-        pipeline_config.train_config.data_augmentation_options.pop()
+    if constants.data_augmentation_enabled:
+        for i in range(len(pipeline_config.train_config.data_augmentation_options)):
+            pipeline_config.train_config.data_augmentation_options.pop()
+        
+        d1 = pipeline_config.train_config.data_augmentation_options.add()
+        d1.random_vertical_flip.CopyFrom(preprocessor_pb2.RandomVerticalFlip()) 
+        
+        d1 = pipeline_config.train_config.data_augmentation_options.add()
+        d1.random_horizontal_flip.CopyFrom(preprocessor_pb2.RandomHorizontalFlip())  
+        
+        d1 = pipeline_config.train_config.data_augmentation_options.add()
+        d1.random_adjust_brightness.CopyFrom(preprocessor_pb2.RandomAdjustBrightness())  
     
-    d1 = pipeline_config.train_config.data_augmentation_options.add()
-    d1.random_vertical_flip.CopyFrom(preprocessor_pb2.RandomVerticalFlip()) 
-    
-    d1 = pipeline_config.train_config.data_augmentation_options.add()
-    d1.random_horizontal_flip.CopyFrom(preprocessor_pb2.RandomHorizontalFlip())  
-    
-    d1 = pipeline_config.train_config.data_augmentation_options.add()
-    d1.random_adjust_brightness.CopyFrom(preprocessor_pb2.RandomAdjustBrightness())  
-
-    d1 = pipeline_config.train_config.data_augmentation_options.add()
-    d1.random_adjust_contrast.CopyFrom(preprocessor_pb2.RandomAdjustContrast())  
-    
-    d1 = pipeline_config.train_config.data_augmentation_options.add()
-    d1.random_adjust_saturation.CopyFrom(preprocessor_pb2.RandomAdjustSaturation()) 
-    
-    d1 = pipeline_config.train_config.data_augmentation_options.add()
-    d1.random_jitter_boxes.CopyFrom(preprocessor_pb2.RandomJitterBoxes()) 
+        d1 = pipeline_config.train_config.data_augmentation_options.add()
+        d1.random_adjust_contrast.CopyFrom(preprocessor_pb2.RandomAdjustContrast())  
+        
+        d1 = pipeline_config.train_config.data_augmentation_options.add()
+        d1.random_adjust_saturation.CopyFrom(preprocessor_pb2.RandomAdjustSaturation()) 
+        
+        d1 = pipeline_config.train_config.data_augmentation_options.add()
+        d1.random_jitter_boxes.CopyFrom(preprocessor_pb2.RandomJitterBoxes()) 
 
     config_text = text_format.MessageToString(pipeline_config)                                                                                                                                                                                                        
     with tf.gfile.Open(project_dir + "/pre-trained-model/pipeline.config", "wb") as f:                                                                                                                                                                                                                       
