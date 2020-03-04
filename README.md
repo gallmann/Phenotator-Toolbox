@@ -1,4 +1,4 @@
-# Master Thesis
+# Phenotator-Toolbox
 
 This repository has the following four subfolders:
 
