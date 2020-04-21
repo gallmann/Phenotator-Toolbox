@@ -73,6 +73,7 @@ def get_color_for_index(index):
     #label = list(matplotlib.colors.cnames.keys())[index]
     #return label
 
+
 STANDARD_COLORS = [
     'AliceBlue', 'Chartreuse', 'Aqua', 'Aquamarine', 'Azure', 'Beige', 'Bisque',
     'BlanchedAlmond', 'BlueViolet', 'BurlyWood', 'CadetBlue', 'AntiqueWhite',
@@ -101,8 +102,8 @@ STANDARD_COLORS = [
 
 if __name__ == '__main__':
     
-    input_folder = constants.train_dir + "/images/train"
-    output_folder = constants.vis_im
-    
+    input_folder = "C:/Users/johan/Downloads/ETHZ/output"
+    output_folder = "C:/Users/johan/Downloads/ETHZ/bboxes"
+
     draw_bounding_boxes(input_folder,output_folder)
     
