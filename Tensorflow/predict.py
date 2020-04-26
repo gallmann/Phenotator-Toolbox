@@ -125,9 +125,18 @@ def predict(project_dir,images_to_predict,output_folder,tile_size,prediction_ove
                 extrema = cropped_im.convert("L").getextrema()
                 if extrema[0] == extrema[1]:
                     continue
-                #cropped_im.save("G:/Johannes/test/" + os.path.basename(image_path)[:-4] + "_" + str(x_start) + "_" + str(y_start) + ".png")
-                image_np = load_image_into_numpy_array(cropped_im)
-                output_dict = sess.run(tensor_dict,feed_dict={image_tensor: np.expand_dims(image_np, 0)})
+                
+                
+                
+                
+                
+                image_np = np.asarray(cropped_im)         
+                image_expand = np.expand_dims(image_np, 0)
+
+                
+                
+                
+                output_dict = sess.run(tensor_dict,feed_dict={image_tensor:image_expand})
                 output_dict = clean_output_dict(output_dict)
                 
 
