@@ -65,11 +65,12 @@ def evaluate(project_folder, input_folder, output_folder,iou_threshold=constants
     for i in progressbar.progressbar(range(len(images))):
         image_path = images[i]
         
-        predictions_path = image_path[:-4] + "_predictions.json"
-        ground_truth_path = image_path[:-4] + "_ground_truth.json"
+        predictions_path = image_path[:-4] + ".xml"
+        ground_truth_path = image_path[:-4] + "_ground_truth.xml"
         
-        predictions = file_utils.read_json_file(predictions_path)
-        ground_truths = file_utils.read_json_file(ground_truth_path)
+        
+        predictions = file_utils.get_annotations_from_xml(predictions_path)
+        ground_truths = file_utils.get_annotations_from_xml(ground_truth_path)
         
         if predictions == None:
             predictions = []

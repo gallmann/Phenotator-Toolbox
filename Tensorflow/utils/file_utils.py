@@ -127,19 +127,72 @@ def get_annotations_from_xml(xml_path):
                     left=right=top=bottom = 0
                     for bound in att:
                         if(bound.tag == "xmin"):
-                            left = int(bound.text)
+                            left = int(float(bound.text))
                         if(bound.tag == "ymin"):
-                            top = int(bound.text)
+                            top = int(float(bound.text))
                         if(bound.tag == "xmax"):
-                            right = int(bound.text)
+                            right = int(float(bound.text))
                         if(bound.tag == "ymax"):
-                            bottom = int(bound.text)
+                            bottom = int(float(bound.text))
                     flower["bounding_box"] = [top,left,bottom,right]
                     flower["isPolygon"] = True
                     polygon = [{"x":left, "y":top},{"x":right, "y":bottom}]
                     flower["polygon"] = polygon
+                if(att.tag == "score"):
+                    flower["score"] = float(att.text)
             annotations.append(flower)
     return annotations
+    
+    
+def save_annotations_to_xml(annotations, image_path, xml_path):
+    """Given a list of annotations, this function builds an xml tree from it and saves it to the xml_path
+
+    Parameters:
+        annotations (list): a list of flower dicts
+        image_path (str): the path of the corresponding image
+        xml_path (str): output path
+
+    Returns:
+        None
+    """
+
+    root = ET.Element("annotation")
+    
+    image = Image.open(image_path)
+    ET.SubElement(root, "filename").text = os.path.basename(image_path)
+    
+    width, height = image.size
+    size = ET.SubElement(root, "size")
+    ET.SubElement(size, "width").text = str(width)
+    ET.SubElement(size, "height").text = str(height)
+    
+    for annotation in annotations:
+        flower_name = flower_info.clean_string(annotation["name"])
+        
+        annotation_object = ET.SubElement(root, "object")
+        ET.SubElement(annotation_object, "name").text = flower_name
+        ET.SubElement(annotation_object, "pose").text = "Unspecified"
+        ET.SubElement(annotation_object, "truncated").text = str(0)
+        ET.SubElement(annotation_object, "difficult").text = str(0)            
+        bndbox = ET.SubElement(annotation_object, "bndbox")
+
+        [top,left,bottom,right] = annotation["bounding_box"]
+        ET.SubElement(bndbox, "xmin").text = str(int(left))
+        ET.SubElement(bndbox, "ymin").text = str(int(top))
+        ET.SubElement(bndbox, "xmax").text = str(int(right))
+        ET.SubElement(bndbox, "ymax").text = str(int(bottom))
+        
+        if "score" in annotation:
+            ET.SubElement(annotation_object, "score").text = str(annotation["score"])
+            
+
+            
+            
+        #visualization_utils.draw_bounding_box_on_image(image,y - bounding_box_size,x - bounding_box_size,y + bounding_box_size,x + bounding_box_size,display_str_list=(),thickness=1, use_normalized_coordinates=False)
+
+    #image.save(image_path)
+    tree = ET.ElementTree(root)
+    tree.write(xml_path)
 
     
 def get_annotations(image_path):

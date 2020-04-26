@@ -158,8 +158,9 @@ def predict(project_dir,images_to_predict,output_folder,tile_size,prediction_ove
         detections = eval_utils.non_max_suppression(detections,max_iou)
         
         print(str(len(detections)) + " flowers detected")
-        predictions_out_path = os.path.join(output_folder, os.path.basename(image_path)[:-4] + "_predictions.json")
-        file_utils.save_json_file(detections,predictions_out_path)
+        predictions_out_path = os.path.join(output_folder, os.path.basename(image_path)[:-4] + ".xml")
+        file_utils.save_annotations_to_xml(detections, image_path, predictions_out_path)
+        #file_utils.save_json_file(detections,predictions_out_path)
 
         #copy the ground truth annotations to the output folder if there is any ground truth
         ground_truth = get_ground_truth_annotations(image_path)
@@ -174,8 +175,10 @@ def predict(project_dir,images_to_predict,output_folder,tile_size,prediction_ove
                     else:
                         draw_bounding_box_onto_array(image_array,top,left,bottom,right)
 
-            ground_truth_out_path = os.path.join(output_folder, os.path.basename(image_path)[:-4] + "_ground_truth.json")
-            file_utils.save_json_file(ground_truth,ground_truth_out_path)
+            ground_truth_out_path = os.path.join(output_folder, os.path.basename(image_path)[:-4] + "_ground_truth.xml")
+            file_utils.save_annotations_to_xml(ground_truth, image_path, ground_truth_out_path)
+
+            #file_utils.save_json_file(ground_truth,ground_truth_out_path)
         
 
         for detection in detections:
