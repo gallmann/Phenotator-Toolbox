@@ -7,52 +7,9 @@ Created on Tue Apr  9 13:57:31 2019
 
 This file contains some helper functions to get the bounding box from an annotation.
 Please specify the radios (in px) of each flower species in the flower_bounding_box_size
-dictionary!
+dictionary in the constants.py file!
 """
-
-
-#Set the radius (not diameter) of each flower species
-flower_bounding_box_size = {
-        
-'Loewenzahn' : 6,
-'Margarite'   : 4,
-'achillea millefolium': 20,
-'anthyllis vulneraria'   : 16,
-'agrimonia eupatoria': 15,
-'carum carvi'   : 22,
-'centaurea jacea': 14,
-'cerastium caespitosum'   : 7,
-'crepis biennis'   : 17,
-'daucus carota': 23,
-'galium mollugo'   : 4,
-'knautia arvensis'   : 17,
-'medicago lupulina'   : 4,
-'leucanthemum vulgare'   : 20,
-'lotus corniculatus'   : 8,
-'lychnis flos cuculi'   : 15,
-'myosotis arvensis'   : 6,
-'onobrychis viciifolia'   : 10,
-'picris hieracioides': 13,
-'plantago lanceolata'   : 8,
-'plantago major'   : 11,
-'prunella vulgaris': 10,
-'ranunculus acris'   : 11,
-'ranunculus bulbosus'   : 11,
-'ranunculus friesianus'   : 11,
-'ranunculus'   : 11,
-'salvia pratensis'   : 15,
-'tragopogon pratensis'   : 17,
-'trifolium pratense'   : 10,
-'veronica chamaedris'   : 4,
-'vicia sativa'   : 6,
-'vicia sepium'   : 4,
-'dianthus carthusianorum': 11,
-'lathyrus pratensis' : 8,
-'leontodon hispidus' : 18,
-'rhinanthus alectorolophus': 20,
-'trifolium repens': 10,
-'orchis sp': 20
-}
+from utils import constants
 
 
 from matplotlib import colors
@@ -67,7 +24,7 @@ def get_bbox_size(flower_name):
     Returns:
         int: the standard radius of the particular flower
     """
-    return flower_bounding_box_size[flower_name]
+    return constants.flower_bounding_box_size[flower_name]
 
 def get_bbox(flower): 
     """
@@ -188,7 +145,7 @@ def get_color_for_flower(flower_name, get_rgb_value=False):
 
     flower_name = correct_spelling_errors(flower_name)
     return_color = STANDARD_COLORS[40]
-    for i,name in enumerate(flower_bounding_box_size):
+    for i,name in enumerate(constants.flower_bounding_box_size):
         if name == flower_name:
             return_color = STANDARD_COLORS[i]
             
@@ -245,6 +202,14 @@ def clean_string(s):
 
     s = correct_spelling_errors(s)    
     
+    for superclass in constants.flower_groups:
+        flower_array = constants.flower_groups[superclass]
+        for flower_name in flower_array:
+            if flower_name in s:
+                return superclass
+    
+    return s
+    '''
     #different types of ranunculus cannot be distinguished from the image alone, therefore 
     #just combine them to ranunculus
     if "ranunculus" in s:
@@ -260,6 +225,6 @@ def clean_string(s):
     else:
         return s
 
-
+    '''
 
 

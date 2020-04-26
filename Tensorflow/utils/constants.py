@@ -8,16 +8,43 @@ Created on Fri Jun  7 14:17:19 2019
 
 
 '''MOST IMPORTANT SETTINGS'''
-project_folder = "INSERT PROJECT FOLDER PATH"
+project_folder = "G:/Johannes/Experiments_clean/041"
 pretrained_model_link = "http://download.tensorflow.org/models/object_detection/faster_rcnn_resnet101_coco_2018_01_28.tar.gz"
 
 
 '''image-preprocessing command parameters'''
-input_folders = []
+input_folders = ["G:/Johannes/Data//May_23/MaskedAnnotationData",
+                 "G:/Johannes/Data/June_06/MaskedAnnotationData",
+                 "G:/Johannes/Data/June_14/MaskedAnnotatedSquaresOnSingleImages",
+                 "G:/Johannes/Data/June_14/MaskedAnnotatedSingleOrthoPhotos",
+                 "G:/Johannes/Data/June_14/MaskedAnnotatedAdditionalRegions",
+                 "G:/Johannes/Data/June_14/MaskedAnnotationData",
+                 "G:/Johannes/Data/June_29/flight2/MaskedAnnotationData",
+                 "G:/Johannes/Data/July_03/MaskedAnnotatedSingleOrthoPhotos",
+                 "G:/Johannes/Data/July_03/MaskedAnnotationData"
+                 ]
 
-test_splits = []
+test_splits = [0.2,
+                        0.2,
+                        0.2,
+                        0.2,
+                        0.2,
+                        0.2,
+                        0.2,
+                        0.2,
+                        0.2,
+        ]
 
-validation_splits = []
+validation_splits = [0.1,
+                        0.1,
+                        0.1,
+                        0.1,
+                        0.1,
+                        0.1,
+                        0.1,
+                        0.1,
+                        0.1,
+        ]
 
 split_mode = "deterministic"
 train_tile_sizes =[450]
@@ -27,7 +54,7 @@ min_flowers = 50 #minimum amount of flower instances to include species in train
 #choose a smaller tensorflow_tile_size if your gpu is not powerful enough to handle
 #900 x 900 pixel tiles
 tensorflow_tile_size = 900 
-
+data_augmentation_enabled = True
 
 '''train command parameters'''
 max_steps = 130000
@@ -69,3 +96,63 @@ max_val = None
 classes = None
 overlay = True
 output_image_width = 1000
+
+
+
+'''Set the radius (not diameter) of each flower species'''
+flower_bounding_box_size = {
+        
+'Loewenzahn' : 6,
+'Margarite'   : 4,
+'achillea millefolium': 20,
+'anthyllis vulneraria'   : 16,
+'agrimonia eupatoria': 15,
+'carum carvi'   : 22,
+'centaurea jacea': 14,
+'cerastium caespitosum'   : 7,
+'crepis biennis'   : 17,
+'daucus carota': 23,
+'galium mollugo'   : 4,
+'knautia arvensis'   : 17,
+'medicago lupulina'   : 4,
+'leucanthemum vulgare'   : 20,
+'lotus corniculatus'   : 8,
+'lychnis flos cuculi'   : 15,
+'myosotis arvensis'   : 6,
+'onobrychis viciifolia'   : 10,
+'picris hieracioides': 13,
+'plantago lanceolata'   : 8,
+'plantago major'   : 11,
+'prunella vulgaris': 10,
+'ranunculus acris'   : 11,
+'ranunculus bulbosus'   : 11,
+'ranunculus friesianus'   : 11,
+'ranunculus'   : 11,
+'salvia pratensis'   : 15,
+'tragopogon pratensis'   : 17,
+'trifolium pratense'   : 10,
+'veronica chamaedris'   : 4,
+'vicia sativa'   : 6,
+'vicia sepium'   : 4,
+'dianthus carthusianorum': 11,
+'lathyrus pratensis' : 8,
+'leontodon hispidus' : 18,
+'rhinanthus alectorolophus': 20,
+'trifolium repens': 10,
+'orchis sp': 20
+}
+
+
+flower_groups = {
+        
+    "ranunculus": ["ranunculus bulbosus", "ranunculus friesianus", "ranunculus acris"],
+    "lotus corniculatus": ["lotus corniculatus", "lathyrus pratensis"],
+    #"galium mollugo": ["galium mollugo","carum carvi", "achillea millefolium", "daucus carota"],
+    "galium mollugo": ["galium mollugo","carum carvi", "achillea millefolium", "daucus carota"],
+    "crepis biennis": ["crepis biennis", "leontodon hispidus", "tragopogon pratensis", "picris hieracioides"],
+    "centaurea jacea": ["centaurea jacea", "lychnis flos cuculi"]   
+    #"centaurea jacea": ["lychnis flos cuculi"]             
+}
+
+
+
