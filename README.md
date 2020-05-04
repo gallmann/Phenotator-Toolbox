@@ -16,4 +16,4 @@ This folder contains all code of the command line tool. It is self contained mea
 
 
 ## Installation and Usage
-For installation and usage instructions refer to the following document: [Phenotator-Toolbox%20(Object%20Detection).pdf](Documentation/Phenotator-Toolbox (Object Detection).pdf). Alternatively, the [tutorial videos](Documentation/Tutorial%20Videos) are a good starting point.
+For installation and usage instructions refer to the following document: [Documentation.pdf](Documentation/Documentation.pdf). Alternatively, the [tutorial videos](Documentation/Tutorial%20Videos) are a good starting point.
