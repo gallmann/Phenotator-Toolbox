@@ -208,6 +208,8 @@ def create_heatmap_internal(input_images, background_image, output_folder, heatm
         
         
         predictions = file_utils.read_json_file(image_path[:-4] + "_predictions.json")
+        predictions = file_utils.get_annotations_from_xml(image_path[:-4] + ".xml")
+
         if predictions == None:
             continue
         for prediction in predictions:

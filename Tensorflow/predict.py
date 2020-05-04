@@ -157,7 +157,7 @@ def predict(project_dir,images_to_predict,output_folder,tile_size,prediction_ove
                         
         detections = eval_utils.non_max_suppression(detections,max_iou)
         
-        print(str(len(detections)) + " flowers detected")
+        print(str(len(detections)) + " objects detected")
         predictions_out_path = os.path.join(output_folder, os.path.basename(image_path)[:-4] + ".xml")
         file_utils.save_annotations_to_xml(detections, image_path, predictions_out_path)
         #file_utils.save_json_file(detections,predictions_out_path)

@@ -119,10 +119,10 @@ def predict(project_dir,images_to_predict,predictions_folder,tile_size,predictio
 @click.option('--predictions-folder', default=constants.predictions_folder,type=click.Path(), help='The folder where the predictions were saved to.',show_default=True)
 @click.option('--evaluations-folder', default=constants.prediction_evaluation_folder,type=click.Path(), help='The folder where the evaluation results should be saved to.',show_default=True)
 @click.option('--iou-threshold', default=constants.iou_threshold,type=click.FloatRange(0, 1), help='Defines what is the minimum IoU (Intersection over Union) overlap to count a prediction as a True Positive.',show_default=True)
-@click.option('--generate-visualizations', default=False,type=bool, help='If True, the erroneous predictions will be printed onto the images and saved to the evaluations-folder',show_default=True)
-@click.option('--print-confusion-matrix', default=False,type=bool, help='If True, the confusion matrix will be printed to the console in latex table format.',show_default=True)
+@click.option('--generate-visualizations', default=constants.generate_visualizations,type=bool, help='If True, the erroneous predictions will be printed onto the images and saved to the evaluations-folder',show_default=True)
+@click.option('--print-confusion-matrix', default=constants.print_confusion_matrix,type=bool, help='If True, the confusion matrix will be printed to the console in latex table format.',show_default=True)
 @click.option('--min-score', default=constants.min_confidence_score,type=float, help='The minimum score a prediction must have to be included in the evaluation',show_default=True)
-@click.option('--visualize-info', default=False,type=bool, help='If True, in addition to the bounding boxes, info about the mispredictions is painted above the boxes.',show_default=True)
+@click.option('--visualize-info', default=constants.visualize_info,type=bool, help='If True, in addition to the bounding boxes, info about the mispredictions is painted above the boxes.',show_default=True)
 def evaluate(project_dir,predictions_folder,evaluations_folder,iou_threshold,generate_visualizations,print_confusion_matrix,min_score,visualize_info):
     """
         If the images on which the predictions algorithm was run on had groundtruth information,
@@ -241,7 +241,7 @@ def export_annotations(annotation_folder,output_folder):
 @click.argument('output-folder', type=click.Path())
 @click.option('--heatmap-width', default=constants.heatmap_width,type=int, help='Defines the the number of pixels the heatmap will have on the x axis. The height of the heatmap is chosen such that the width/height ratio is preserved. This heatmap will finally be resized to the size of the input (or background) image.',show_default=True)
 @click.option('--max-val', default=constants.max_val, type=int, help='If defined, it denotes the maximum value of the heatmap, meaning that all values in the heatmap that are larger than this max_val will be painted as red.',show_default=True)
-@click.option('--flower', default=constants.classes, multiple=True, type=str, help='For which class the heatmap should be generated. If None is provided, only the overall heatmap for all classes is generated. This flag can be defined multiple times.',show_default=True)
+@click.option('--classname', default=constants.classes, multiple=True, type=str, help='For which class the heatmap should be generated. If None is provided, only the overall heatmap for all classes is generated. This flag can be defined multiple times.',show_default=True)
 @click.option('--min-score', default=constants.min_confidence_score,type=float, help='The minimum score a prediction must have to be included in the heatmap.',show_default=True)
 @click.option('--overlay', default=constants.overlay,type=bool, help='If True, the heatmap is drawn onto a copy of the input image. Otherwise it is drawn without any background.',show_default=True)
 @click.option('--output-image-width', default=constants.output_image_width,type=int, help='The width of the output image, the height is resized such that the width/height ratio is preserved.',show_default=True)
@@ -249,7 +249,7 @@ def export_annotations(annotation_folder,output_folder):
 @click.option('--background-image', default=None,type=click.Path(), help='The path to the image that should be used as background for the heatmap. (The background can still be deactivated with the --overlay flag but it needs to be provided as a frame for the heatmap.) If generate-from-multiple is set to False, this option is ignored.',show_default=True)
 @click.option('--window', default=None,type=float, help='Four float values indicating the [ulx, uly, lrx, lry] coordinates in the swiss coordinate system LV95+ of the area that should be used for the heatmap.',show_default=True,nargs=4)
 @click.option('--with-colorbar', default=True,type=bool, help='If True, a colorbar will be printed onto the output image.',show_default=True)
-def generate_heatmaps(predictions_folder, background_image, output_folder, heatmap_width, max_val ,flower , min_score, overlay, output_image_width, generate_from_multiple,window,with_colorbar):
+def generate_heatmaps(predictions_folder, background_image, output_folder, heatmap_width, max_val ,classname , min_score, overlay, output_image_width, generate_from_multiple,window,with_colorbar):
     """
     Creates heatmaps for all images in the predictions_folder and saves them to
     the output_folder. If the --generate-from-multiple flag is set to True and 
@@ -263,10 +263,10 @@ def generate_heatmaps(predictions_folder, background_image, output_folder, heatm
     import create_heatmap
     if generate_from_multiple:
         if check_inputs(folders=[predictions_folder,output_folder], files=[background_image]):
-            create_heatmap.create_heatmap_from_multiple(predictions_folder, background_image, output_folder, heatmap_width, max_val ,flower, min_score, overlay, output_image_width,window,with_colorbar)
+            create_heatmap.create_heatmap_from_multiple(predictions_folder, background_image, output_folder, heatmap_width, max_val ,classname, min_score, overlay, output_image_width,window,with_colorbar)
     else:
         if check_inputs(folders=[predictions_folder,output_folder]):
-            create_heatmap.create_heatmap(predictions_folder, output_folder, heatmap_width, max_val ,flower, min_score, overlay, output_image_width,window,with_colorbar)
+            create_heatmap.create_heatmap(predictions_folder, output_folder, heatmap_width, max_val ,classname, min_score, overlay, output_image_width,window,with_colorbar)
         
         
         

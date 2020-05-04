@@ -22,6 +22,7 @@ import numpy as np
 from object_detection.utils import object_detection_evaluation
 from object_detection.core import standard_fields
 from utils import eval_utils
+import pandas as pd
 
 
 
@@ -219,13 +220,14 @@ def evaluate(project_folder, input_folder, output_folder,iou_threshold=constants
     print_stats(stat_overall,"Overall",log_file)
     
     if should_print_confusion_matrix:
-        print_confusion_matrix(confusion_matrix,labelmap)
+        print_confusion_matrix(confusion_matrix,labelmap,log_file)
+        print(confusion_matrix)
     
     stats["overall"] = stat_overall
     return stats
 
 
-def print_confusion_matrix(confusion_matrix, categories, percentage=True):
+def print_confusion_matrix(confusion_matrix, categories, log_file, percentage=True):
     """
     Prints the confusion matrix to the console in latex format
     
@@ -237,8 +239,6 @@ def print_confusion_matrix(confusion_matrix, categories, percentage=True):
         None
     """
     
-    
-    
 
     def short_name(name):
         if " " in name:
@@ -248,21 +248,31 @@ def print_confusion_matrix(confusion_matrix, categories, percentage=True):
         else:
             return name
     
-    log("\nConfusion Matrix:")
     categories = sorted(categories, key = lambda i: i['name'])
     categories.append({"id":0, "name":"background"})
+    
+    cat_names = []
+    for cat in categories:
+        cat_names.append(cat["name"])
+    
+    log("\nConfusion Matrix:", log_file)
+    df = pd.DataFrame(confusion_matrix, columns=cat_names, index=cat_names)
+    log(str(df),log_file)
+    
     
     '''
     for category in categories:
         if category["id"] == 15 or category["id"] == 16:
             categories.remove(category)
     '''        
-            
+    
+    log("\nConfusion Matrix Latex Format:", log_file)
+  
     top_line = ""
     for category in categories:
         top_line += " & \\rotatebox[origin=c]{90}{\\textbf{" + short_name(category["name"]) + "}}"
-    log(top_line + "\\\\")
-    log("\\hline")
+    log(top_line + "\\\\",log_file)
+    log("\\hline",log_file)
     
     
     for category_side in categories:
@@ -304,7 +314,7 @@ def print_confusion_matrix(confusion_matrix, categories, percentage=True):
             
             
         line_string += " \\\\"
-        log(line_string)
+        log(line_string,log_file)
 
     
 

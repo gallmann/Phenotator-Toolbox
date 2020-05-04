@@ -13,14 +13,14 @@ pretrained_model_link = "http://download.tensorflow.org/models/object_detection/
 
 
 '''image-preprocessing command parameters'''
-input_folders = ["G:/Johannes/ObjectDetectionDemo/src_images"]
+input_folders = ["G:/Johannes/Ear"]
 
 test_splits = [0.1]
 
 validation_splits = [0.1]
 
 split_mode = "random"
-train_tile_sizes =[450]
+train_tile_sizes =[900]
 train_overlap = 50
 min_flowers = 5 #minimum amount of flower instances to include species in training
 #All images will be resized to tensorflow_tile_size x tensorflow_tile_size tiles
@@ -36,21 +36,23 @@ model_selection_criterion = "f1" #also used for export-inference-graph command
 
 '''predict command parameters'''
 images_to_predict = project_folder + "/images/test"
-predictions_folder = project_folder + "/predictions"
-prediction_tile_size = 1024
-prediction_overlap = 50
+predictions_folder = project_folder + "/predictions" #also used by evaluate command
+prediction_tile_size = 900
+prediction_overlap = 100
 min_confidence_score = 0.2 #also used by evaluate command
 visualize_predictions = True
 visualize_groundtruth = False
 visualize_name = False
-visualize_score = False
+visualize_score = True
 max_iou = 0.3
 
 
 '''evaluate cmomand parameters'''
 prediction_evaluation_folder = predictions_folder + "/evaluations"
 iou_threshold = 0.3
-
+generate_visualizations = False
+print_confusion_matrix = True
+visualize_info = True
 
 '''visualization command parameters'''
 visualize_bounding_boxes_with_name = True
