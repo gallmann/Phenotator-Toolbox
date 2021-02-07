@@ -33,7 +33,7 @@ def get_height_width_of_image(image_path):
 
 
 
-def create_heatmap_from_multiple(predictions_folder, background_image, output_folder, heatmap_width=100, max_val=None ,flower_list=None, min_score=0.5, overlay=True, output_image_width=1000, window=None, with_colorbar=True):
+def create_heatmap_from_multiple(predictions_folder, background_image, output_folder, heatmap_width=100, max_val=None ,flower_list=None, min_score=0.5, overlay=True, output_image_width=1000, window=None, with_colorbar=True,create_tif=False):
     """
     Creates heatmaps for the background_image using all georeferenced images in the
     predictions_folder and saves them to the output_folder. The input images must
@@ -68,12 +68,12 @@ def create_heatmap_from_multiple(predictions_folder, background_image, output_fo
     
     """
     all_images = file_utils.get_all_images_in_folder(predictions_folder)
-    create_heatmap_internal(all_images, background_image, output_folder, heatmap_width, max_val, flower_list, min_score, overlay, output_image_width, window,with_colorbar)
+    create_heatmap_internal(all_images, background_image, output_folder, heatmap_width, max_val, flower_list, min_score, overlay, output_image_width, window,with_colorbar, create_tif)
 
 
 
 
-def create_heatmap(predictions_folder, output_folder, heatmap_width=100, max_val=None ,flower_list=None, min_score=0.5, overlay=True, output_image_width=1000,window=None,with_colorbar=True):
+def create_heatmap(predictions_folder, output_folder, heatmap_width=100, max_val=None ,flower_list=None, min_score=0.5, overlay=True, output_image_width=1000,window=None,with_colorbar=True, create_tif=False):
     """
     Creates heatmaps for all images in the predictions_folder and saves them to
     the output_folder.
@@ -107,14 +107,14 @@ def create_heatmap(predictions_folder, output_folder, heatmap_width=100, max_val
     
     all_images = file_utils.get_all_images_in_folder(predictions_folder)
     for image_path in all_images:
-        create_heatmap_internal([image_path], image_path, output_folder, heatmap_width, max_val, flower_list, min_score, overlay, output_image_width, window,with_colorbar)
+        create_heatmap_internal([image_path], image_path, output_folder, heatmap_width, max_val, flower_list, min_score, overlay, output_image_width, window,with_colorbar,create_tif)
     return
     
     
     
     
 
-def create_heatmap_internal(input_images, background_image, output_folder, heatmap_width=100, max_val=None ,flower_list=None, min_score=0.5, overlay=True, output_image_width=1000, window=None,with_colorbar=True):
+def create_heatmap_internal(input_images, background_image, output_folder, heatmap_width=100, max_val=None ,flower_list=None, min_score=0.5, overlay=True, output_image_width=1000, window=None,with_colorbar=True, create_tif=False):
     """
     Creates heatmaps for the background_image using all georeferenced images in the
     predictions_folder and saves them to the output_folder. The input images must
@@ -208,7 +208,7 @@ def create_heatmap_internal(input_images, background_image, output_folder, heatm
         
         
         predictions = file_utils.read_json_file(image_path[:-4] + "_predictions.json")
-        predictions = file_utils.get_annotations_from_xml(image_path[:-4] + ".xml")
+        #predictions = file_utils.get_annotations_from_xml(image_path[:-4] + ".xml")
 
         if predictions == None:
             continue
@@ -239,7 +239,7 @@ def create_heatmap_internal(input_images, background_image, output_folder, heatm
             
             
     coverage_out_path = output_image[:-4] + "_coverage.png"
-    save_heatmap_as_image(coverage_counter,coverage_out_path,background, output_image_width,None,with_colorbar)
+    save_heatmap_as_image(coverage_counter,coverage_out_path,background_image, background, output_image_width,None,with_colorbar, create_tif)
 
 
     for heatmap_name in heatmaps:
@@ -252,12 +252,17 @@ def create_heatmap_internal(input_images, background_image, output_folder, heatm
         heatmap = np.divide(heatmap,coverage_counter)
         
         print(heatmap_name + ": " + str(np.sum(heatmap)))
-        save_heatmap_as_image(heatmap,out_path,background, output_image_width,max_val,with_colorbar)
+        save_heatmap_as_image(heatmap,out_path,background_image,background, output_image_width,max_val,with_colorbar, create_tif)
 
-                
+          
+
+        
 
 
-def save_heatmap_as_image(heatmap,output_path,background_image=None, output_image_width=1000, max_val=None,with_colorbar=True):
+
+
+
+def save_heatmap_as_image(heatmap,output_path,background_image_path, background_image=None, output_image_width=1000, max_val=None,with_colorbar=True, create_tif=False):
     """
     Saves a heatmap numpy array as an image.
     
@@ -314,9 +319,12 @@ def save_heatmap_as_image(heatmap,output_path,background_image=None, output_imag
     newIm.save(output_path)
     
     
-    
-    #save with colorbar  
-        
+    if (create_tif):
+        scale_image(background_image_path,output_path[:-4] + "_tif.tif", width)
+        save_array_as_image(output_path[:-4] + "_tif.tif", image_array)
+
+
+    #save with colorbar
 
     if with_colorbar:
         plt.figure(figsize = (output_image_width/300,int(output_image_width/width*height)/300))
@@ -346,6 +354,32 @@ def save_heatmap_as_image(heatmap,output_path,background_image=None, output_imag
         #file_utils.save_array_as_image(output_path,image_array)
     
     
+    
+    
+    
+    
+def save_array_as_image(image_path,image_array, tile_size = None):
+
+    image_array = image_array.astype(np.uint8)
+    if not image_path.endswith(".png") and not image_path.endswith(".jpg") and not image_path.endswith(".tif"):
+        print("Error! image_path has to end with .png, .jpg or .tif")
+    height = image_array.shape[0]
+    width = image_array.shape[1]
+
+    gdal.AllRegister()
+    driver = gdal.GetDriverByName( 'MEM' )
+    ds1 = gdal.Open(image_path)
+    ds = driver.CreateCopy(image_path, ds1, 0)
+
+    image_array = np.swapaxes(image_array,2,1)
+    image_array = np.swapaxes(image_array,1,0)
+    ds.GetRasterBand(1).WriteArray(image_array[0], 0, 0)
+    ds.GetRasterBand(2).WriteArray(image_array[1], 0, 0)
+    ds.GetRasterBand(3).WriteArray(image_array[2], 0, 0)
+
+    gdal.Translate(image_path,ds, options=gdal.TranslateOptions(bandList=[1,2,3], format="png"))
+
+
 
 def scale_image(image_to_scale, image_output_path, new_width=1000, window=None):
     """
@@ -373,7 +407,7 @@ def scale_image(image_to_scale, image_output_path, new_width=1000, window=None):
     band = ds.GetRasterBand(1)
     width = band.XSize
     height = band.YSize
-    new_height = int(new_width/width*height)
+    new_height = int(math.ceil(new_width*1.0/width*height))
     
     gdal.Translate(image_output_path,ds, options=gdal.TranslateOptions(width=int(new_width),height=int(new_height)))
     
