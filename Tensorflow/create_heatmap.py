@@ -377,7 +377,7 @@ def save_array_as_image(image_path,image_array, tile_size = None):
     ds.GetRasterBand(2).WriteArray(image_array[1], 0, 0)
     ds.GetRasterBand(3).WriteArray(image_array[2], 0, 0)
 
-    gdal.Translate(image_path,ds, options=gdal.TranslateOptions(bandList=[1,2,3], format="png"))
+    gdal.Translate(image_path,ds, options=gdal.TranslateOptions(bandList=[1,2,3], format="GTiff"))
 
 
 
